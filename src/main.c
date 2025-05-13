@@ -41,6 +41,9 @@
 #ifdef LA9310_DFE_APP
     #include "dfe_app.h"
 #endif
+#ifdef LMS7002M_CLOCK
+    extern int initialize_lms7002m_clock_generator();
+#endif
 #ifdef LA9310_ENABLE_COMMAND_LINE
     #include "UARTCommandConsole.h"
     #define mainUART_COMMAND_CONSOLE_STACK_SIZE       ( configMINIMAL_STACK_SIZE * 2 )
@@ -217,6 +220,10 @@ int iLa9310HostPreInit( struct la9310_info * pLa9310Info )
     vVSPAMboxInit();
 
     // I2C already initialized in vBoardEarlyInit()
+#ifdef LMS7002M_CLOCK
+    if (initialize_lms7002m_clock_generator())
+        log_err( "Failed to configure LMS7002M clock\n");
+#endif
 out:
     return irc;
 }

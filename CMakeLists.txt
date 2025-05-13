@@ -18,7 +18,7 @@ if (NOT CMAKE_TOOLCHAIN_FILE)
     include(cmake/toolchain/armgcc.cmake)
 endif()
 
-set(LIMESUITENG_ROOT "${PROJECT_SOURCE_DIR}/limesuiteng")
+set(LIMESUITENG_ROOT "${PROJECT_SOURCE_DIR}/LimeSuiteNG")
 message(STATUS "LIMESUITENG_ROOT: ${LIMESUITENG_ROOT}")
 
 set(FREERTOS_DIR "${PROJECT_SOURCE_DIR}/la93xx_freertos/FreeRTOS-Kernel")

@@ -44,6 +44,21 @@ option(LA9310_DFE_APP "Enable DFE application" ON)
 option(LA9310_1SEC_PPS "Enable pulse per second handling" OFF)
 option(LA9310_CONSECUTIVE_S_SLOTS "Enable LA9310_CONSECUTIVE_S_SLOTS" OFF)
 option(RFIC "" OFF)
+option(LMS7002M_CLOCK "Configure LMS7002M clock generator to 160MHz" ON)
+
+if(LMS7002M_CLOCK)
+    target_compile_definitions(la9310 PUBLIC "-DLMS7002M_CLOCK")
+    target_sources(la9310 PRIVATE
+        "${LIMESUITENG_ROOT}/embedded/lms7002m/calibrations.c"
+        "${LIMESUITENG_ROOT}/embedded/lms7002m/lms7002m.c"
+        "${LIMESUITENG_ROOT}/embedded/lms7002m/privates.c"
+        "${LIMESUITENG_ROOT}/embedded/lms7002m/save_state.c"
+        "${LIMESUITENG_ROOT}/embedded/lms7002m/spi.c"
+        "lms7002m_init.c"
+    )
+    target_include_directories(la9310 PRIVATE "${LIMESUITENG_ROOT}/embedded/include")
+    target_include_directories(la9310 PRIVATE "${LIMESUITENG_ROOT}/embedded")
+endif()
 
 if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     set(LA9310_COMMAND_LINE ON)
@@ -195,6 +210,7 @@ add_feature_info("LA9310_1SEC_PPS" LA9310_1SEC_PPS "Enable pulse per second hand
 add_feature_info("LA9310_DFE_APP" LA9310_DFE_APP "")
 add_feature_info("LA9310_CONSECUTIVE_S_SLOTS" LA9310_CONSECUTIVE_S_SLOTS "")
 add_feature_info("RFIC" RFIC "")
+add_feature_info("LMS7002M_CLOCK" LMS7002M_CLOCK "LMS7002M 160MHz clock output ")
 
 #########################################################################
 # summary
