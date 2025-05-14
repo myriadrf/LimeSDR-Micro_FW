@@ -198,7 +198,7 @@ add_custom_target(la9310_hex ALL
     COMMENT "Generating .HEX file"
 )
 add_custom_target(la9310_bin ALL
-    COMMAND ${CMAKE_OBJCOPY} -Oihex "$<TARGET_FILE:la9310>" "${MEMORY_MAP_FILENAME}.bin"
+    COMMAND ${CMAKE_OBJCOPY} -Obinary "$<TARGET_FILE:la9310>" "${MEMORY_MAP_FILENAME}.bin"
     BYPRODUCTS "${MEMORY_MAP_FILENAME}.bin"
     DEPENDS la9310
     COMMENT "Generating .BIN file"
