@@ -3,4 +3,4 @@
 	url = https://github.com/nxp-qoriq/la93xx_freertos
 [submodule "LimeSuiteNG"]
 	path = LimeSuiteNG
-	url = https://github.com/myriadrf/LimeSuiteNG
+	url = ssh://git@github.com/myriadrf/LimeSuiteNG-INTERNAL
