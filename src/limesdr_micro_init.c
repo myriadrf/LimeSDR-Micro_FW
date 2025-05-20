@@ -8,6 +8,8 @@
 #include "lms7002m/spi.h"
 #include "lms7002m/csr_data.h"
 
+struct LA931xDspiInstance *lmsspihandle = NULL;
+
 // ARM bare metal does not have usleep(), it's used within lms7002m procedures
 void usleep(int microSeconds)
 {
@@ -24,7 +26,7 @@ static int i2c_read8(int module, uint32_t i2c_moduleAddress, uint8_t addr, uint8
     return iLa9310_I2C_Read(module, i2c_moduleAddress, addr, LA9310_I2C_DEV_OFFSET_LEN_1_BYTE, value, 1);
 }
 
-static int32_t spi_lms7002m_write( struct LA931xDspiInstance * pDspiHandle,
+int32_t spi_lms7002m_write( struct LA931xDspiInstance * pDspiHandle,
                                  uint16_t addr,
                                  uint16_t value )
 {
@@ -50,7 +52,7 @@ static int32_t spi_lms7002m_write( struct LA931xDspiInstance * pDspiHandle,
     return iRet;
 }
 
-static int32_t spi_lms7002m_read( struct LA931xDspiInstance * pDspiHandle,
+int32_t spi_lms7002m_read( struct LA931xDspiInstance * pDspiHandle,
                                 uint16_t addr,
                                 uint16_t *value )
 {
@@ -198,9 +200,8 @@ int initialize_lms7002m_clock_generator()
     log_info("lime spi/lms7002m config start\n\r");
 
     // Initialize DSPI Handler
-    struct LA931xDspiInstance *pDspiHandle = NULL;
-    pDspiHandle = pxDspiInit( ( ( 1 << DSPI_CS0 ) ), 1000000 );
-    if (pDspiHandle == NULL)
+    lmsspihandle = pxDspiInit( ( ( 1 << DSPI_CS0 ) ), 1000000 );
+    if (lmsspihandle == NULL)
     {
         *(int*)0x41E00200=0xDEADBEEF;
         while((*(int*)0x41E00200)==0xDEADBEEF){};
@@ -209,7 +210,7 @@ int initialize_lms7002m_clock_generator()
     struct lms7002m_hooks hooks;
     memset(&hooks, 0, sizeof(hooks));
 
-    hooks.spi16_userData = pDspiHandle;
+    hooks.spi16_userData = lmsspihandle;
     hooks.spi16_transact = spi16_transact;
 
     struct lms7002m_context* rfsoc = lms7002m_create(&hooks);

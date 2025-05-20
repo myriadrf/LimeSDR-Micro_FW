@@ -43,6 +43,7 @@
 #endif
 #ifdef LMS7002M_CLOCK
     extern int initialize_lms7002m_clock_generator();
+    extern int LMS64C_protocol_init(void);
 #endif
 #ifdef LA9310_ENABLE_COMMAND_LINE
     #include "UARTCommandConsole.h"
@@ -432,6 +433,12 @@ int iInitHandler ( void )
             goto out;
     }
 #endif
+    if (LMS64C_protocol_init() != 0)
+    {
+         log_err( "sw cmd LMS64C_protocol_init init failed\r\n" );
+        irc = FAILURE;
+        goto out;
+    }
 #ifdef __RFIC
     if( pdTRUE != iRficInit( pLa9310Info ))
     {
