@@ -173,6 +173,7 @@ int initialize_lms7002m_clock_generator()
         // IC15, set I2C_SDA_SEL to direct I2C to LA_I2C_SDA0 (IC30)
         uint8_t gpb = 0;
         gpb |= (1 << 3); // I2C_SDA_SEL: 0-IC26, 1-IC30
+        gpb |= (1 << 2); // RX_SW3
         i2c_write8(LA9310_FSL_I2C1, i2c_expander_addr, 0x19, gpb);
 
         // IC30 configuration
@@ -214,8 +215,33 @@ int initialize_lms7002m_clock_generator()
     hooks.spi16_transact = spi16_transact;
 
     struct lms7002m_context* rfsoc = lms7002m_create(&hooks);
-    lime_Result result = lms7002m_set_frequency_cgen(rfsoc, 160000000); // with default settings, will configure 160MHz TxTSPCLKA, and 40MHz RxTSPCLKA
-    lms7002m_spi_modify_csr(rfsoc, LMS7002M_MCLK1SRC, 0x2); // switch MCLK1 clock source to TxTSPCLKA
+    lime_Result result = lms7002m_set_frequency_cgen(rfsoc, 640000000); // with default settings, will configure 160MHz TxTSPCLKA, and 40MHz RxTSPCLKA
+    lms7002m_spi_modify_csr(rfsoc, LMS7002M_EN_ADCCLKH_CLKGN, 0x0); // FCLKH to ADC
+    lms7002m_spi_modify_csr(rfsoc, LMS7002M_CLKH_OV_CLKL_CGEN, 0x2);
+    lms7002m_spi_modify_csr(rfsoc, LMS7002M_MCLK1SRC, 0x3); // switch MCLK1 clock source to RxTSPCLKA
+
+    const uint16_t defaults[] = {
+    // { 0x0082, 0x803E }, // Power down AFE ADCs/DACs
+     0x0020, 0xFFFD ,
+     0x00A6, 0x000F ,
+     0x010A, 0xD54C ,
+     0x010C, 0x8865 ,
+     0x010D, 0x011A ,
+     0x010F, 0x3142 ,
+     0x0110, 0x2B14 ,
+     0x0111, 0x0000 ,
+     0x0112, 0x000C ,
+     0x0115, 0x000D ,
+     0x0118, 0x418C ,
+     0x0119, 0xD28C ,
+     0x0120, 0x29DC ,
+    };
+
+    for (int i=0; i<sizeof(defaults)/4; ++i)
+        lms7002m_spi_write(rfsoc, defaults[i*2], defaults[i*2+1]);
+
+    lms7002m_spi_write(rfsoc, 0x0200, 0xabcd);
+
     lms7002m_destroy(rfsoc);
     log_info("lime spi/lms7002m config end\n\r");
     return result != lime_Result_Success;

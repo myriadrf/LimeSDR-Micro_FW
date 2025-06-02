@@ -433,12 +433,14 @@ int iInitHandler ( void )
             goto out;
     }
 #endif
+#ifdef LMS7002M_CLOCK
     if (LMS64C_protocol_init() != 0)
     {
          log_err( "sw cmd LMS64C_protocol_init init failed\r\n" );
         irc = FAILURE;
         goto out;
     }
+#endif
 #ifdef __RFIC
     if( pdTRUE != iRficInit( pLa9310Info ))
     {
