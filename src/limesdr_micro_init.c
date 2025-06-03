@@ -16,12 +16,12 @@ void usleep(int microSeconds)
 	vUDelay(microSeconds);
 }
 
-static int i2c_write8(int module, uint32_t i2c_moduleAddress, uint8_t addr, uint8_t value)
+int i2c_write8(int module, uint32_t i2c_moduleAddress, uint8_t addr, uint8_t value)
 {
     return iLa9310_I2C_Write(module, i2c_moduleAddress, addr, LA9310_I2C_DEV_OFFSET_LEN_1_BYTE, &value, 1);
 }
 
-static int i2c_read8(int module, uint32_t i2c_moduleAddress, uint8_t addr, uint8_t *value)
+int i2c_read8(int module, uint32_t i2c_moduleAddress, uint8_t addr, uint8_t *value)
 {
     return iLa9310_I2C_Read(module, i2c_moduleAddress, addr, LA9310_I2C_DEV_OFFSET_LEN_1_BYTE, value, 1);
 }
@@ -239,8 +239,6 @@ int initialize_lms7002m_clock_generator()
 
     for (int i=0; i<sizeof(defaults)/4; ++i)
         lms7002m_spi_write(rfsoc, defaults[i*2], defaults[i*2+1]);
-
-    lms7002m_spi_write(rfsoc, 0x0200, 0xabcd);
 
     lms7002m_destroy(rfsoc);
     log_info("lime spi/lms7002m config end\n\r");
