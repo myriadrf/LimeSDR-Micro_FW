@@ -41,9 +41,6 @@ SET(CMAKE_ASM_FLAGS_DEBUG "${CMAKE_ASM_FLAGS_DEBUG}  -D__DEBUG")
 
 option(LA9310_COMMAND_LINE "Enable LA9310 command line interface" ON)
 option(LA9310_DFE_APP "Enable DFE application" ON)
-option(LA9310_1SEC_PPS "Enable pulse per second handling" OFF)
-option(LA9310_CONSECUTIVE_S_SLOTS "Enable LA9310_CONSECUTIVE_S_SLOTS" OFF)
-option(RFIC "" OFF)
 option(LMS7002M_CLOCK "Configure LMS7002M clock generator to 160MHz" ON)
 
 if(LMS7002M_CLOCK)
@@ -79,25 +76,11 @@ if(LA9310_DFE_APP)
     endif()
 endif()
 
-if(LA9310_1SEC_PPS)
-    target_compile_definitions(la9310 PUBLIC "-DLA9310_1SEC_PPS")
-endif()
-
-if(LA9310_CONSECUTIVE_S_SLOTS)
-    target_compile_definitions(la9310 PUBLIC "-DDFE_CONSECUTIVE_S_SLOTS_WA")
-endif()
-
-if(RFIC)
-    target_compile_definitions(la9310 PUBLIC "-D__RFIC")
-    target_include_directories(la9310 PRIVATE drivers/rfic)
-endif()
-
 if(LA9310_COMMAND_LINE)
     target_compile_definitions(la9310 PUBLIC "-DLA9310_ENABLE_COMMAND_LINE")
     target_include_directories(la9310 PRIVATE utils/FreeRTOS-Plus-CLI)
     target_sources(la9310 PRIVATE
         "utils/FreeRTOS-Plus-CLI/FreeRTOS_CLI.c"
-        "utils/la9310_nlm_test_command.c"
         "utils/UARTCommandConsole.c"
         "drivers/timesync/sync_timing_device_cli.c"
     )
@@ -157,28 +140,8 @@ target_sources(la9310 PRIVATE
     "drivers/dcs/la9310_dcs.c"
 )
 
-if(RFIC)
-    target_sources(la9310 PRIVATE
-        "drivers/rfic/rfic_init.c"
-        "drivers/rfic/rfic_core.c"
-        "drivers/rfic/rfic_avi_ctrl.c"
-        "drivers/rfic/rfic_api.c"
-        "drivers/rfic/rfic_vga.c"
-        "drivers/rfic/rfic_synth.c"
-        "drivers/rfic/rfic_lmx2582_synth.c"
-        "drivers/rfic/rfic_max2870_synth.c"
-        "drivers/rfic/rfic_demod.c"
-        "drivers/rfic/rfic_cmd.c"
-        "drivers/rfic/rfic_dac.c"
-	    "rfnm_rf_ctrl.c"
-        )
-endif()
-
 TARGET_LINK_LIBRARIES(la9310 PRIVATE -Wl,--start-group)
 # Additional libraries
-#IF(CMAKE_BUILD_TYPE MATCHES Debug)
-#ELSEIF(CMAKE_BUILD_TYPE MATCHES Release)
-#ENDIF()
 
 # SYSTEM LIBRARIES
 TARGET_LINK_LIBRARIES(la9310 PRIVATE m c gcc nosys)
@@ -207,10 +170,7 @@ add_custom_target(la9310_bin ALL
 
 # feature name, status, description
 add_feature_info("LA9310_COMMAND_LINE" LA9310_COMMAND_LINE "Enable LA9310 command line interface")
-add_feature_info("LA9310_1SEC_PPS" LA9310_1SEC_PPS "Enable pulse per second handling")
 add_feature_info("LA9310_DFE_APP" LA9310_DFE_APP "")
-add_feature_info("LA9310_CONSECUTIVE_S_SLOTS" LA9310_CONSECUTIVE_S_SLOTS "")
-add_feature_info("RFIC" RFIC "")
 add_feature_info("LMS7002M_CLOCK" LMS7002M_CLOCK "LMS7002M 160MHz clock output ")
 
 #########################################################################

@@ -54,7 +54,6 @@
  * Register commands that can be used with FreeRTOS+CLI.  The commands are
  * defined in CLI-Commands.c.
  */
-    extern void vRegisterNLMTestCommands( void );
 #ifdef LA9310_DFE_APP
     extern void vRegisterDFETestCommands( void );
 #endif
@@ -560,8 +559,6 @@ int main( void )
     #ifdef LA9310_ENABLE_COMMAND_LINE
     #ifdef LA9310_DFE_APP
         vRegisterDFETestCommands();
-    #else
-        vRegisterNLMTestCommands();
     #endif
         vUARTCommandConsoleStart( mainUART_COMMAND_CONSOLE_STACK_SIZE,
                                   mainUART_COMMAND_CONSOLE_TASK_PRIORITY );
