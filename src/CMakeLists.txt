@@ -4,12 +4,14 @@ include(FeatureSummary)
 
 add_executable(la9310 "main.c")
 
+target_include_directories(la9310 PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+
 # BOOT MODE SETUP
 set(LA9310_BOOT_MODE_OPTIONS "pcie" "i2c")
 set(LA9310_BOOT_MODE "pcie" CACHE STRING "LA9310 boot mode")
 set_property(CACHE LA9310_BOOT_MODE PROPERTY STRINGS ${LA9310_BOOT_MODE_OPTIONS})
 if (${LA9310_BOOT_MODE} STREQUAL "pcie")
-
+    target_compile_definitions(la9310 PUBLIC "-DTURN_ON_HOST_MODE=1")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -T${CMAKE_CURRENT_LIST_DIR}/platform/ARM_CM4/la9310_host_pcie_mode.ld -static")
     target_sources(la9310 PRIVATE
         "la9310_v2h_test.c"
@@ -41,21 +43,10 @@ SET(CMAKE_ASM_FLAGS_DEBUG "${CMAKE_ASM_FLAGS_DEBUG}  -D__DEBUG")
 
 option(LA9310_COMMAND_LINE "Enable LA9310 command line interface" ON)
 option(LA9310_DFE_APP "Enable DFE application" ON)
-option(LMS7002M_CLOCK "Configure LMS7002M clock generator to 160MHz" ON)
+option(LMS7002M_CLOCK "Configure LMS7002M clock generator to 153.6MHz" ON)
 
 if(LMS7002M_CLOCK)
-    target_compile_definitions(la9310 PUBLIC "-DLMS7002M_CLOCK -DTURN_ON_HOST_MODE")
-    target_sources(la9310 PRIVATE
-        "${LIMESUITENG_ROOT}/embedded/lms7002m/calibrations.c"
-        "${LIMESUITENG_ROOT}/embedded/lms7002m/lms7002m.c"
-        "${LIMESUITENG_ROOT}/embedded/lms7002m/privates.c"
-        "${LIMESUITENG_ROOT}/embedded/lms7002m/save_state.c"
-        "${LIMESUITENG_ROOT}/embedded/lms7002m/spi.c"
-        "limesdr_micro_init.c"
-        "limesdr_commands.c"
-    )
-    target_include_directories(la9310 PRIVATE "${LIMESUITENG_ROOT}/embedded/include")
-    target_include_directories(la9310 PRIVATE "${LIMESUITENG_ROOT}/embedded")
+    add_subdirectory(limesdr_micro)
 endif()
 
 if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")

@@ -42,8 +42,7 @@
     #include "dfe_app.h"
 #endif
 #ifdef LMS7002M_CLOCK
-    extern int initialize_lms7002m_clock_generator();
-    extern int LMS64C_protocol_init(void);
+    #include "limesdr_micro/limesdr_micro.h"
 #endif
 #ifdef LA9310_ENABLE_COMMAND_LINE
     #include "UARTCommandConsole.h"
