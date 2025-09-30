@@ -201,7 +201,7 @@ int initialize_lms7002m_clock_generator()
     log_info("lime spi/lms7002m config start\n\r");
 
     // Initialize DSPI Handler
-    lmsspihandle = pxDspiInit( ( ( 1 << DSPI_CS0 ) ), 1000000 );
+    lmsspihandle = pxDspiInit( ( ( 1 << DSPI_CS0 ) ), 4000000 );
     if (lmsspihandle == NULL)
     {
         *(int*)0x41E00200=0xDEADBEEF;
