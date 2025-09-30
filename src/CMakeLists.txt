@@ -42,7 +42,7 @@ SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${COMMON_COMPILER_FLAGS} -
 SET(CMAKE_ASM_FLAGS_DEBUG "${CMAKE_ASM_FLAGS_DEBUG}  -D__DEBUG")
 
 option(LA9310_COMMAND_LINE "Enable LA9310 command line interface" ON)
-option(LA9310_DFE_APP "Enable DFE application" ON)
+option(LA9310_DFE_APP "Enable DFE application" OFF)
 option(LMS7002M_CLOCK "Configure LMS7002M clock generator to 153.6MHz" ON)
 
 if(LMS7002M_CLOCK)
