@@ -3,6 +3,7 @@
 
 #include "fsl_dspi.h"
 #include "la9310_host_if.h"
+#include "la9310_i2cAPI.h"
 
 #include "limesuiteng/embedded/lms7002m/lms7002m.h"
 #include "lms7002m/spi.h"
@@ -10,11 +11,11 @@
 extern struct LA931xDspiInstance *lmsspihandle;
 extern int32_t spi_lms7002m_read( struct LA931xDspiInstance * pDspiHandle, uint16_t addr, uint16_t *value );
 extern int32_t spi_lms7002m_write( struct LA931xDspiInstance * pDspiHandle, uint16_t addr, uint16_t value );
-extern int i2c_write8(int module, uint32_t i2c_moduleAddress, uint8_t addr, uint8_t value);
-extern int i2c_read8(int module, uint32_t i2c_moduleAddress, uint8_t addr, uint8_t *value);
 
 static SemaphoreHandle_t xSwCmdSemaphore;
 static volatile int runEngine = 1;
+
+enum CommandStatus { cmd_status_Undefined, cmd_status_Completed, cmd_status_Unknown, cmd_status_Busy, cmd_status_TooManyBlocks, cmd_status_Error, cmd_status_WrongOrder, cmd_status_ResourceDenied, cmd_status_Count };
 
 struct LMS64CPacket {
     uint8_t cmd;
@@ -25,6 +26,67 @@ struct LMS64CPacket {
     uint8_t reserved[3]; ///< Currently unused
     uint8_t payload[56]; ///< The information of the payload.
 };
+
+void ReadBigEndiann(void* littleEndiannDest, const void* srcBigEndiann, uint8_t byteCount)
+{
+    uint8_t* dest = (uint8_t*)littleEndiannDest;
+    uint8_t* src = (uint8_t*)srcBigEndiann;
+    for (int i=0; i<byteCount; ++i)
+        dest[i] = src[byteCount-1-i];
+}
+
+void LMS64C_I2CWrite(const struct LMS64CPacket* packet, struct LMS64CPacket* responsePacket)
+{
+    uint32_t i2c_address = 0;
+    uint32_t register_offset = 0;
+
+    const int address_length = packet->payload[0];
+    const int reg_offset_length = packet->payload[1];
+    const int data_length = packet->payload[2];
+    // payload[3] reserved
+
+    int payloadOffset = 4;
+    ReadBigEndiann(&i2c_address, &packet->payload[payloadOffset], address_length);
+    payloadOffset += address_length;
+    ReadBigEndiann(&register_offset, &packet->payload[payloadOffset], reg_offset_length);
+    payloadOffset += reg_offset_length;
+    memcpy(responsePacket->payload, packet->payload, payloadOffset + data_length);
+
+    int bytesWritten = iLa9310_I2C_Write(LA9310_FSL_I2C1, i2c_address, register_offset, reg_offset_length, &responsePacket->payload[payloadOffset], data_length);
+
+    responsePacket->cmd = packet->cmd;
+    if (bytesWritten != data_length)
+        responsePacket->status = cmd_status_Error;
+    else
+        responsePacket->status = cmd_status_Completed;
+}
+
+void LMS64C_I2CRead(const struct LMS64CPacket* packet, struct LMS64CPacket* responsePacket)
+{
+    uint32_t i2c_address = 0;
+    uint32_t register_offset = 0;
+
+    const int address_length = packet->payload[0];
+    const int reg_offset_length = packet->payload[1];
+    const int data_length = packet->payload[2];
+    // payload[3] reserved
+
+    int payloadOffset = 4;
+    ReadBigEndiann(&i2c_address, &packet->payload[payloadOffset], address_length);
+    payloadOffset += address_length;
+    ReadBigEndiann(&register_offset, &packet->payload[payloadOffset], reg_offset_length);
+    payloadOffset += reg_offset_length;
+
+    memcpy(responsePacket->payload, packet->payload, payloadOffset);
+    int bytesRead = iLa9310_I2C_Read(LA9310_FSL_I2C1, i2c_address, register_offset, reg_offset_length, &responsePacket->payload[payloadOffset], data_length);
+
+    responsePacket->cmd = packet->cmd;
+    if (bytesRead != data_length)
+        responsePacket->status = cmd_status_Error;
+    else
+        responsePacket->status = cmd_status_Completed;
+    responsePacket->blockCount = payloadOffset + bytesRead;
+}
 
 static int ProcessLMS64C_Command(const void* dataIn, void* dataOut)
 {
@@ -81,29 +143,13 @@ static int ProcessLMS64C_Command(const void* dataIn, void* dataOut)
     }
     case 0x25: // I2C_WR
     {
-        for (int i=0; i<packet->blockCount && i < 56; ++i)
-        {
-            uint16_t regOffset = packet->reserved[0];
-            // PRINTF("I2C wr @0x%02x, 0x%02x\r\n", regOffset, (int)packet->payload[i]);
-            i2c_write8(LA9310_FSL_I2C1, packet->periphID, regOffset, packet->payload[i]);
-            outPacket->payload[i] = packet->payload[i];
-        }
-        outPacket->status = 1;
-        outPacket->blockCount = packet->blockCount;
+        LMS64C_I2CWrite(packet, outPacket);
         break;
     }
     case 0x26: // I2C_RD
     {
-        for (int i=0; i<packet->blockCount && i < 56; ++i)
-        {
-            uint16_t regOffset = packet->reserved[0];
-            uint8_t value = 0;
-            i2c_read8(LA9310_FSL_I2C1, packet->periphID, regOffset, &value);
-            // PRINTF("I2C rd @0x%02x, 0x%02x\r\n", regOffset, (int)value);
-            outPacket->payload[i] = value;
-        }
-        outPacket->status = 1;
-        outPacket->blockCount = packet->blockCount;
+        LMS64C_I2CRead(packet, outPacket);
+        break;
     }
     }
     return 0;

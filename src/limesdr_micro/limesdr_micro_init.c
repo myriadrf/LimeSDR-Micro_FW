@@ -21,11 +21,6 @@ int i2c_write8(int module, uint32_t i2c_moduleAddress, uint8_t addr, uint8_t val
     return iLa9310_I2C_Write(module, i2c_moduleAddress, addr, LA9310_I2C_DEV_OFFSET_LEN_1_BYTE, &value, 1);
 }
 
-int i2c_read8(int module, uint32_t i2c_moduleAddress, uint8_t addr, uint8_t *value)
-{
-    return iLa9310_I2C_Read(module, i2c_moduleAddress, addr, LA9310_I2C_DEV_OFFSET_LEN_1_BYTE, value, 1);
-}
-
 int32_t spi_lms7002m_write( struct LA931xDspiInstance * pDspiHandle,
                                  uint16_t addr,
                                  uint16_t value )
