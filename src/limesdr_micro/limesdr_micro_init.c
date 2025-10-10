@@ -215,7 +215,7 @@ int initialize_lms7002m_clock_generator()
     hooks.spi16_transact = spi16_transact;
 
     struct lms7002m_context* rfsoc = lms7002m_create(&hooks);
-    lime_Result result = lms7002m_set_frequency_cgen(rfsoc, 4*153600000);
+    lime_Result result = lms7002m_set_frequency_cgen(rfsoc, 4*30720000);
     lms7002m_spi_modify_csr(rfsoc, LMS7002M_EN_ADCCLKH_CLKGN, 0x0); // FCLKH to ADC
     lms7002m_spi_modify_csr(rfsoc, LMS7002M_CLKH_OV_CLKL_CGEN, 0x2); // divide clock by 4
     lms7002m_spi_modify_csr(rfsoc, LMS7002M_MCLK1SRC, 0x3); // switch MCLK1 clock source to RxTSPCLKA
