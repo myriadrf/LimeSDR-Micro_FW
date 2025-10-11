@@ -153,6 +153,52 @@ void LMS64C_CustomParameterRead(const struct LMS64CPacket* packet, struct LMS64C
     responsePacket->status = cmd_status_Completed;
 }
 
+void LMS64C_MemoryWrite(const struct LMS64CPacket* packet, struct LMS64CPacket* responsePacket)
+{
+    memcpy(responsePacket, packet, sizeof(struct LMS64CPacket));
+
+    // uint8_t mode = packet->payload[0];
+    uint16_t memoryTarget = (int16_t)(packet->payload[10] << 8) | packet->payload[11];
+    uint8_t size = packet->payload[5];
+    uint32_t address = ((int32_t)packet->payload[6]) << 24;
+    address |= ((int32_t)packet->payload[7]) << 16;
+    address |= ((int32_t)packet->payload[8]) << 8;
+    address |= ((int32_t)packet->payload[9]);
+
+    uint8_t* data = &packet->payload[24];
+
+    if (memoryTarget != 3) // EEPROM
+    {
+        responsePacket->status = cmd_status_Error;
+        return;
+    }
+
+    EEPROM_Write(address, data, size);
+    responsePacket->status = cmd_status_Completed;
+}
+
+void LMS64C_MemoryRead(const struct LMS64CPacket* packet, struct LMS64CPacket* responsePacket)
+{
+    memcpy(responsePacket, packet, sizeof(struct LMS64CPacket));
+
+    // uint8_t mode = packet->payload[0];
+    uint16_t memoryTarget = (int16_t)(packet->payload[10] << 8) | packet->payload[11];
+    uint8_t size = packet->payload[5];
+    uint32_t address = ((int32_t)packet->payload[6]) << 24;
+    address |= ((int32_t)packet->payload[7]) << 16;
+    address |= ((int32_t)packet->payload[8]) << 8;
+    address |= ((int32_t)packet->payload[9]);
+
+    if (memoryTarget != 3) // EEPROM
+    {
+        responsePacket->status = cmd_status_Error;
+        return;
+    }
+
+    EEPROM_Read(address, &responsePacket->payload[24], size);
+    responsePacket->status = cmd_status_Completed;
+}
+
 static int ProcessLMS64C_Command(const void* dataIn, void* dataOut)
 {
     const struct LMS64CPacket* packet = (struct LMS64CPacket*)(dataIn);
@@ -224,6 +270,16 @@ static int ProcessLMS64C_Command(const void* dataIn, void* dataOut)
     case 0x62: // ANALOG_VAL_RD
     {
         LMS64C_CustomParameterRead(packet, outPacket);
+        break;
+    }
+    case 0x8C: // Memory write
+    {
+        LMS64C_MemoryWrite(packet, outPacket);
+        break;
+    }
+    case 0x8D: // Memory read
+    {
+        LMS64C_MemoryRead(packet, outPacket);
         break;
     }
     default:
