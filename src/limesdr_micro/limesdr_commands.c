@@ -129,6 +129,26 @@ void LMS64C_CustomParameterWrite(const struct LMS64CPacket* packet, struct LMS64
     responsePacket->status = cmd_status_Completed;
 }
 
+static int32_t hex2temperature_mC(int16_t raw_value)
+{
+    const int16_t temperature_mC[] = {-12800, -5000, -2500, -25, -6, 0, 6, 25, 2500, 5000, 7500, 8000, 10000, 12793};
+    const uint16_t digital_value[] = {0x8000, 0xCE00, 0xE700, 0xFFC0, 0xFFF0, 0x0, 0x0010, 0x0040, 0x1900, 0x3200, 0x4B00, 0x5000, 0x6400, 0x7FF0};
+
+    for (int i=0; i<sizeof(digital_value)/sizeof(digital_value[0])-1; ++i)
+    {
+        if (raw_value >= (int16_t)digital_value[i] && raw_value < (int16_t)digital_value[i+1])
+        {
+            int32_t temp_delta = temperature_mC[i+1] - temperature_mC[i];
+            int32_t value_delta = digital_value[i+1] - digital_value[i];
+            int32_t xrange = raw_value - digital_value[i];
+            int32_t delta = (xrange << 16) / value_delta;
+            int32_t temp_value = (temp_delta * delta) >> 16;
+            return (temp_value + temperature_mC[i]) * 10;
+        }
+    }
+    return 0;
+}
+
 void LMS64C_CustomParameterRead(const struct LMS64CPacket* packet, struct LMS64CPacket* responsePacket)
 {
     int byteIndex = 0;
@@ -139,12 +159,25 @@ void LMS64C_CustomParameterRead(const struct LMS64CPacket* packet, struct LMS64C
         uint8_t id = packet->payload[i];
         switch(id)
         {
-            case 0:
+            case 0: // XO DAC
             {
                 responsePacket->payload[byteIndex++] = id;
                 responsePacket->payload[byteIndex++] = 0; // RAW
                 responsePacket->payload[byteIndex++] = xo_dac_value >> 8;
                 responsePacket->payload[byteIndex++] = xo_dac_value & 0xFF;
+                ++responsePacket->blockCount;
+                break;
+            }
+            case 1: // on board temperature
+            {
+                responsePacket->payload[byteIndex++] = id;
+                responsePacket->payload[byteIndex++] = 5 << 4; // degrees
+                uint8_t raw_value[2];
+                int bytesRead = iLa9310_I2C_Read(LA9310_FSL_I2C1, 0x4B, 0x00, 1, raw_value, 2);
+                int16_t raw_value_int = ((int16_t)raw_value[0]) << 8 | raw_value[1];
+                int32_t temp = hex2temperature_mC(raw_value_int) / 100;
+                responsePacket->payload[byteIndex++] = temp >> 8;
+                responsePacket->payload[byteIndex++] = temp & 0xFF;
                 ++responsePacket->blockCount;
                 break;
             }
