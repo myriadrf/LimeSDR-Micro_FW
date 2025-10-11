@@ -11,6 +11,7 @@ target_sources(la9310 PRIVATE
     "${LIMESUITENG_ROOT}/embedded/lms7002m/spi.c"
     "limesdr_micro_init.c"
     "limesdr_commands.c"
+    "eeprom.c"
 )
 
 target_include_directories(la9310 PRIVATE "${LIMESUITENG_ROOT}/embedded/include")

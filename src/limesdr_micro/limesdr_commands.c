@@ -8,6 +8,10 @@
 #include "limesuiteng/embedded/lms7002m/lms7002m.h"
 #include "lms7002m/spi.h"
 
+#include "eeprom.h"
+
+static uint16_t xo_dac_value = 0;
+
 extern struct LA931xDspiInstance *lmsspihandle;
 extern int32_t spi_lms7002m_read( struct LA931xDspiInstance * pDspiHandle, uint16_t addr, uint16_t *value );
 extern int32_t spi_lms7002m_write( struct LA931xDspiInstance * pDspiHandle, uint16_t addr, uint16_t value );
@@ -88,6 +92,67 @@ void LMS64C_I2CRead(const struct LMS64CPacket* packet, struct LMS64CPacket* resp
     responsePacket->blockCount = payloadOffset + bytesRead;
 }
 
+uint16_t ReadXODAC_EEPROM()
+{
+    uint16_t dac_value = 0;
+    EEPROM_Read(0xFFFE, &dac_value, 2);
+    return dac_value;
+}
+
+void SetXODAC(uint16_t value)
+{
+    uint8_t buffer[2] = {value >> 8, value & 0xFF};
+    int bytesWritten = iLa9310_I2C_Write(LA9310_FSL_I2C1, 0x4C, 0x30, LA9310_I2C_DEV_OFFSET_LEN_1_BYTE, buffer, 2);
+    xo_dac_value = value;
+}
+
+void LMS64C_CustomParameterWrite(const struct LMS64CPacket* packet, struct LMS64CPacket* responsePacket)
+{
+    for (int i=0; i<packet->blockCount; ++i)
+    {
+        const int offset = 4*i;
+        uint8_t id = packet->payload[offset];
+        // uint8_t powerOf10 = packet->payload[offset+1] & 0xF;
+        // uint8_t units = (packet->payload[offset+1] >> 4) & 0xF;
+        uint16_t value = ((uint16_t)packet->payload[offset+2]) << 8 | packet->payload[offset+3];
+
+        switch(id)
+        {
+            case 0:
+            {
+                SetXODAC(value);
+                break;
+            }
+        }
+    }
+    memcpy(responsePacket, packet, sizeof(struct LMS64CPacket));
+    responsePacket->status = cmd_status_Completed;
+}
+
+void LMS64C_CustomParameterRead(const struct LMS64CPacket* packet, struct LMS64CPacket* responsePacket)
+{
+    int byteIndex = 0;
+    memcpy(responsePacket, packet, 8);
+    responsePacket->blockCount = 0;
+    for (int i=0; i<packet->blockCount; ++i)
+    {
+        uint8_t id = packet->payload[i];
+        switch(id)
+        {
+            case 0:
+            {
+                responsePacket->payload[byteIndex++] = id;
+                responsePacket->payload[byteIndex++] = 0; // RAW
+                responsePacket->payload[byteIndex++] = xo_dac_value >> 8;
+                responsePacket->payload[byteIndex++] = xo_dac_value & 0xFF;
+                ++responsePacket->blockCount;
+                break;
+            }
+        }
+    }
+    responsePacket->status = cmd_status_Completed;
+}
+
 static int ProcessLMS64C_Command(const void* dataIn, void* dataOut)
 {
     const struct LMS64CPacket* packet = (struct LMS64CPacket*)(dataIn);
@@ -151,6 +216,19 @@ static int ProcessLMS64C_Command(const void* dataIn, void* dataOut)
         LMS64C_I2CRead(packet, outPacket);
         break;
     }
+    case 0x61: // ANALOG_VAL_WR
+    {
+        LMS64C_CustomParameterWrite(packet, outPacket);
+        break;
+    }
+    case 0x62: // ANALOG_VAL_RD
+    {
+        LMS64C_CustomParameterRead(packet, outPacket);
+        break;
+    }
+    default:
+        outPacket->status = 2; // UNKNOWN
+        break;
     }
     return 0;
 }

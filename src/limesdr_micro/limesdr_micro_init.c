@@ -10,6 +10,9 @@
 
 struct LA931xDspiInstance *lmsspihandle = NULL;
 
+extern uint16_t ReadXODAC_EEPROM();
+extern void SetXODAC(uint16_t value);
+
 // ARM bare metal does not have usleep(), it's used within lms7002m procedures
 void usleep(int microSeconds)
 {
@@ -237,5 +240,9 @@ int initialize_lms7002m_clock_generator()
 
     lms7002m_destroy(rfsoc);
     log_info("lime spi/lms7002m config end\n\r");
+
+    uint16_t xo_dac = ReadXODAC_EEPROM();
+    SetXODAC(xo_dac);
+
     return result != lime_Result_Success;
 }
