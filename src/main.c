@@ -496,7 +496,7 @@ int iInitHandler ( void )
 	iLoadTableToTCM();
     LoadVSPAImage();
 #endif //TURN_ON_STANDALONE_MODE
-    iLa9310AviConfig();
+    // iLa9310AviConfig();
 
     vDcsInit(IN_32(&pLa9310Info->pHif->adc_mask),
 		IN_32(&pLa9310Info->pHif->adc_rate_mask),
