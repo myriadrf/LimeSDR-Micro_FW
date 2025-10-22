@@ -11,6 +11,7 @@
 #include <la9310.h>
 #include <la9310_i2cAPI.h>
 #include "debug_console.h"
+#include "drivers/serial/serial_ns16550.h"
 
 static int iNLMBoardRev;
 
@@ -50,4 +51,7 @@ void vBoardFinalInit( void )
 
 	iLa9310_I2C_Init( LA9310_FSL_I2C1, FINAL_I2C_CLOCK_FREQUENCY, LA9310_I2C_FREQ );
 	vLa9310_Read_Board_Rev_pca9570();
+
+	// put GNSS module to low power standby mode, any further activity on UART will wake it up
+	vSerialWriteBlocking(( void * ) UART_BASEADDR, "$PMTK161,0*28\r\n", 15);
 }
