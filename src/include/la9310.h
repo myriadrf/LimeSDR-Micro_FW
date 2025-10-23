@@ -8,12 +8,16 @@
 #define __LA9310_H__
 
 #define PRE_SYS_FREQ     100000000
-#define POST_SYS_FREQ    122880000 /*NLM final DCS frequency to switch */
+#ifndef REFERENCE_CLOCK_FREQ
+	#define POST_SYS_FREQ    122880000 /*NLM final DCS frequency to switch */
+#else
+	#define POST_SYS_FREQ    REFERENCE_CLOCK_FREQ
+#endif
 
 /*this macro control clock switch from 100Mz to 122.88MHz.
  * When this macro is undefind VSPA, RFIC , DCS block will be disabled
  */
-#define UART_BAUDRATE                     115200
+#define UART_BAUDRATE                     9600
 #define EARLY_UART_CLOCK_FREQUENCY        PRE_SYS_FREQ
 #define EARLY_I2C_CLOCK_FREQUENCY         ( PRE_SYS_FREQ / 2 )
 

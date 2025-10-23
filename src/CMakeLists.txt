@@ -4,6 +4,9 @@ include(FeatureSummary)
 
 add_executable(la9310 "main.c")
 
+SET(REFERENCE_CLOCK_FREQ 30720000)
+add_compile_definitions(REFERENCE_CLOCK_FREQ=${REFERENCE_CLOCK_FREQ})
+
 target_include_directories(la9310 PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 
 # BOOT MODE SETUP
