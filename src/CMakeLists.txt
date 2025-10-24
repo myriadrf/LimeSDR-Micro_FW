@@ -4,8 +4,10 @@ include(FeatureSummary)
 
 add_executable(la9310 "main.c")
 
-SET(REFERENCE_CLOCK_FREQ 30720000)
-add_compile_definitions(REFERENCE_CLOCK_FREQ=${REFERENCE_CLOCK_FREQ})
+SET(LA9310_REF_CLK_FREQ CACHE STRING 30720000)
+set_property(CACHE LA9310_REF_CLK_FREQ PROPERTY VALUE "30720000")
+add_compile_definitions(LA9310_REF_CLK_FREQ=${LA9310_REF_CLK_FREQ})
+message(STATUS "LA9310 reference clock: ${LA9310_REF_CLK_FREQ}")
 
 target_include_directories(la9310 PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 
