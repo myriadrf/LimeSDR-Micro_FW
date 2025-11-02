@@ -4,8 +4,7 @@ include(FeatureSummary)
 
 add_executable(la9310 "main.c")
 
-SET(LA9310_REF_CLK_FREQ CACHE STRING 30720000)
-set_property(CACHE LA9310_REF_CLK_FREQ PROPERTY VALUE "30720000")
+SET(LA9310_REF_CLK_FREQ CACHE STRING 61440000)
 add_compile_definitions(LA9310_REF_CLK_FREQ=${LA9310_REF_CLK_FREQ})
 message(STATUS "LA9310 reference clock: ${LA9310_REF_CLK_FREQ}")
 
