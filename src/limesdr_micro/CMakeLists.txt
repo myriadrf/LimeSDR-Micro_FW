@@ -9,6 +9,7 @@ target_sources(la9310 PRIVATE
     "${LIMESUITENG_ROOT}/embedded/lms7002m/privates.c"
     "${LIMESUITENG_ROOT}/embedded/lms7002m/save_state.c"
     "${LIMESUITENG_ROOT}/embedded/lms7002m/spi.c"
+    "${LIMESUITENG_ROOT}/embedded/lms7002m/spi_batch.c"
     "limesdr_micro_init.c"
     "limesdr_commands.c"
     "eeprom.c"
