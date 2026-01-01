@@ -18,9 +18,6 @@ if (${LA9310_BOOT_MODE} STREQUAL "pcie")
     target_compile_definitions(la9310 PUBLIC "-DTURN_ON_HOST_MODE=1")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -T${CMAKE_CURRENT_LIST_DIR}/platform/ARM_CM4/la9310_host_pcie_mode.ld -static")
     target_sources(la9310 PRIVATE
-        "la9310_v2h_test.c"
-        "drivers/serial/nmm_logging.c"
-        "bbdev_ipc_raw_demo.c"
         "drivers/misc/bbdev_ipc.c"
         "drivers/pcie/la9310_pcie.c"
         "utils/task_stats.c"
@@ -46,7 +43,6 @@ SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${COMMON_COMPILER_FLAGS} -
 SET(CMAKE_ASM_FLAGS_DEBUG "${CMAKE_ASM_FLAGS_DEBUG}  -D__DEBUG")
 
 option(LA9310_COMMAND_LINE "Enable LA9310 command line interface" ON)
-option(LA9310_DFE_APP "Enable DFE application" OFF)
 option(LMS7002M_CLOCK "Configure LMS7002M clock generator to 153.6MHz" ON)
 
 if(LMS7002M_CLOCK)
@@ -55,20 +51,6 @@ endif()
 
 if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     set(LA9310_COMMAND_LINE ON)
-endif()
-
-if(LA9310_DFE_APP)
-    target_compile_definitions(la9310 PUBLIC "-DLA9310_DFE_APP")
-    target_sources(la9310 PRIVATE
-        "dfe_avi.c"
-        "dfe_app.c"
-        "rfnm_rf_ctrl.c"
-    )
-    if(LA9310_COMMAND_LINE)
-        target_sources(la9310 PRIVATE
-            "utils/la9310_dfe_test_command.c"
-        )
-    endif()
 endif()
 
 if(LA9310_COMMAND_LINE)
@@ -120,7 +102,6 @@ target_sources(la9310 PRIVATE
     "platform/boards/la9310/board.c"
     "platform/ARM_CM4/exceptions.c"
     "platform/boards/la9310/hardware_init.c"
-    "la9310_demo.c"
     "la9310_irq.c"
     "drivers/avi/la9310_avi.c"
     "drivers/misc/la9310_gpio.c"
@@ -165,8 +146,7 @@ add_custom_target(la9310_bin ALL
 
 # feature name, status, description
 add_feature_info("LA9310_COMMAND_LINE" LA9310_COMMAND_LINE "Enable LA9310 command line interface")
-add_feature_info("LA9310_DFE_APP" LA9310_DFE_APP "")
-add_feature_info("LMS7002M_CLOCK" LMS7002M_CLOCK "LMS7002M 160MHz clock output ")
+add_feature_info("LMS7002M_CLOCK" LMS7002M_CLOCK "Configure LMS7002M clock output")
 
 #########################################################################
 # summary

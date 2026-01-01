@@ -11,7 +11,6 @@
 #include "immap.h"
 #include "la9310_main.h"
 #include "la9310_irq.h"
-#include "la9310_demo.h"
 #include "la9310_gpio.h"
 #include "la9310_edmaAPI.h"
 #include "la9310_i2cAPI.h"
@@ -34,13 +33,7 @@
 #if NXP_ERRATUM_A_009410
     #include "la9310_pci.h"
 #endif
-#ifdef RUN_V2H_TEST_APP
-    #include "la9310_v2h_test.h"
-#endif
 #include "la9310_avi.h"
-#ifdef LA9310_DFE_APP
-    #include "dfe_app.h"
-#endif
 #ifdef LMS7002M_CLOCK
     #include "limesdr_micro/limesdr_micro.h"
 #endif
@@ -48,14 +41,6 @@
     #include "UARTCommandConsole.h"
     #define mainUART_COMMAND_CONSOLE_STACK_SIZE       ( configMINIMAL_STACK_SIZE * 2 )
     #define mainUART_COMMAND_CONSOLE_TASK_PRIORITY    ( tskIDLE_PRIORITY + 1 )
-
-/*
- * Register commands that can be used with FreeRTOS+CLI.  The commands are
- * defined in CLI-Commands.c.
- */
-#ifdef LA9310_DFE_APP
-    extern void vRegisterDFETestCommands( void );
-#endif
 
 /* cOutputBuffer is used by FreeRTOS+CLI.  It is declared here so the
  * persistent qualifier can be used.  For the buffer to be declared here, rather
@@ -167,29 +152,6 @@ static void prvInitLa9310Info( struct la9310_info * pLa9310Info )
 	dmb();
 }
 
-#ifdef TURN_ON_HOST_MODE
-#ifdef RUN_V2H_TEST_APP
-    void vV2H( void * pvParameters )
-    {
-        log_info( "V2H - In task\n\n\r" );
-        log_info( "%s:Waiting of V2H_HOST ready\n\r", __func__ );
-        struct la9310_hif * pHif = pLa9310Info->pHif;
-
-        while( !( pHif->host_ready & LA9310_HIF_STATUS_V2H_READY ) )
-        {
-            vTaskDelay( 10 );
-            dmb();
-        }
-        vV2HDemo( pLa9310Info );
-
-        while( 1 )
-        {
-            vTaskDelay( 500 );
-        }
-    }
-    #endif /* if RUN_V2H_TEST_APP */
-#endif
-
 /* iLa9310HostPreInit: Host and La9310 both do a handshake for clock configuration
  * and init synchronization vLa9310_do_handshake(). Host waits in while loop for
  * La9310 to indicate Host that it can proceed with Initialization
@@ -212,9 +174,6 @@ int iLa9310HostPreInit( struct la9310_info * pLa9310Info )
     {
         goto out;
     }
-
-    /*LA9310 IRQ MUX demo EVT (IRQ_EVT_TEST_BIT) registration */
-    vLa9310DemoIrqEvtRegister( pLa9310Info );
 
     vVSPAMboxInit();
 
@@ -439,14 +398,6 @@ int iInitHandler ( void )
         goto out;
     }
 #endif
-#ifdef __RFIC
-    if( pdTRUE != iRficInit( pLa9310Info ))
-    {
-        log_err( "%s: RFIC Init Failed, rc %d\n\r", __func__, irc );
-        irc = FAILURE;
-        goto out;
-    }
-#endif
 
     irc = iLa9310HostPostInit( pLa9310Info );
 
@@ -503,19 +454,6 @@ int iInitHandler ( void )
 		IN_32(&pLa9310Info->pHif->dac_mask),
 		IN_32(&pLa9310Info->pHif->dac_rate_mask));
 
-    #ifdef TURN_ON_HOST_MODE
-    #ifdef RUN_V2H_TEST_APP
-        irc = xTaskCreate( vV2H, "LA9310 V2H task", configMINIMAL_STACK_SIZE,
-                           pLa9310Info, tskIDLE_PRIORITY + 1, NULL );
-
-        if( irc != pdPASS )
-        {
-            log_info( "Failed to create V2H task, not starting scheduler\n\r" );
-            goto out;
-        }
-    #endif
-    #endif //TURN_ON_STANDALONE_MODE
-
     #ifdef LA9310_ENABLE_COMMAND_LINE
         vRegisterTimesyncCLICommands();
     #endif
@@ -562,15 +500,6 @@ int main( void )
         vUARTCommandConsoleStart( mainUART_COMMAND_CONSOLE_STACK_SIZE,
                                   mainUART_COMMAND_CONSOLE_TASK_PRIORITY );
     #endif
-
-    #ifdef LA9310_DFE_APP
-    irc = vDFEInit();
-    if ( irc )
-    {
-        log_err( "%s: vDFEInit, rc %d\n\r", __func__, irc );
-    }
-    #endif
-
 
     tmuInit();
 
