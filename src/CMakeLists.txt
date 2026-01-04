@@ -36,12 +36,6 @@ message(STATUS "LA9310 Boot mode: ${LA9310_BOOT_MODE}")
 # Treat warnings as errors
 set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 
-set(COMMON_COMPILER_FLAGS "-mcpu=cortex-m4 -mfloat-abi=soft -g -Wall -Wno-packed-bitfield-compat -Wno-address-of-packed-member -fno-common -ffunction-sections -fdata-sections -ffreestanding -fno-builtin -mthumb -Os -mapcs")
-SET(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} ${COMMON_COMPILER_FLAGS} -std=gnu99")
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_COMPILER_FLAGS} -fno-strict-aliasing -MMD -MP -std=gnu99 -Wno-unused-function -mno-sched-prolog")
-SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${COMMON_COMPILER_FLAGS} --specs=nano.specs -lm -Xlinker --gc-sections  -Xlinker -static  -Xlinker -z  -Xlinker muldefs")
-SET(CMAKE_ASM_FLAGS_DEBUG "${CMAKE_ASM_FLAGS_DEBUG}  -D__DEBUG")
-
 option(LA9310_COMMAND_LINE "Enable LA9310 command line interface" ON)
 option(LMS7002M_CLOCK "Configure LMS7002M clock generator to 153.6MHz" ON)
 

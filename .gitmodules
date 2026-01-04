@@ -1,6 +1,3 @@
 [submodule "la93xx_freertos"]
 	path = la93xx_freertos
 	url = https://github.com/nxp-qoriq/la93xx_freertos
-[submodule "LimeSuiteNG"]
-	path = LimeSuiteNG
-	url = https://github.com/myriadrf/LimeSuiteNG

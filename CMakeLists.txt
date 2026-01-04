@@ -18,8 +18,11 @@ if (NOT CMAKE_TOOLCHAIN_FILE)
     include(cmake/toolchain/armgcc.cmake)
 endif()
 
-set(LIMESUITENG_ROOT "${PROJECT_SOURCE_DIR}/LimeSuiteNG")
-message(STATUS "LIMESUITENG_ROOT: ${LIMESUITENG_ROOT}")
+set(COMMON_COMPILER_FLAGS "-mcpu=cortex-m4 -mfloat-abi=soft -g -Wall -Wno-packed-bitfield-compat -Wno-address-of-packed-member -fno-common -ffunction-sections -fdata-sections -ffreestanding -fno-builtin -mthumb -Os -mapcs")
+SET(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} ${COMMON_COMPILER_FLAGS} -std=gnu99")
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_COMPILER_FLAGS} -fno-strict-aliasing -MMD -MP -std=gnu99 -Wno-unused-function -mno-sched-prolog")
+SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${COMMON_COMPILER_FLAGS} --specs=nano.specs -lm -Xlinker --gc-sections  -Xlinker -static  -Xlinker -z  -Xlinker muldefs")
+SET(CMAKE_ASM_FLAGS_DEBUG "${CMAKE_ASM_FLAGS_DEBUG}  -D__DEBUG")
 
 set(FREERTOS_DIR "${PROJECT_SOURCE_DIR}/la93xx_freertos/FreeRTOS-Kernel")
 message(STATUS "FREERTOS_DIR: ${FREERTOS_DIR}")
@@ -28,3 +31,4 @@ set(LA9310_COMMON_HEADERS "${PROJECT_SOURCE_DIR}/la93xx_freertos/common_headers"
 message(STATUS "LA9310_COMMON_HEADERS: ${LA9310_COMMON_HEADERS}")
 
 add_subdirectory(src)
+add_subdirectory(limesuiteng/embedded)
