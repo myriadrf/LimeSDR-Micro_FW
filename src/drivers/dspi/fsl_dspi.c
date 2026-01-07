@@ -68,13 +68,14 @@ int32_t lDspiHzToBaud( uint32_t * lpbr,
 }
 
 void vDspiClkSet( struct LA931xDspiInstance * xDspiHandle,
+                  uint32_t ulspi_input_clk_frequency,
                   uint32_t ulSpeed )
 {
     int32_t lret;
     uint32_t lBesti, lBestj;
     uint32_t ulBusSetup, ulBusClk;
 
-    ulBusClk = DSPI_INPUT_CLK_FREQUENCY;
+    ulBusClk = ulspi_input_clk_frequency;
     log_info( "DSPI Clock Set: Expected speed:%u  Bus clock:%u \r\n", ulSpeed, ulBusClk );
     ulBusSetup = in_dspile32( &xDspiHandle->DspiRegs->ulCtar[ 0 ] );
     ulBusSetup = ulBusSetup & ( ~( DSPI_CTAR_DBR | DSPI_CTAR_PBR( 0x3 ) | DSPI_CTAR_BR( 0xf ) ) );
@@ -276,7 +277,7 @@ int32_t lDspiPop( struct LA931xDspiInstance * pxDspiHandle,
     return DSPI_READ_SUCCESS;
 }
 
-struct LA931xDspiInstance * pxDspiInit( uint8_t ucCsMask, uint32_t ulClk )
+struct LA931xDspiInstance * pxDspiInit( uint8_t ucCsMask, uint32_t ulspi_input_clk_frequency, uint32_t ulClk )
 {
     uint32_t ulMcrCfgVal;
     uint32_t ulCtarCfgVal;
@@ -325,7 +326,7 @@ struct LA931xDspiInstance * pxDspiInit( uint8_t ucCsMask, uint32_t ulClk )
     out_le32( &pxDspiHandle->DspiRegs->ulMcr, ulMcrCfgVal );
 
     /*Setting Default frequency 8MHz*/
-    vDspiClkSet( pxDspiHandle, ulClk );
+    vDspiClkSet( pxDspiHandle, ulspi_input_clk_frequency, ulClk );
 
     /* remove DSPI halt */
     vDspiHalt( pxDspiHandle, 0 );

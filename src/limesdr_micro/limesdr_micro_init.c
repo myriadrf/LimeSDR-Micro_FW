@@ -9,6 +9,7 @@
 #include "lms7002m/csr_data.h"
 
 struct LA931xDspiInstance *lmsspihandle = NULL;
+struct lms7002m_context* rfsoc = NULL;
 
 extern uint16_t ReadXODAC_EEPROM();
 extern void SetXODAC(uint16_t value);
@@ -199,7 +200,7 @@ int initialize_lms7002m_clock_generator()
     log_info("lime spi/lms7002m config start\n\r");
 
     // Initialize DSPI Handler
-    lmsspihandle = pxDspiInit( ( ( 1 << DSPI_CS0 ) ), 4000000 );
+    lmsspihandle = pxDspiInit( ( ( 1 << DSPI_CS0 ) ), PRE_SYS_FREQ * 4 / 2, 4000000 );
     if (lmsspihandle == NULL)
     {
         *(int*)0x41E00200=0xDEADBEEF;
@@ -212,7 +213,7 @@ int initialize_lms7002m_clock_generator()
     hooks.spi16_userData = lmsspihandle;
     hooks.spi16_transact = spi16_transact;
 
-    struct lms7002m_context* rfsoc = lms7002m_create(&hooks);
+    rfsoc = lms7002m_create(&hooks);
     lime_Result result = lms7002m_set_frequency_cgen(rfsoc, 4* LA9310_REF_CLK_FREQ );
     lms7002m_spi_modify_csr(rfsoc, LMS7002M_EN_ADCCLKH_CLKGN, 0x0); // FCLKH to ADC
     lms7002m_spi_modify_csr(rfsoc, LMS7002M_CLKH_OV_CLKL_CGEN, 0x2); // divide clock by 4
@@ -238,7 +239,7 @@ int initialize_lms7002m_clock_generator()
     for (int i=0; i<sizeof(defaults)/4; ++i)
         lms7002m_spi_write(rfsoc, defaults[i*2], defaults[i*2+1]);
 
-    lms7002m_destroy(rfsoc);
+    // lms7002m_destroy(rfsoc);
     log_info("lime spi/lms7002m config end\n\r");
 
     uint16_t xo_dac = ReadXODAC_EEPROM();

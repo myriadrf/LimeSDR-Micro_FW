@@ -16,6 +16,8 @@ extern struct LA931xDspiInstance *lmsspihandle;
 extern int32_t spi_lms7002m_read( struct LA931xDspiInstance * pDspiHandle, uint16_t addr, uint16_t *value );
 extern int32_t spi_lms7002m_write( struct LA931xDspiInstance * pDspiHandle, uint16_t addr, uint16_t value );
 
+extern struct lms7002m_context* rfsoc;
+
 static SemaphoreHandle_t xSwCmdSemaphore;
 static volatile int runEngine = 1;
 
@@ -322,6 +324,30 @@ static int ProcessLMS64C_Command(const void* dataIn, void* dataOut)
     return 0;
 }
 
+static lime_Result ChangeReferenceClock(uint32_t system_clk_hz)
+{
+    if (system_clk_hz == 0)
+        return lime_Result_InvalidValue;
+
+    uint32_t la9310_refclk_hz = 4 * system_clk_hz;
+    lime_Result result = lms7002m_set_frequency_cgen(rfsoc, la9310_refclk_hz);
+    if (result != lime_Result_Success)
+        return result;
+
+    xDebugConsoleInit( ( void * ) UART_BASEADDR, la9310_refclk_hz*2, UART_BAUDRATE );
+
+    uint32_t i2c_input_clk_hz = la9310_refclk_hz/2;
+    iLa9310_I2C_Init( LA9310_FSL_I2C1, i2c_input_clk_hz, LA9310_I2C_FREQ );
+
+    uint32_t spi_input_clk_hz = la9310_refclk_hz*4/2;
+    uint32_t spi_frequency = 4000000;
+    if (spi_input_clk_hz < spi_frequency*2)
+        spi_frequency = spi_input_clk_hz/2;
+    vDspiClkSet( lmsspihandle, spi_input_clk_hz, spi_frequency );
+
+    return result;
+}
+
 static void vSwCmdTask( void * pvParameters )
 {
     struct la9310_hif * pxHif = pLa9310Info->pHif;
@@ -348,13 +374,21 @@ static void vSwCmdTask( void * pvParameters )
                 ProcessLMS64C_Command(pxCmdDesc->data, response);
                 memcpy(pxCmdDesc->data, response, sizeof(response));
                 break;
+            case 2: {
+                uint32_t frequency = 0;
+                pxCmdDesc->status = LA9310_SW_CMD_STATUS_IN_PROGRESS;
+                memcpy(&frequency, pxCmdDesc->data, sizeof(uint32_t));
+                lime_Result result = ChangeReferenceClock(frequency);
+                pxCmdDesc->data[0] = (uint32_t)result;
+                break;
+            }
             default:
                 log_err( "sw cmd not implemented: %d\r\n", pxCmdDesc->cmd );
                 break;
         }
 
-        pxCmdDesc->status = LA9310_SW_CMD_STATUS_DONE;
         dmb();
+        pxCmdDesc->status = LA9310_SW_CMD_STATUS_DONE;
 
         // xSemaphoreGive(xSwCmdSemaphore);
     }

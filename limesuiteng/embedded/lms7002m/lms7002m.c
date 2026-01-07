@@ -348,6 +348,11 @@ lime_Result lms7002m_set_frequency_cgen(lms7002m_context* self, uint32_t freq_Hz
         LMS7002M_LOG(self, lime_LogLevel_Error, "%s: requested frequency(%u) too high", __func__, freq_Hz);
         return lime_Result_OutOfRange;
     }
+    if (freq_Hz < 5000000)
+    {
+        LMS7002M_LOG(self, lime_LogLevel_Error, "%s: requested frequency(%u) too low", __func__, freq_Hz);
+        return lime_Result_OutOfRange;
+    }
 
     //VCO frequency selection according to F_CLKH
     const uint16_t iHdiv_high = (cgen_vco_max / freq_Hz / 2) - 1;

@@ -49,7 +49,7 @@ typedef enum DspiOps
  *
  * @return the DSPI instance structure or, NULL otherwise
  */
-struct LA931xDspiInstance * pxDspiInit( uint8_t ucCsMask, uint32_t ulClk );
+struct LA931xDspiInstance * pxDspiInit( uint8_t ucCsMask, uint32_t ulspi_input_clk_frequency, uint32_t ulClk );
 
 void vDspiExit();
 
@@ -84,10 +84,12 @@ int32_t lDspiPop( struct LA931xDspiInstance * pxDspiHandle,
 /**
  * @brief Movandi function to read the register value.
  * @param[in]  xDspiHandle DSPI handler
+ * @param[in]  ulspi_input_clk_frequency system clock frequency
  * @param[in]  ulSpeed clock Speed
  * @return  does not return anything its a void
  */
 void vDspiClkSet( struct LA931xDspiInstance * xDspiHandle,
+                  uint32_t ulspi_input_clk_frequency,
                   uint32_t ulSpeed );
 
 #define DSPI_ENABLE_22MHZ             0
