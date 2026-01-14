@@ -594,10 +594,9 @@ void vDcsInit( int adc_mask, int adc_freq_mask, int dac_mask, int dac_freq_mask)
 
     for(dcs = XCVR_TRX_RX1_ADC; dcs <= XCVR_RO2_ADC; dcs++ )
     {
-
+        xLa9310AdcDacPowerDown(dcs); // power down for reconfiguring
         if (CHECK_BIT(adc_mask, (dcs -1)) == 0) {
                 /* keep it power down */
-                xLa9310AdcDacPowerDown(dcs);
                 continue;
         }
 

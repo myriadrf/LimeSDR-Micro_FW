@@ -2,6 +2,7 @@
 #include <semphr.h>
 
 #include "fsl_dspi.h"
+#include "la9310_dcs_api.h"
 #include "la9310_host_if.h"
 #include "la9310_i2cAPI.h"
 
@@ -344,6 +345,13 @@ static lime_Result ChangeReferenceClock(uint32_t system_clk_hz)
     if (spi_input_clk_hz < spi_frequency*2)
         spi_frequency = spi_input_clk_hz/2;
     vDspiClkSet( lmsspihandle, spi_input_clk_hz, spi_frequency );
+
+    vDcsInit(IN_32(&pLa9310Info->pHif->adc_mask),
+        IN_32(&pLa9310Info->pHif->adc_rate_mask),
+        IN_32(&pLa9310Info->pHif->dac_mask),
+        IN_32(&pLa9310Info->pHif->dac_rate_mask));
+
+    // TODO: reconfigure PPS out phytimer
 
     return result;
 }
