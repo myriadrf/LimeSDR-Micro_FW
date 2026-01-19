@@ -8,10 +8,10 @@
 #define __LA9310_H__
 
 #define PRE_SYS_FREQ     100000000
-#ifndef LA9310_REF_CLK_FREQ
+#ifndef LA9310_SYS_CLK_FREQ
 	#define POST_SYS_FREQ    122880000 /*NLM final DCS frequency to switch */
 #else
-	#define POST_SYS_FREQ    LA9310_REF_CLK_FREQ
+	#define POST_SYS_FREQ    LA9310_SYS_CLK_FREQ
 #endif
 
 /*this macro control clock switch from 100Mz to 122.88MHz.

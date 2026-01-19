@@ -4,9 +4,16 @@ include(FeatureSummary)
 
 add_executable(la9310 "main.c")
 
-SET(LA9310_REF_CLK_FREQ "61440000" CACHE STRING "LA9310 post init reference clock")
-add_compile_definitions(LA9310_REF_CLK_FREQ=${LA9310_REF_CLK_FREQ})
-message(STATUS "LA9310 reference clock: ${LA9310_REF_CLK_FREQ}")
+# Reference clock setup
+SET(EXT_REF_CLK "0" CACHE STRING "External reference clock frequency")
+if (${EXT_REF_CLK})
+    add_compile_definitions(EXT_REF_CLK_FREQ=${EXT_REF_CLK})
+    message(STATUS "Use external reference clock: ${EXT_REF_CLK}")
+endif()
+
+SET(LA9310_SYS_CLK_FREQ "61440000" CACHE STRING "LA9310 post init system clock frequency")
+add_compile_definitions(LA9310_SYS_CLK_FREQ=${LA9310_SYS_CLK_FREQ})
+message(STATUS "LA9310 system clock: ${LA9310_SYS_CLK_FREQ}")
 
 target_include_directories(la9310 PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 
@@ -143,7 +150,8 @@ add_custom_target(la9310_bin ALL
 
 # feature name, status, description
 add_feature_info("LA9310_COMMAND_LINE" LA9310_COMMAND_LINE "Enable LA9310 command line interface")
-add_feature_info("LMS7002M_CLOCK" LMS7002M_CLOCK "Configure LMS7002M clock output")
+add_feature_info("EXT_REF_CLK" EXT_REF_CLK "Use external reference clock (${EXT_REF_CLK} Hz)")
+add_feature_info("LMS7002M_CLOCK" LMS7002M_CLOCK "Configure LMS7002M MCLK1 output (${LA9310_SYS_CLK_FREQ} Hz)")
 
 #########################################################################
 # summary

@@ -8,12 +8,18 @@ git submodule update --init --recursive
 
 Project compilation requires Arm toolchain, it will be downloaded during cmake configuration step
 
-ADC/DAC sampling rates are determined by LA9310_REF_CLK_FREQ
+ADC/DAC sampling rates are determined by LA9310_SYS_CLK_FREQ
 
 * Build steps:
 ```
 mkdir build
 cd build
-cmake .. -DLA9310_REF_CLK_FREQ=30720000
+cmake .. -DLA9310_SYS_CLK_FREQ=61440000
+make
+```
+
+* To enable external reference clock use, set it's frequency. (0 to disable external clock use)
+```
+cmake .. -DEXT_REF_CLK=10000000
 make
 ```

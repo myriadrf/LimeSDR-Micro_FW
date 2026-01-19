@@ -325,7 +325,7 @@ static int ProcessLMS64C_Command(const void* dataIn, void* dataOut)
     return 0;
 }
 
-static lime_Result ChangeReferenceClock(uint32_t system_clk_hz)
+static lime_Result SetLA9310SystemClock(uint32_t system_clk_hz)
 {
     if (system_clk_hz == 0)
         return lime_Result_InvalidValue;
@@ -386,7 +386,7 @@ static void vSwCmdTask( void * pvParameters )
                 uint32_t frequency = 0;
                 pxCmdDesc->status = LA9310_SW_CMD_STATUS_IN_PROGRESS;
                 memcpy(&frequency, pxCmdDesc->data, sizeof(uint32_t));
-                lime_Result result = ChangeReferenceClock(frequency);
+                lime_Result result = SetLA9310SystemClock(frequency);
                 pxCmdDesc->data[0] = (uint32_t)result;
                 break;
             }

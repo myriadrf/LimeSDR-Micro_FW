@@ -111,6 +111,16 @@ static int spi16_transact(const uint32_t* mosi, uint32_t* miso, uint32_t count, 
     return 0;
 }
 
+static void UseExternalReferenceClock(bool external)
+{
+    const uint8_t i2c_expander_address = 0x20;
+    uint8_t gpioa = 0;
+    iLa9310_I2C_Read(LA9310_FSL_I2C1, i2c_expander_address, 0x09, LA9310_I2C_DEV_OFFSET_LEN_1_BYTE, &gpioa, 1);
+    gpioa &= ~(1 << 5);
+    gpioa |= (external ? 1 : 0) << 5;
+    iLa9310_I2C_Write(LA9310_FSL_I2C1, i2c_expander_address, 0x09, LA9310_I2C_DEV_OFFSET_LEN_1_BYTE, &gpioa, 1);
+}
+
 int initialize_lms7002m_clock_generator()
 {
     uint16_t IC26_ADDR = 0x60;
@@ -214,7 +224,13 @@ int initialize_lms7002m_clock_generator()
     hooks.spi16_transact = spi16_transact;
 
     rfsoc = lms7002m_create(&hooks);
-    lime_Result result = lms7002m_set_frequency_cgen(rfsoc, 4* LA9310_REF_CLK_FREQ );
+#ifdef EXT_REF_CLK_FREQ
+    lms7002m_set_reference_clock(rfsoc, EXT_REF_CLK_FREQ);
+    UseExternalReferenceClock(true);
+#else
+    UseExternalReferenceClock(false);
+#endif
+    lime_Result result = lms7002m_set_frequency_cgen(rfsoc, 4 * LA9310_SYS_CLK_FREQ );
     lms7002m_spi_modify_csr(rfsoc, LMS7002M_EN_ADCCLKH_CLKGN, 0x0); // FCLKH to ADC
     lms7002m_spi_modify_csr(rfsoc, LMS7002M_CLKH_OV_CLKL_CGEN, 0x2); // divide clock by 4
     lms7002m_spi_modify_csr(rfsoc, LMS7002M_MCLK1SRC, 0x3); // switch MCLK1 clock source to RxTSPCLKA
