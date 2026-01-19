@@ -16,6 +16,8 @@ static uint16_t xo_dac_value = 0;
 extern struct LA931xDspiInstance *lmsspihandle;
 extern int32_t spi_lms7002m_read( struct LA931xDspiInstance * pDspiHandle, uint16_t addr, uint16_t *value );
 extern int32_t spi_lms7002m_write( struct LA931xDspiInstance * pDspiHandle, uint16_t addr, uint16_t value );
+extern void UseExternalReferenceClock(bool external);
+extern int IsExternalRefClkUsed();
 
 extern struct lms7002m_context* rfsoc;
 
@@ -356,10 +358,58 @@ static lime_Result SetLA9310SystemClock(uint32_t system_clk_hz)
     return result;
 }
 
+static lime_Result ConfigureReferenceClock(uint32_t clk_hz, bool external)
+{
+    if (clk_hz == 0)
+        return lime_Result_InvalidValue;
+
+    if (clk_hz < 10000000 || clk_hz > 52000000)
+        return lime_Result_OutOfRange;
+
+    uint32_t currentRefClk = lms7002m_get_reference_clock(rfsoc);
+    if (clk_hz == currentRefClk)
+    {
+        // just flip the switch
+        UseExternalReferenceClock(external);
+        return lime_Result_Success;
+    }
+    bool isExtClkUsed = IsExternalRefClkUsed();
+
+    uint32_t currentCGEN_Hz = lms7002m_get_frequency_cgen(rfsoc);
+    lime_Result status = lime_Result_Error;
+    if (clk_hz < currentRefClk)
+    {
+        // preconfigure CGEN to a higher frequency, so that when ref clock source switches CGEN would not fall below supported frequency
+        uint32_t upscaleRatio = (currentRefClk / clk_hz) + ((currentRefClk % clk_hz) != 0);
+        status = lms7002m_set_frequency_cgen(rfsoc, currentCGEN_Hz * upscaleRatio);
+    }
+    else
+    {
+        // preconfigure CGEN to a lower frequency, so that when ref clock source switches CGEN would not fall above supported frequency
+        uint32_t downscaleRatio = (clk_hz / currentRefClk) + ((clk_hz % currentRefClk) != 0);
+        status = lms7002m_set_frequency_cgen(rfsoc, currentCGEN_Hz / downscaleRatio);
+    }
+
+    // flip clock source switch
+    UseExternalReferenceClock(external);
+    lms7002m_set_reference_clock(rfsoc, clk_hz);
+
+    // retune with new reference clock values
+    status = lms7002m_set_frequency_cgen(rfsoc, currentCGEN_Hz);
+    if (status != lime_Result_Success)
+    {
+        // revert back to original settings
+        UseExternalReferenceClock(isExtClkUsed);
+        lms7002m_set_reference_clock(rfsoc, currentRefClk);
+        lms7002m_set_frequency_cgen(rfsoc, currentCGEN_Hz);
+    }
+    return status;
+}
+
 static void vSwCmdTask( void * pvParameters )
 {
     struct la9310_hif * pxHif = pLa9310Info->pHif;
-    struct la9310_sw_cmd_desc * pxCmdDesc = &( pxHif->sw_cmd_desc );
+    volatile struct la9310_sw_cmd_desc * pxCmdDesc = &( pxHif->sw_cmd_desc );
 
     uint8_t response[64];
 
@@ -374,29 +424,46 @@ static void vSwCmdTask( void * pvParameters )
         }
 
         memset(response, 0, sizeof(response));
-
+        int status = LA9310_SW_CMD_STATUS_IN_PROGRESS;
         switch( pxCmdDesc->cmd )
         {
             case 1:
-                pxCmdDesc->status = LA9310_SW_CMD_STATUS_IN_PROGRESS;
                 ProcessLMS64C_Command(pxCmdDesc->data, response);
                 memcpy(pxCmdDesc->data, response, sizeof(response));
+                status = LA9310_SW_CMD_STATUS_DONE;
                 break;
-            case 2: {
-                uint32_t frequency = 0;
+            case 2: { // Set LA9310 system clock
                 pxCmdDesc->status = LA9310_SW_CMD_STATUS_IN_PROGRESS;
-                memcpy(&frequency, pxCmdDesc->data, sizeof(uint32_t));
+                uint32_t frequency = pxCmdDesc->data[0];
                 lime_Result result = SetLA9310SystemClock(frequency);
                 pxCmdDesc->data[0] = (uint32_t)result;
+                status = LA9310_SW_CMD_STATUS_DONE;
+                break;
+            }
+            case 3: { // Get Reference clock
+                pxCmdDesc->status = LA9310_SW_CMD_STATUS_IN_PROGRESS;
+                uint32_t frequency = lms7002m_get_reference_clock(rfsoc);
+                pxCmdDesc->data[0] = frequency;
+                status = LA9310_SW_CMD_STATUS_DONE;
+                break;
+            }
+            case 4: { // Set Reference clock and source
+                pxCmdDesc->status = LA9310_SW_CMD_STATUS_IN_PROGRESS;
+                uint32_t frequency = pxCmdDesc->data[0];
+                uint32_t external = pxCmdDesc->data[1];
+                lime_Result result = ConfigureReferenceClock(frequency, external);
+                pxCmdDesc->data[0] = (uint32_t)result;
+                status = LA9310_SW_CMD_STATUS_DONE;
                 break;
             }
             default:
                 log_err( "sw cmd not implemented: %d\r\n", pxCmdDesc->cmd );
+                status = LA9310_SW_CMD_STATUS_ERROR;
                 break;
         }
 
         dmb();
-        pxCmdDesc->status = LA9310_SW_CMD_STATUS_DONE;
+        pxCmdDesc->status = status;
 
         // xSemaphoreGive(xSwCmdSemaphore);
     }

@@ -111,7 +111,15 @@ static int spi16_transact(const uint32_t* mosi, uint32_t* miso, uint32_t count, 
     return 0;
 }
 
-static void UseExternalReferenceClock(bool external)
+int IsExternalRefClkUsed()
+{
+    const uint8_t i2c_expander_address = 0x20;
+    uint8_t gpioa = 0;
+    iLa9310_I2C_Read(LA9310_FSL_I2C1, i2c_expander_address, 0x09, LA9310_I2C_DEV_OFFSET_LEN_1_BYTE, &gpioa, 1);
+    return (gpioa & (1 << 5)) ? 1 : 0;
+}
+
+void UseExternalReferenceClock(bool external)
 {
     const uint8_t i2c_expander_address = 0x20;
     uint8_t gpioa = 0;
