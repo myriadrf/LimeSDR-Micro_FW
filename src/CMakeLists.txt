@@ -16,7 +16,7 @@ set(LA9310_BOOT_MODE "pcie" CACHE STRING "LA9310 boot mode")
 set_property(CACHE LA9310_BOOT_MODE PROPERTY STRINGS ${LA9310_BOOT_MODE_OPTIONS})
 if (${LA9310_BOOT_MODE} STREQUAL "pcie")
     target_compile_definitions(la9310 PUBLIC "-DTURN_ON_HOST_MODE=1")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -T${CMAKE_CURRENT_LIST_DIR}/platform/ARM_CM4/la9310_host_pcie_mode.ld -static")
+    set(LA9310_LINKER_SCRIPT ${CMAKE_CURRENT_LIST_DIR}/platform/ARM_CM4/la9310_host_pcie_mode.ld)
     target_sources(la9310 PRIVATE
         "drivers/misc/bbdev_ipc.c"
         "drivers/pcie/la9310_pcie.c"
@@ -24,13 +24,15 @@ if (${LA9310_BOOT_MODE} STREQUAL "pcie")
     )
 elseif(${LA9310_BOOT_MODE} STREQUAL "i2c")
     target_compile_definitions(la9310 PUBLIC "-DTURN_ON_STANDALONE_MODE")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -T${CMAKE_CURRENT_LIST_DIR}/platform/ARM_CM4/la9310_standalone_i2c_mode.ld -static")
+    set(LA9310_LINKER_SCRIPT ${CMAKE_CURRENT_LIST_DIR}/platform/ARM_CM4/la9310_standalone_i2c_mode.ld)
     target_sources(la9310 PRIVATE
         "drivers/avi/la9310_vspa_dma.c"
     )
 else()
     message(FATAL_ERROR "LA9310_BOOT_MODE must be one of: ${LA9310_BOOT_MODE_OPTIONS}")
 endif()
+set_target_properties(la9310 PROPERTIES LINK_DEPENDS ${LA9310_LINKER_SCRIPT})
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -T${LA9310_LINKER_SCRIPT} -static")
 message(STATUS "LA9310 Boot mode: ${LA9310_BOOT_MODE}")
 
 # Treat warnings as errors
@@ -120,6 +122,7 @@ TARGET_LINK_LIBRARIES(la9310 PRIVATE -Wl,--end-group)
 # MAP FILE
 set(MEMORY_MAP_FILENAME "${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/la9310")
 SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}  -Xlinker -Map=${MEMORY_MAP_FILENAME}.map")
+set_target_properties(la9310 PROPERTIES ADDITIONAL_CLEAN_FILES "${MEMORY_MAP_FILENAME}.map")
 
 # BIN AND HEX
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE})
