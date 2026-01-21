@@ -102,5 +102,6 @@ void * iLa9310AviHandle();
 void vAxiqLoopbackSet( bool, uint32_t );
 
 int iLa9310AviConfig( void );
+int iLa9310AviDirectConfig( void );
 
 #endif /* __LA9310_AVI_H__ */
