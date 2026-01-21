@@ -18,6 +18,7 @@
 #define WAIT_TIMEOUT_FOR_MBOX \
     pdMS_TO_TICKS( WAIT_TIMEOUT_FOR_MBOX_MILLISECS )
 
+#define VSPA_DMA_CMP_MASK                  0x00000010
 #define VSPA_ENABLE_MAILBOX_IRQ            0x0000F000
 #define VSPA_MBOX_MASK                     0x0000F000
 #define VSPA_MBOX0_STATUS_SHIFT            12

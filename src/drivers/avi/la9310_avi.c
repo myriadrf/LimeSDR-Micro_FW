@@ -17,6 +17,7 @@ struct la9310_evt_hdlr VspaEvtHdlr;
 void (* IntHndlr)( void ) = NULL;
 
 uint32_t uMailboxMonitorMask = VSPA_MBOX_MASK;
+uint32_t uDmaCmpMask = VSPA_DMA_CMP_MASK;
 
 void vVSPAMboxMonitorMaskSet(uint32_t mask)
 {
@@ -352,6 +353,19 @@ void La9310VSPA_IRQRelayHandler( void )
     log_isr( "ISR:%s: Out\n\r", __func__ );
 }
 
+void La9310VSPA_IRQDirectHandler( void )
+{
+    struct la9310_msi_info * pMsiInfo;
+    struct vspa_regs * pVspaRegs = ( struct vspa_regs * ) pAviHndlr->pVspaRegs;
+
+    OUT_32( &pVspaRegs->dma_irq_stat, IN_32( &pVspaRegs->dma_irq_stat ));
+    NVIC_ClearPendingIRQ( IRQ_VSPA );
+
+    pMsiInfo = &pLa9310Info->msi_info[ LA9310_IRQ_MUX_MSI ];
+    OUT_32( pMsiInfo->addr, pMsiInfo->data );
+    dmb();
+}
+
 void La9310VSPA_IRQHandler( void )
 {
     IntHndlr();
@@ -485,6 +499,23 @@ hndl_retval:
     return 1;
 }
 
+int iLa9310AviDirectConfig( void )
+{
+    struct vspa_regs * pVspaRegs = NULL;
+
+    pAviHndlr = iLa9310AviInit();
+
+    IntHndlr = La9310VSPA_IRQDirectHandler;
+
+    NVIC_SetPriority( IRQ_VSPA, VSPA_IRQ_PRIORITY );
+    NVIC_EnableIRQ( IRQ_VSPA );
+
+    pVspaRegs = ((struct avi_hndlr *)pAviHndlr)->pVspaRegs;
+    OUT_32( &pVspaRegs->vspa_irqen,
+            ( IN_32( &pVspaRegs->vspa_irqen ) | uDmaCmpMask ) );
+
+    return 0;
+}
 
 void iLa9310AviClose( void )
 {
