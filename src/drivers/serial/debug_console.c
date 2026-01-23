@@ -61,7 +61,7 @@ debug_console_status_t xDebugConsoleInit( void * base,
 
     vSerialInit( base, baudRate, clockRate );
 
-    s_debugConsole.inited = false ;// disable debug console to not touch UART
+    s_debugConsole.inited = true ;
 
     return status_DEBUGCONSOLE_Success;
 }

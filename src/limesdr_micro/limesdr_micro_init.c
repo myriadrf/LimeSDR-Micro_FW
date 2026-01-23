@@ -3,6 +3,7 @@
 #include "debug_console.h"
 
 #include "utils/delay.h"
+#include "log.h"
 
 #include "limesuiteng/embedded/lms7002m/lms7002m.h"
 #include "lms7002m/spi.h"

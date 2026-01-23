@@ -12,9 +12,11 @@
  * @{
  */
 
-#include <stdint.h>
 #include "la9310_error_codes.h"
 #include "la93xx_bbdev_ipc.h"
+#include "log.h"
+
+#include <stdint.h>
 
 /** Attributes of a queue */
 struct queue_attr_t {

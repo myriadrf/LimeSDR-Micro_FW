@@ -8,6 +8,10 @@
 #include "la9310_error_codes.h"
 #include "la9310_edmaAPI.h"
 #include "la9310_irq.h"
+#include "log.h"
+
+extern struct la9310_info g_la9310_info;
+struct la9310_info *pLa9310Info = &g_la9310_info;
 
 int iEdmaInit( void )
 {

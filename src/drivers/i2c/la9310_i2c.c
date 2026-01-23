@@ -12,6 +12,8 @@
 #include "config.h"
 #include <delay.h>
 
+#include "log.h"
+
 /* Clock rate and Frequency Divider Register settings */
 const uint16_t usFsl_I2C_Speed_Map[] =
 {

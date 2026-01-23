@@ -15,6 +15,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include <delay.h>
+#include "log.h"
 
 #define FW_PATCH_PATTERN_SIZE       7
 #define FW_PATCH_PATTERN_SCAN_LEN   128

@@ -45,9 +45,6 @@ void vSerialWriteBlocking( NS16550_t xBase,
                            const uint8_t * pucData,
                            size_t xLength )
 {
-	#ifdef TURN_ON_HOST_MODE
-        vMemlogWrite( pucData, xLength );
-	#endif
     while( xLength-- )
     {
         while( !( IN_8( &xBase->lsr ) & SERIAL_LSR_THRE ) )

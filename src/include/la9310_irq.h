@@ -7,7 +7,7 @@
 #ifndef __LA9310_IRQ_H__
 #define __LA9310_IRQ_H__
 
-#include "la9310_host_if.h"
+#define LA9310_MSI_MAX_CNT      8
 
 #define LA9310_EVT_MAX        32
 #define LA9310_IRQ_MUX_MSI    ( MSI_IRQ_MUX )
@@ -17,6 +17,8 @@
 #define MSG1_IRQ_PRIORITY     3
 #define VSPA_IRQ_PRIORITY     3
 
+struct la9310_info;
+
 enum la9310_evt_type
 {
     LA9310_EVT_TYPE_UNUSED = 0,
@@ -25,6 +27,21 @@ enum la9310_evt_type
     LA9310_EVT_TYPE_TEST,
     LA9310_EVT_TYPE_END,
 };
+
+/* Set IRQ_REAL_MSI_BIT to enable dedicated MSI interrupt line ,
+ * and virtual irq line can be used by setting the TEST or LAST
+ * EVT bits */
+
+typedef enum {
+    IRQ_EVT_IPC_CH1_BIT = 0,
+    IRQ_EVT_IPC_CH2_BIT,
+    IRQ_EVT_IPC_CH3_BIT,
+    IRQ_EVT_IPC_CH4_BIT,
+    IRQ_EVT_VSPA_BIT,
+    IRQ_EVT_TEST_BIT,
+    IRQ_EVT_LAST_BIT,
+    IRQ_REAL_MSI_BIT
+} la9310_irq_evt_bits_t;
 
 struct la9310_evt_hdlr
 {
@@ -38,13 +55,11 @@ struct la9310_evt_hdlr
                       void * cookie );
 };
 
-int iLa9310IRQInit( struct la9310_info * pLa9310Info );
-int iLa9310RegisterEvt( struct la9310_info * pla9310Info,
-                        la9310_irq_evt_bits_t evt_bit,
-                        struct la9310_evt_hdlr * pLa9310EvtHdlr );
+struct la9310_irq_evt_info
+{
+    int ievt_count;
+    int ievt_en_mask;
+    struct la9310_evt_hdlr * phdlr_tbl;
+};
 
-int iLa9310RaiseIrqEvt( struct la9310_info * pla9310Info,
-                        la9310_irq_evt_bits_t evt_bit );
-void vRaiseMsi( struct la9310_info * pla9310Info,
-                enum la9310_msi_id msi );
 #endif /* ifndef __LA9310_IRQ_H__ */

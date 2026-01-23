@@ -9,6 +9,9 @@
 #include "la9310_irq.h"
 #include "la9310_gpio.h"
 
+#include "log.h"
+extern struct la9310_info g_la9310_info;
+
 int iWdogEnable( uint32_t wdog_load_val,
                  struct la9310_info * pLa9310Info )
 {
@@ -84,7 +87,7 @@ void La9310WDOG_IRQHandler( void )
     static unsigned int count;
     struct la9310_stats * pStats;
 
-    pStats = pLa9310Info->stats;
+    pStats = g_la9310_info.stats;
 
     if( count == 0 )
     {

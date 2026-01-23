@@ -21,6 +21,7 @@
 #include "sync_timing_common.h"
 #include <phytimer.h>
 #include "task.h"
+#include "log.h"
 
 static portBASE_TYPE prvTimesyncCLI( char * pcWriteBuffer,
                                      size_t xWriteBufferLen,

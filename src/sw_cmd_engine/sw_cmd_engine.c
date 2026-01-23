@@ -12,13 +12,15 @@
 #include "io.h"
 #include "la9310_host_if.h"
 #include "sync_timing_device.h"
+#include "log.h"
+
+extern struct la9310_info g_la9310_info;
 
 SemaphoreHandle_t xSwCmdSemaphore;
 
 void vSwCmdTask( void * pvParameters )
 {
-    struct la9310_hif * pxHif = pLa9310Info->pHif;
-    struct la9310_sw_cmd_desc * pxCmdDesc = &( pxHif->sw_cmd_desc );
+    struct la9310_sw_cmd_desc * pxCmdDesc = &( g_la9310_info.pHif->sw_cmd_desc );
 
     while( 1 )
     {
@@ -70,7 +72,7 @@ int lSwCmdEngineInit()
 void La9310MSG_2_IRQHandler( void )
 {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    struct la9310_msg_unit * pMsgUnit = &pLa9310Info->msg_unit[ LA9310_MSG_UNIT_2 ];
+    struct la9310_msg_unit * pMsgUnit = &g_la9310_info.msg_unit[ LA9310_MSG_UNIT_2 ];
     uint32_t msir = IN_32( &pMsgUnit->msir );
 
     ( void ) msir;

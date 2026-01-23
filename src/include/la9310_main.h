@@ -7,15 +7,13 @@
 #ifndef __LA9310_MAIN_H__
 #define __LA9310_MAIN_H__
 
-#include "FreeRTOS.h"
 #include "la9310_host_if.h"
 #include "immap.h"
 #include "core_cm4.h"
 #include "la9310.h"
-#ifdef __RFIC
-#include "rfic_core.h"
-#endif
 #include <common.h>
+
+#include "la9310_info.h"
 
 #define SITES_MAX       16
 #define TMU_TTRCR0_INIT 0x000B0000
@@ -129,59 +127,8 @@ typedef enum la9310_mbx_opcode
     RFNM_IQ_IMBALANCE
 } la9310_mbx_opcode_t;
 
-struct la9310_msi_info
-{
-    uint32_t __IO addr;
-    uint32_t data;
-};
-
 #define LA9310_EVT_MAX    32
-
-struct la9310_irq_evt_info
-{
-    int ievt_count;
-    int ievt_en_mask;
-    struct la9310_evt_hdlr * phdlr_tbl;
-};
 
 #define LA9310_HOST_READY_MASK    ( LA9310_HIF_STATUS_VSPA_READY )
 
-#ifdef TURN_ON_HOST_MODE
-struct la9310_info
-{
-    struct ccsr_dcr * pxDcr;
-    void * itcm_addr;
-    void * dtcm_addr;
-    void * pcie_addr;
-    void * pcie_obound;
-    struct la9310_msg_unit * msg_unit;
-    uint32_t llcp_rfic_addr;
-    struct la9310_stats * stats;
-    struct la9310_hif * pHif;
-    struct la9310_msi_info msi_info[ LA9310_MSI_MAX_CNT ];
-    struct la9310_irq_evt_info evt_info;
-#ifdef __RFIC
-    RficDevice_t *pRficDev;
-#endif
-};
-#else //TURN_ON_STANDALONE_MODE
-struct la9310_info //Fix-Me
-{
-    struct ccsr_dcr * pxDcr;
-    void * itcm_addr;
-    void * dtcm_addr;
-    void * pcie_addr;
-    void * pcie_obound;
-    struct la9310_msg_unit * msg_unit;
-    uint32_t llcp_rfic_addr;
-    struct la9310_stats * stats;
-    struct la9310_hif * pHif;  
-    struct la9310_msi_info msi_info[ LA9310_MSI_MAX_CNT ];
-    struct la9310_irq_evt_info evt_info;
-#ifdef __RFIC
-    RficDevice_t *pRficDev;
-#endif
-};
-#endif //TURN_ON_STANDALONE_MODE
-extern struct la9310_info * pLa9310Info;
 #endif /* ifndef __LA9310_MAIN_H__ */

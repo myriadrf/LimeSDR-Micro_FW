@@ -30,6 +30,8 @@
 #include "drivers/avi/la9310_avi_ds.h"
 #include <la9310_dcs_api.h>
 
+#include "log.h"
+
 #if NXP_ERRATUM_A_009410
     #include "la9310_pci.h"
 #endif
@@ -50,8 +52,11 @@
 #endif
 
 uint32_t ulMemLogIndex;
-struct la9310_info * pLa9310Info;
+
+struct la9310_info g_la9310_info;
+
 extern void vVSPAMboxInit();
+extern int iLa9310IRQInit( struct la9310_info * pLa9310Info );
 
 void v_main_Hif_Init( struct la9310_info * pLa9310Info )
 {
@@ -327,8 +332,7 @@ int iInitHandler ( void )
 #endif
     vEnableExceptions();
 
-    pLa9310Info = pvPortMalloc( sizeof( struct la9310_info ) );
-
+    struct la9310_info *pLa9310Info = &g_la9310_info;
     if( !pLa9310Info )
     {
         PRINTF( "pLA9310info alloc failed. going for while(true)\n\r" );
@@ -407,12 +411,12 @@ int iInitHandler ( void )
         goto out;
     }
 #ifdef TURN_ON_HOST_MODE
-    if( bbdev_ipc_init( 0, 0 ) )
-    {
-        log_err( "IPC Init failed\r\n" );
-        irc = FAILURE;
-        goto out;
-    }
+    // if( bbdev_ipc_init( 0, 0 ) )
+    // {
+    //     log_err( "IPC Init failed\r\n" );
+    //     irc = FAILURE;
+    //     goto out;
+    // }
 
     /* Till here Host should be ready */
     irc = iCheckReadyState( pLa9310Info );

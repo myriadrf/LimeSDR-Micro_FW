@@ -10,6 +10,7 @@
 #include "FreeRTOS.h"
 #include <types.h>
 #include <bit.h>
+#include "log.h"
 
 static struct LA931xDspiInstance * pxDspiHandle = { NULL };
 int32_t lDspiHzToBaud( uint32_t * lpbr,

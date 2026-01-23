@@ -14,6 +14,9 @@
 #include "la9310_irq.h"
 #include "la9310_pci.h"
 
+extern struct la9310_info g_la9310_info;
+extern void vRaiseMsi(struct la9310_info *pla9310Info, enum la9310_msi_id msi);
+
 void vLa9310_do_handshake( struct la9310_info * vLa9310Info )
 {
 #ifdef TURN_ON_HOST_MODE
@@ -43,7 +46,7 @@ void vLa9310_do_handshake( struct la9310_info * vLa9310Info )
     #ifndef LA9310_RESET_HANDSHAKE_POLLING_ENABLE
         vWaitForPCIeLinkStability();
         /*Raise Msi for Host handshaking*/
-        vRaiseMsi( pLa9310Info, MSI_IRQ_HOST_HANDSHAKE );
+        vRaiseMsi( vLa9310Info, MSI_IRQ_HOST_HANDSHAKE );
     #endif
 #endif //TURN_ON_STANDALONE_MODE
 }

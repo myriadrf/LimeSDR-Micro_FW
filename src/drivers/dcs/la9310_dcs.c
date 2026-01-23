@@ -14,6 +14,7 @@
 #include "config.h"
 #include "la9310_dcs.h"
 #include <la9310_dcs_api.h>
+#include "log.h"
 
 #define CHECK_BIT(var,pos) (((var) & (1<<(pos)))>>(pos))
 

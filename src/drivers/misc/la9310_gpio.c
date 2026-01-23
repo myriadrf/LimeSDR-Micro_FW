@@ -12,6 +12,8 @@
 #include "la9310_gpio.h"
 #include "io.h"
 
+#include "log.h"
+
 gpio_port_t gpioports[ 1 ];
 
 static uint32_t uGetportaddr( void )

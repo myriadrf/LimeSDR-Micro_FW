@@ -5,6 +5,7 @@
  */
 
 #include <phytimer.h>
+#include "FreeRTOS.h"
 #include "timers.h"
 
 #define PHY_TIMER_DIVISOR_MASK    0x3F

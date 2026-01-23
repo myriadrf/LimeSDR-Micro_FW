@@ -12,6 +12,7 @@
 #include "la9310_gpio.h"
 #include "la9310_pinmux.h"
 #include <phytimer.h>
+#include "log.h"
 
 int32_t prvMAX2870SynthWriteReg( struct LA931xDspiInstance * pDspiHandle,
                                  uint8_t addr,

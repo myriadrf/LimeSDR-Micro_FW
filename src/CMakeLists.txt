@@ -25,7 +25,7 @@ if (${LA9310_BOOT_MODE} STREQUAL "pcie")
     target_compile_definitions(la9310 PUBLIC "-DTURN_ON_HOST_MODE=1")
     set(LA9310_LINKER_SCRIPT ${CMAKE_CURRENT_LIST_DIR}/platform/ARM_CM4/la9310_host_pcie_mode.ld)
     target_sources(la9310 PRIVATE
-        "drivers/misc/bbdev_ipc.c"
+        # "drivers/misc/bbdev_ipc.c"
         "drivers/pcie/la9310_pcie.c"
         "utils/task_stats.c"
     )
@@ -94,6 +94,7 @@ target_sources(la9310 PRIVATE
     "${FREERTOS_DIR}/queue.c"
     "${FREERTOS_DIR}/tasks.c"
     "${FREERTOS_DIR}/timers.c"
+    "log.c"
     "drivers/serial/debug_console.c"
     "drivers/serial/print_scan.c"
     "drivers/serial/serial_ns16550.c"

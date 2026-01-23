@@ -4,6 +4,8 @@
  * Copyright 2017-2018, 2021 NXP
  */
 
+#include "log.h"
+
 #include "io.h"
 #include "la9310_pci.h"
 #include "debug_console.h"

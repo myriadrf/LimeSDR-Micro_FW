@@ -12,6 +12,12 @@
 #include "la9310_irq.h"
 #include "semphr.h"
 
+#include "log.h"
+
+extern struct la9310_info g_la9310_info;
+struct la9310_info *pLa9310Info = &g_la9310_info;
+extern int iLa9310RegisterEvt( struct la9310_info * pla9310Info, la9310_irq_evt_bits_t evt_bit, struct la9310_evt_hdlr * pLa9310EvtHdlr );
+
 struct avi_hndlr * pAviHndlr = NULL;
 struct la9310_evt_hdlr VspaEvtHdlr;
 void (* IntHndlr)( void ) = NULL;

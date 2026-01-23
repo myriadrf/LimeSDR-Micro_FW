@@ -19,38 +19,6 @@
 #define PRINTF        debug_printf
 #define PUTCHAR       debug_putchar
 
-#define log_err( ... )                                             \
-    do {                                                           \
-        struct la9310_hif * pHif = pLa9310Info->pHif;              \
-        struct debug_log_regs * pDbgLogRegs = &pHif->dbg_log_regs; \
-        if( pDbgLogRegs->log_level >= LA9310_LOG_LEVEL_ERR )       \
-        PRINTF( __VA_ARGS__ );                                     \
-    } while( 0 )
-
-#define log_info( ... )                                            \
-    do {                                                           \
-        struct la9310_hif * pHif = pLa9310Info->pHif;              \
-        struct debug_log_regs * pDbgLogRegs = &pHif->dbg_log_regs; \
-        if( pDbgLogRegs->log_level >= LA9310_LOG_LEVEL_INFO )      \
-        PRINTF( __VA_ARGS__ );                                     \
-    }while( 0 )
-
-#define log_dbg( ... )                                             \
-    do {                                                           \
-        struct la9310_hif * pHif = pLa9310Info->pHif;              \
-        struct debug_log_regs * pDbgLogRegs = &pHif->dbg_log_regs; \
-        if( pDbgLogRegs->log_level >= LA9310_LOG_LEVEL_DBG )       \
-        PRINTF( __VA_ARGS__ );                                     \
-    }while( 0 )
-
-#define log_isr( ... )                                             \
-    do {                                                           \
-        struct la9310_hif * pHif = pLa9310Info->pHif;              \
-        struct debug_log_regs * pDbgLogRegs = &pHif->dbg_log_regs; \
-        if( pDbgLogRegs->log_level >= LA9310_LOG_LEVEL_ISR )       \
-        PRINTF( __VA_ARGS__ );                                     \
-    }while( 0 )
-
 extern uint32_t ulMemLogIndex;
 
 /*! @brief Error code for the debug console driver. */

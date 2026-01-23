@@ -8,8 +8,8 @@
 #include "task.h"
 #include "common.h"
 #include "immap.h"
-#include "la9310_main.h"
 #include "la9310_irq.h"
+#include "la9310_main.h"
 #include "la9310_edma.h"
 #ifdef TURN_ON_HOST_MODE
 #ifdef __RFIC
@@ -17,11 +17,14 @@
 #endif
 #endif
 
-extern struct la9310_info * pLa9310Info;
+#include "la9310_info.h"
+#include "log.h"
+
+extern struct la9310_info g_la9310_info;
+struct la9310_info *pLa9310Info = &g_la9310_info;
 extern void vIpcRxISR( int chid );
 
-void vRaiseMsi( struct la9310_info * pla9310Info,
-                enum la9310_msi_id msi )
+void vRaiseMsi(struct la9310_info *pla9310Info, enum la9310_msi_id msi)
 {
     struct la9310_msi_info * pMsiInfo;
     struct la9310_stats * pStats = pla9310Info->stats;

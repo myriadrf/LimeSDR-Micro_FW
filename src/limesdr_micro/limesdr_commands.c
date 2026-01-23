@@ -6,6 +6,8 @@
 #include "la9310_host_if.h"
 #include "la9310_i2cAPI.h"
 
+#include "log.h"
+
 #include "limesuiteng/embedded/lms7002m/lms7002m.h"
 #include "lms7002m/spi.h"
 
@@ -20,6 +22,7 @@ extern void UseExternalReferenceClock(bool external);
 extern int IsExternalRefClkUsed();
 
 extern struct lms7002m_context* rfsoc;
+extern struct la9310_info g_la9310_info;
 
 static SemaphoreHandle_t xSwCmdSemaphore;
 static volatile int runEngine = 1;
@@ -327,7 +330,7 @@ static int ProcessLMS64C_Command(const void* dataIn, void* dataOut)
     return 0;
 }
 
-static lime_Result SetLA9310SystemClock(uint32_t system_clk_hz)
+static lime_Result SetLA9310SystemClock(struct la9310_info * pLa9310Info, uint32_t system_clk_hz)
 {
     if (system_clk_hz == 0)
         return lime_Result_InvalidValue;
@@ -408,7 +411,7 @@ static lime_Result ConfigureReferenceClock(uint32_t clk_hz, bool external)
 
 static void vSwCmdTask( void * pvParameters )
 {
-    struct la9310_hif * pxHif = pLa9310Info->pHif;
+    struct la9310_hif * pxHif = g_la9310_info.pHif;
     volatile struct la9310_sw_cmd_desc * pxCmdDesc = &( pxHif->sw_cmd_desc );
 
     uint8_t response[64];
@@ -435,7 +438,7 @@ static void vSwCmdTask( void * pvParameters )
             case 2: { // Set LA9310 system clock
                 pxCmdDesc->status = LA9310_SW_CMD_STATUS_IN_PROGRESS;
                 uint32_t frequency = pxCmdDesc->data[0];
-                lime_Result result = SetLA9310SystemClock(frequency);
+                lime_Result result = SetLA9310SystemClock(&g_la9310_info, frequency);
                 pxCmdDesc->data[0] = (uint32_t)result;
                 status = LA9310_SW_CMD_STATUS_DONE;
                 break;
