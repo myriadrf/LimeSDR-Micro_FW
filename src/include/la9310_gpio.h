@@ -130,12 +130,12 @@ int32_t iGpioSetData( uint8_t pin,
 *
 *
 * Return Value  -
-*	pdPASS     No Error
-*	pdFAIL value   error
+*	SUCCESS     No Error
+*	Negative value   error (see "la9310_error_codes.h" for reference)
 *
 *
 ***************************************************************************/
-BaseType_t iGpioSetBit( uint8_t pin,
+int32_t iGpioSetBit( uint8_t pin,
                         uint8_t uVal );
 
 /**************************************************************************

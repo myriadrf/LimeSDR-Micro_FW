@@ -13,6 +13,8 @@
 
 #define PHY_TIMER_DIVISOR_MASK    0x3F
 
+extern void BlinkLEDs();
+
 struct xPhyTimerRegs * regs = ( struct xPhyTimerRegs * ) ( PHY_TIMER_BASE_ADDRESS );
 
 static uint32_t ulNextPPSOUT;
@@ -136,6 +138,8 @@ __attribute__( ( weak ) )  void vPhyTimerPPSOUTHandler()
             PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
             ePhyTimerComparatorOutToggle,
             ulNextPPSOUT );
+
+    BlinkLEDs();
 }
 
 void vPhyTimerPPSOUTConfigGPSlike()

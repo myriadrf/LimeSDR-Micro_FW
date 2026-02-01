@@ -143,14 +143,14 @@ int32_t iGpioInit( uint8_t pin,
     return SUCCESS;
 }
 
-BaseType_t iGpioSetBit( uint8_t pin,
+int32_t iGpioSetBit( uint8_t pin,
                         uint8_t uVal )
 {
     if( iIsPinSupported( pin ) )
     {
         log_err( "iGpioSetBit - GPIO PIN (%d)\
 				is not supported \n\n\r", pin );
-        return pdFAIL;
+        return FAILURE;
     }
 
     gpio_port_t * gpioport = ( struct gpio_port * ) ( uGetportaddr() );
@@ -165,5 +165,5 @@ BaseType_t iGpioSetBit( uint8_t pin,
         clrbits_le32( ( uint32_t ) ( &p_reg[ GPIO_DAT ] ), BITS( pin ) );
     }
 
-    return pdPASS;
+    return SUCCESS;
 }
