@@ -4,14 +4,6 @@
  * Copyright 2022 NXP
  */
 
-
-#include "FreeRTOS.h"
-#include "task.h"
-#include "la9310_main.h"
-#include "common.h"
-#include <delay.h>
-#include "la9310_i2cAPI.h"
-
 extern void LoadVSPAImage(void);
 #define NLM_VERBOSE_DEBUG
 #define OVERLAY_SECTION_OFFSET    0x00  /*TBD*/

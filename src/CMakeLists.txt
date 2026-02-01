@@ -4,6 +4,8 @@ include(FeatureSummary)
 
 add_executable(la9310 "main.c")
 
+target_link_libraries(la9310 PUBLIC freertos_kernel)
+
 # Reference clock setup
 SET(EXT_REF_CLK "0" CACHE STRING "External reference clock frequency")
 if (${EXT_REF_CLK})
@@ -68,8 +70,6 @@ endif()
 
 target_include_directories(la9310 PRIVATE
     ${LA9310_COMMON_HEADERS}/
-    ${FREERTOS_DIR}/portable/GCC/ARM_CM4
-    ${FREERTOS_DIR}/include
     include
     platform/ARM_CM4/include/
     platform/boards/la9310/
@@ -86,14 +86,6 @@ target_include_directories(la9310 PRIVATE
 )
 
 target_sources(la9310 PRIVATE
-    "${FREERTOS_DIR}/portable/GCC/ARM_CM4/port.c"
-    "${FREERTOS_DIR}/portable/MemMang/heap_2.c"
-    "${FREERTOS_DIR}/croutine.c"
-    "${FREERTOS_DIR}/event_groups.c"
-    "${FREERTOS_DIR}/list.c"
-    "${FREERTOS_DIR}/queue.c"
-    "${FREERTOS_DIR}/tasks.c"
-    "${FREERTOS_DIR}/timers.c"
     "log.c"
     "drivers/serial/debug_console.c"
     "drivers/serial/print_scan.c"

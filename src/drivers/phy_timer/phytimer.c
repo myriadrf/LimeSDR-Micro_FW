@@ -7,6 +7,9 @@
 #include <phytimer.h>
 #include "FreeRTOS.h"
 #include "timers.h"
+#include "io.h"
+#include "debug_console.h"
+#include "core_cm4.h"
 
 #define PHY_TIMER_DIVISOR_MASK    0x3F
 

@@ -4,17 +4,11 @@
  */
 
 #include <string.h>
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
-#include "common.h"
-#include "immap.h"
-#include "debug_console.h"
-#include "la9310_irq.h"
-#include "config.h"
 #include "la9310_dcs.h"
 #include <la9310_dcs_api.h>
 #include "log.h"
+#include "io.h"
+#include "debug_console.h"
 
 #define CHECK_BIT(var,pos) (((var) & (1<<(pos)))>>(pos))
 

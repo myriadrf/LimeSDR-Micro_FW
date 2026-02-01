@@ -13,6 +13,8 @@
 #include <delay.h>
 
 #include "log.h"
+#include "io.h"
+#include "immap.h"
 
 /* Clock rate and Frequency Divider Register settings */
 const uint16_t usFsl_I2C_Speed_Map[] =

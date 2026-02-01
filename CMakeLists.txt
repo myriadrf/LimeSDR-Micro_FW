@@ -24,9 +24,9 @@ SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_COMPILER_FLAGS} -fno-strict-aliasin
 SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${COMMON_COMPILER_FLAGS} --specs=nano.specs -lm -Xlinker --gc-sections  -Xlinker -static  -Xlinker -z  -Xlinker muldefs")
 SET(CMAKE_ASM_FLAGS_DEBUG "${CMAKE_ASM_FLAGS_DEBUG}  -D__DEBUG")
 
-set(FREERTOS_DIR "${PROJECT_SOURCE_DIR}/la93xx_freertos/FreeRTOS-Kernel")
-message(STATUS "FREERTOS_DIR: ${FREERTOS_DIR}")
+add_subdirectory(FreeRTOS)
 
+include_directories(include)
 set(LA9310_COMMON_HEADERS "${PROJECT_SOURCE_DIR}/la93xx_freertos/common_headers")
 message(STATUS "LA9310_COMMON_HEADERS: ${LA9310_COMMON_HEADERS}")
 

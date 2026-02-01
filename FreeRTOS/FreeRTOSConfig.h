@@ -45,18 +45,17 @@
 #ifdef __ICCARM__
     #include <stdint.h>
 #endif
-#include "core_cm4.h"
 
 #define configUSE_PREEMPTION              1
 #define configUSE_TIME_SLICING            1
 #define configUSE_IDLE_HOOK               0
 #define configUSE_TICK_HOOK               0
 /*
-nlm la9310 module is clocked with 122.88MHz external clock.
-configCPU_CLOCK_HZ is twice the clock frequency.
+la9310 module is clocked with external clock. configCPU_CLOCK_HZ is twice the clock frequency.
 Set configCPU_CLOCK_HZ for 245760000
 */
-#define configCPU_CLOCK_HZ                (245760000ul)
+
+#define configCPU_CLOCK_HZ                (245760000ul) // TODO: LimeSDR Micro clock frequency can change
 #define configTICK_RATE_HZ                ((TickType_t)1000)
 #define configMAX_PRIORITIES              (5)
 #define configMINIMAL_STACK_SIZE          ((unsigned short)128)
@@ -75,14 +74,7 @@ Set configCPU_CLOCK_HZ for 245760000
 #define configUSE_APPLICATION_TASK_TAG    0
 #define configUSE_COUNTING_SEMAPHORES     0
 #define configGENERATE_RUN_TIME_STATS     0
-#define configUSE_TASK_NOTIFICATIONS	  1
-
-#ifdef LA9310_DFE_APP
-#undef configCHECK_FOR_STACK_OVERFLOW
-#define configCHECK_FOR_STACK_OVERFLOW    1
-#undef configUSE_MALLOC_FAILED_HOOK
-#define configUSE_MALLOC_FAILED_HOOK      1
-#endif
+#define configUSE_TASK_NOTIFICATIONS      1
 
 /* Co-routine definitions. */
 #define configUSE_CO_ROUTINES             0
@@ -99,12 +91,11 @@ Set configCPU_CLOCK_HZ for 245760000
 #define configAPPLICATION_PROVIDES_cOutputBuffer 1
 #endif
 
-#define configSUPPORT_DYNAMIC_ALLOCATION	1
+#define configSUPPORT_DYNAMIC_ALLOCATION 1
 
-#define configUSE_QUEUE_SETS	1
+#define configUSE_QUEUE_SETS 1
 
-/* Set the following definitions to 1 to include the API function, or zero
-to exclude the API function. */
+/* Set the following definitions to 1 to include the API function, or zero to exclude the API function. */
 #define INCLUDE_vTaskPrioritySet          1
 #define INCLUDE_uxTaskPriorityGet         1
 #define INCLUDE_vTaskDelete               1
@@ -122,8 +113,7 @@ to exclude the API function. */
     #define configPRIO_BITS               3        /* 8 priority levels */
 #endif
 
-/* The lowest interrupt priority that can be used in a call to a "set priority"
-function. */
+/* The lowest interrupt priority that can be used in a call to a "set priority" function. */
 #define configLIBRARY_LOWEST_INTERRUPT_PRIORITY         0x7
 
 /* The highest interrupt priority that can be used by any interrupt service
@@ -139,12 +129,10 @@ to all Cortex-M ports, and do not rely on any particular library functions. */
 See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
 #define configMAX_SYSCALL_INTERRUPT_PRIORITY    (configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY << (8 - configPRIO_BITS))
 
-/* Normal assert() semantics without relying on the provision of an assert.h
-header file. */
+/* Normal assert() semantics without relying on the provision of an assert.h header file. */
 #define configASSERT(x) if((x) == 0) {taskDISABLE_INTERRUPTS(); for(;;);}
 
-/* Definitions that map the FreeRTOS port interrupt handlers to their CMSIS
-standard names. */
+/* Definitions that map the FreeRTOS port interrupt handlers to their CMSIS standard names. */
 #define vPortSVCHandler     SVC_Handler
 #define xPortPendSVHandler  PendSV_Handler
 #define xPortSysTickHandler SysTick_Handler
@@ -152,4 +140,3 @@ standard names. */
 #define vHardFaultHandler HardFault_Handler
 
 #endif /* FREERTOS_CONFIG_H */
-

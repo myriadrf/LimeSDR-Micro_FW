@@ -7,8 +7,7 @@
 #ifndef __LA9310_WATCHDOG_H__
 #define __LA9310_WATCHDOG_H__
 
-#include "FreeRTOS.h"
-#include "common.h"
+#include <stdint.h>
 
 #define WDOG_LOAD_REG         ( WDOG_BASE_ADDR + 0x000 )
 #define WDOG_VALUE_REG        ( WDOG_BASE_ADDR + 0x004 )

@@ -3,16 +3,10 @@
  * Copyright 2017, 2021 NXP
  */
 
-#include <common.h>
-#include "soc.h"
 #include "config.h"
 #include "immap.h"
+#include "io.h"
 #include <la9310.h>
-
-void vSocInit( void )
-{
-    vSoCEnableUART();
-}
 
 void vSoCEnableUART( void )
 {
@@ -22,6 +16,11 @@ void vSoCEnableUART( void )
     ulPmux = IN_32( &pxPmuxCR->ulPmuxCR1 );
     ulPmux |= 1 << PMUXCR0_UART_PIN;
     OUT_32( &pxPmuxCR->ulPmuxCR1, ulPmux );
+}
+
+void vSocInit( void )
+{
+    vSoCEnableUART();
 }
 
 void vSocResetHandshake( void )

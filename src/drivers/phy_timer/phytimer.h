@@ -4,10 +4,11 @@
  * Copyright 2021, 2024 NXP
  */
 
-#ifndef __PHY_TIMER_H
-#define __PHY_TIMER_H
+#ifndef LA9310_PHY_TIMER_H
+#define LA9310_PHY_TIMER_H
 
-#include <common.h>
+#include "la9310.h"
+#include <stdint.h>
 #include <bit.h>
 
 #define PHY_TMR_DIVISOR ( 1 )

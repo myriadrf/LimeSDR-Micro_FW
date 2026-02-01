@@ -8,11 +8,11 @@
 #include <task.h>
 #include <semphr.h>
 
-#include "debug_console.h"
 #include "io.h"
+#include "la9310_info.h"
 #include "la9310_host_if.h"
-#include "sync_timing_device.h"
 #include "log.h"
+#include "core_cm4.h"
 
 extern struct la9310_info g_la9310_info;
 

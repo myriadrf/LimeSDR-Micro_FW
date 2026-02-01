@@ -4,11 +4,12 @@
  * Copyright 2017, 2021 NXP
  */
 
-#include <common.h>
+#include "la9310_host_if.h"
 #include "config.h"
-#include "immap.h"
-#include "soc.h"
-#include "board.h"
+#include "io.h"
+#include <stddef.h>
+
+uint32_t ulMemLogIndex = 0;
 
 void vMemlogWrite( const uint8_t * pucData,
                    size_t xLength )

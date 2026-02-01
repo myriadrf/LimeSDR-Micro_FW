@@ -4,9 +4,9 @@
  * Copyright 2021 NXP
  */
 
+#include "sync_timing_device.h"
 #include <stdlib.h>
 #include <string.h>
-#include <sync_timing_device.h>
 #include <la9310_i2cAPI.h>
 #include <sync_timing_aruba_cmd_map.h>
 #include <sync_timing_core_aruba_interface.h>
@@ -16,6 +16,9 @@
 #include "task.h"
 #include <delay.h>
 #include "log.h"
+
+#include "la9310_info.h"
+#include "la9310_host_if.h"
 
 #define FW_PATCH_PATTERN_SIZE       7
 #define FW_PATCH_PATTERN_SCAN_LEN   128

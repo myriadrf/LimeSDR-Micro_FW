@@ -3,15 +3,11 @@
  * Copyright 2017, 2021 NXP
  */
 
-#include "FreeRTOS.h"
-#include <common.h>
 #include "config.h"
-#include "immap.h"
-#include "board.h"
-#include "la9310_main.h"
-#include <la9310.h>
 #include "debug_console.h"
 #include "exceptions.h"
+#include "core_cm4.h"
+#include "io.h"
 
 static void prvPrintUsageFaultReason( uint32_t ulVal )
 {

@@ -10,9 +10,13 @@
 #include "la9310_error_codes.h"
 #include "debug_console.h"
 #include "la9310_irq.h"
+#include "la9310_info.h"
+#include "la9310_host_if.h"
 #include "semphr.h"
 
 #include "log.h"
+#include "io.h"
+#include "core_cm4.h"
 
 extern struct la9310_info g_la9310_info;
 struct la9310_info *pLa9310Info = &g_la9310_info;

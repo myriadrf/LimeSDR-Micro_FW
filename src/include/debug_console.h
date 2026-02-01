@@ -8,7 +8,7 @@
 #define __DEBUG_CONSOLE_H__
 
 #include <stdint.h>
-#include "la9310_main.h"
+#include <stddef.h>
 
 /*******************************************************************************
  * Definitions

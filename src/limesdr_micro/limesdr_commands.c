@@ -5,8 +5,16 @@
 #include "la9310_dcs_api.h"
 #include "la9310_host_if.h"
 #include "la9310_i2cAPI.h"
+#include "debug_console.h"
+#include "io.h"
+#include "core_cm4.h"
 
 #include "log.h"
+#include "immap.h"
+#include <string.h>
+
+#include "la9310.h"
+#include "la9310_info.h"
 
 #include "limesuiteng/embedded/lms7002m/lms7002m.h"
 #include "lms7002m/spi.h"

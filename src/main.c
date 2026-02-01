@@ -6,10 +6,9 @@
 
 #include "FreeRTOS.h"
 #include "task.h"
-#include "common.h"
 #include "config.h"
 #include "immap.h"
-#include "la9310_main.h"
+#include "la9310_tmu.h"
 #include "la9310_irq.h"
 #include "la9310_gpio.h"
 #include "la9310_edmaAPI.h"
@@ -18,7 +17,6 @@
 #include <la9310.h>
 #include <fsl_dspi.h>
 #include "la9310_pinmux.h"
-#include "bbdev_ipc.h"
 #include "la9310_dcs_api.h"
 #include <phytimer.h>
 #include <sync_timing_device.h>
@@ -28,9 +26,15 @@
 #include "drivers/avi/la9310_vspa_dma.h"
 #include <la9310_avi.h>
 #include "drivers/avi/la9310_avi_ds.h"
-#include <la9310_dcs_api.h>
 
+#include "la9310_info.h"
+#include "la9310_host_if.h"
+
+#include "debug_console.h"
 #include "log.h"
+#include "core_cm4.h"
+
+#include <string.h>
 
 #if NXP_ERRATUM_A_009410
     #include "la9310_pci.h"
@@ -51,12 +55,14 @@
     char cOutputBuffer[ configCOMMAND_INT_MAX_OUTPUT_SIZE ] = { 0 };
 #endif
 
-uint32_t ulMemLogIndex;
+extern uint32_t ulMemLogIndex;
 
 struct la9310_info g_la9310_info;
 
 extern void vVSPAMboxInit();
 extern int iLa9310IRQInit( struct la9310_info * pLa9310Info );
+extern void vLa9310_do_handshake( struct la9310_info * vLa9310Info );
+extern void vHardwareEarlyInit( void );
 
 void v_main_Hif_Init( struct la9310_info * pLa9310Info )
 {

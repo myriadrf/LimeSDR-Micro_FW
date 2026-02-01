@@ -35,7 +35,6 @@
  *  of this software
  ********************************************************************/
 
-#include <common.h>
 #include "print_scan.h"
 
 #if defined( __CC_ARM )

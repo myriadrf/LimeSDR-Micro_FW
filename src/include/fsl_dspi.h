@@ -4,8 +4,8 @@
  * Copyright 2019-2021 NXP
  *
  */
-#ifndef _DSPI_H_
-#define _DSPI_H_
+#ifndef LA9310_DSPI_H
+#define LA9310_DSPI_H
 
 /**
  * @file        fsl_dspi.h
@@ -14,10 +14,9 @@
  * @{
  */
 
-#include <types.h>
+#include <stdint.h>
 #include <bit.h>
-#include "common.h"
-#include "la9310.h"
+#include "immap.h"
 
 #define ARRAY_SIZE( x )    ( sizeof( x ) / sizeof( ( x )[ 0 ] ) )
 
@@ -320,4 +319,4 @@ struct LA931xDspiInstance
 
 /** @} */
 
-#endif /*DSPI_H*/
+#endif

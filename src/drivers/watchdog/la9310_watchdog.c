@@ -8,8 +8,13 @@
 #include "la9310_edmaAPI.h"
 #include "la9310_irq.h"
 #include "la9310_gpio.h"
+#include "la9310_info.h"
+#include "la9310_host_if.h"
 
+#include "io.h"
 #include "log.h"
+#include "core_cm4.h"
+
 extern struct la9310_info g_la9310_info;
 
 int iWdogEnable( uint32_t wdog_load_val,

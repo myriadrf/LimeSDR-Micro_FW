@@ -7,11 +7,11 @@
 #ifndef __LA9310_AVI_H__
 #define __LA9310_AVI_H__
 
-#include "FreeRTOS.h"
-#include "task.h"
-#include "la9310_main.h"
-#include "common.h"
+#include "immap.h"
 
+#include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
 
 #define MAILBOX_VALID_STATUS_RETRIES    200
 /*#define AXIQ_LOOPBACK_ENABLE */

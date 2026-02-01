@@ -4,7 +4,6 @@
  * Copyright 2017, 2021-2022 NXP
  */
 
-#include <common.h>
 #include <la9310.h>
 #include "serial_ns16550.h"
 

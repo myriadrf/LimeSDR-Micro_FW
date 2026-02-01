@@ -3,6 +3,7 @@
  * Copyright 2017, 2021-2024 NXP
  */
 
+#include "FreeRTOS.h"
 #include "queue.h"
 #include "semphr.h"
 

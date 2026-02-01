@@ -3,6 +3,12 @@
 
 #include <stdint.h>
 
+#define LA9310_LOG_LEVEL_ERR    1
+#define LA9310_LOG_LEVEL_INFO   2
+#define LA9310_LOG_LEVEL_DBG    3
+#define LA9310_LOG_LEVEL_ISR    4
+#define LA9310_LOG_LEVEL_ALL    5
+
 #if 1 // LOGGING_ENABLED
     void log_format_output(int32_t log_level, const char* fmt, ...);
 #else

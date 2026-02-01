@@ -5,12 +5,10 @@
  */
 
 #include "FreeRTOS.h"
-#include "task.h"
-#include "common.h"
 #include "immap.h"
 #include "la9310_irq.h"
-#include "la9310_main.h"
 #include "la9310_edma.h"
+#include "la9310_host_if.h"
 #ifdef TURN_ON_HOST_MODE
 #ifdef __RFIC
 #include "rfic_core.h"
@@ -19,6 +17,8 @@
 
 #include "la9310_info.h"
 #include "log.h"
+#include <string.h>
+#include "core_cm4.h"
 
 extern struct la9310_info g_la9310_info;
 struct la9310_info *pLa9310Info = &g_la9310_info;

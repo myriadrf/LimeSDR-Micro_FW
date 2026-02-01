@@ -6,6 +6,8 @@
 #ifndef __LA9310DCS_API_H__
 #define __LA9310DCS_API_H__
 
+#include "FreeRTOS.h" // TODO: remove dependency
+
 typedef enum LA9310cvrDCS{
     XCVR_TRX_TX_DAC = 0,
     XCVR_TRX_RX1_ADC,

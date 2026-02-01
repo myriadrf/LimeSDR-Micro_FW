@@ -1,6 +1,7 @@
 #include "eeprom.h"
 
 #include "la9310_i2cAPI.h"
+#include "immap.h"
 
 static const uint8_t eeprom_i2c_address = 0x50;
 

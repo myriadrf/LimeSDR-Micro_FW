@@ -1,19 +1,5 @@
-/* SPDX-License-Identifier: BSD-3-Clause */
-
-/*
- * Copyright 2017, 2021-2024 NXP
- */
-
-#ifndef __LA9310_MAIN_H__
-#define __LA9310_MAIN_H__
-
-#include "la9310_host_if.h"
-#include "immap.h"
-#include "core_cm4.h"
-#include "la9310.h"
-#include <common.h>
-
-#include "la9310_info.h"
+#ifndef LA9310_TMU_H
+#define LA9310_TMU_H
 
 #define SITES_MAX       16
 #define TMU_TTRCR0_INIT 0x000B0000
@@ -108,27 +94,4 @@ typedef struct tmuRegsMap {
 	uint32_t ttrcr[SITES_MAX];      /*  Temperature Range Control Register */
 } TmuRegs_t;
 
-/* CM4 and VSPA communication opcode */
-typedef enum la9310_mbx_opcode
-{
-    SINGLE_TONE_TX = 1,
-    SINGLE_TONE_RX_MEASUREMENT,
-    DCOC_CAL,
-    BW_CAL,
-    IQ_MODULATED_TX,
-    IQ_MODULATED_RX,
-    RSSI_MEASUREMENT,
-    RX_IQ_MISMATCH_COMP,
-    TX_LO_LEAKAGE_IQ_ERROR_CAL,
-    VSPA_FW_IMAGE_BASE_OFFSET,
-    TX_DC_CORRECTION,
-    RX_DC_CORRECTION,
-    RFNM_SET_CHANNEL,
-    RFNM_IQ_IMBALANCE
-} la9310_mbx_opcode_t;
-
-#define LA9310_EVT_MAX    32
-
-#define LA9310_HOST_READY_MASK    ( LA9310_HIF_STATUS_VSPA_READY )
-
-#endif /* ifndef __LA9310_MAIN_H__ */
+#endif

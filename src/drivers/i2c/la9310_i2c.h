@@ -6,7 +6,7 @@
 #ifndef LA9310_I2C_H
 #define LA9310_I2C_H
 
-#include <common.h>
+#include <stdint.h>
 
 #define LA9310_IS_CURRENT_MASTER                  1
 #define LA9310_ISNOT_CURRENT_MASTER               0
@@ -66,4 +66,4 @@ typedef struct i2c_pin_control
     uint32_t ulI2C_PMUXCR0;
 } i2c_pin_control_t;
 
-#endif /* I2C_H_ */
+#endif // LA9310_I2C_H

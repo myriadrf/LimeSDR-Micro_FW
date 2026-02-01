@@ -7,9 +7,7 @@
 #define __LA9310_EDMA_H__
 
 #include "FreeRTOS.h"
-#include "task.h"
-#include "common.h"
-
+#include "immap.h"
 
 /* This Release is supporting memcpy at the place of EDMA */
 #define EDMA_CR_REG                      ( EDMA_BASE_ADDR + 0x00 )

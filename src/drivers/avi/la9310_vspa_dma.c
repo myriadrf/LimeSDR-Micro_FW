@@ -14,6 +14,8 @@
 #include "la9310_i2cAPI.h"
 #include "la9310_vspa_dma.h"
 #include <common.h>
+#include <delay.h>
+#include "task.h"
 
 #define DEBUG_VSPA_BOOT
 

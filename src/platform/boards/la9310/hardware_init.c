@@ -4,18 +4,19 @@
  * Copyright 2017, 2021-2022 NXP
  */
 
-#include <common.h>
-#include "config.h"
 #include "immap.h"
-#include "soc.h"
-#include "board.h"
-#include <la9310.h>
-#include "la9310_main.h"
-#include "la9310_irq.h"
+#include "io.h"
+#include "la9310_info.h"
+#include "la9310_host_if.h"
+#include "debug_console.h"
 #include "la9310_pci.h"
 
 extern struct la9310_info g_la9310_info;
 extern void vRaiseMsi(struct la9310_info *pla9310Info, enum la9310_msi_id msi);
+extern void vSocResetHandshake( void );
+extern void vBoardFinalInit();
+extern void vSocInit();
+extern void vBoardEarlyInit();
 
 void vLa9310_do_handshake( struct la9310_info * vLa9310Info )
 {

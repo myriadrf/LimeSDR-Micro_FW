@@ -6,10 +6,7 @@
 #ifndef __DCS_H__
 #define __DCS_H__
 
-/*
- * NLM: Only initializing the required ADC,
- * others have been kept disabled.
- */
+#include "immap.h"
 
 #define ADC_DAC_SYNC_RETRY            1000
 #define ADC_RST_SYNC_RETRY            1000

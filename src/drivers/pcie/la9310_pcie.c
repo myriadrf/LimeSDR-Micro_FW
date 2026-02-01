@@ -10,6 +10,8 @@
 #include "la9310_pci.h"
 #include "debug_console.h"
 #include "config.h"
+#include "immap.h"
+#include "core_cm4.h"
 
 #define lower_32_bits( n )    ( ( uint32_t ) ( n ) )
 #define upper_32_bits( n )    ( ( uint32_t ) ( ( ( n ) >> 16 ) >> 16 ) )

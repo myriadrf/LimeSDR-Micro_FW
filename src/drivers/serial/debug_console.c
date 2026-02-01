@@ -4,9 +4,9 @@
  * Copyright 2017-2018, 2021 NXP
  */
 
-#include <common.h>
 #include "serial_ns16550.h"
 #include "print_scan.h"
+#include "debug_console.h"
 
 static int debug_putc( int ch,
                        void * stream );
