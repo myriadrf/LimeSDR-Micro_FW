@@ -80,7 +80,6 @@ target_include_directories(la9310 PRIVATE
     drivers/dspi
     drivers/phy_timer
     drivers/timesync
-    sw_cmd_engine
     utils
     drivers/dcs
 )
@@ -104,7 +103,6 @@ target_sources(la9310 PRIVATE
     "drivers/misc/la9310_pinmux.c"
     "drivers/i2c/la9310_i2c.c"
     "drivers/dspi/fsl_dspi.c"
-    "sw_cmd_engine/sw_cmd_engine.c"
     "utils/delay.c"
     "drivers/phy_timer/phytimer.c"
     "drivers/timesync/sync_timing_device.c"

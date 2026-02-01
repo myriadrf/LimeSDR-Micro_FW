@@ -21,7 +21,6 @@
 #include <phytimer.h>
 #include <sync_timing_device.h>
 #include <sync_timing_device_cli.h>
-#include <sw_cmd_engine.h>
 #include "la9310_v2h_if.h"
 #include "drivers/avi/la9310_vspa_dma.h"
 #include <la9310_avi.h>
