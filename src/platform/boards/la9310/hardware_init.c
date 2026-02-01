@@ -44,11 +44,11 @@ void vLa9310_do_handshake( struct la9310_info * vLa9310Info )
     PRINTF( "%s: LA9310 -> HOST: LA9310_HOST_START_DRIVER_INIT\n\r", __func__ );
     OUT_32( &pxDcr->ulScratchrw[ 1 ], LA9310_HOST_START_DRIVER_INIT );
 
-    #ifndef LA9310_RESET_HANDSHAKE_POLLING_ENABLE
-        vWaitForPCIeLinkStability();
-        /*Raise Msi for Host handshaking*/
-        vRaiseMsi( vLa9310Info, MSI_IRQ_HOST_HANDSHAKE );
-    #endif
+    // #ifndef LA9310_RESET_HANDSHAKE_POLLING_ENABLE
+    //     vWaitForPCIeLinkStability();
+    //     /*Raise Msi for Host handshaking*/
+    //     vRaiseMsi( vLa9310Info, MSI_IRQ_HOST_HANDSHAKE );
+    // #endif
 #endif //TURN_ON_STANDALONE_MODE
 }
 
