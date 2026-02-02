@@ -17,17 +17,21 @@ HEAP_SIZE = 0x200;
 
 MEMORY
 {
-  m_startup		(RX)  : ORIGIN = 0x1F800000, LENGTH = 0x00000100
-  m_interrupts          (RX)  : ORIGIN = 0x1F800100, LENGTH = 0x00000240
-  m_text                (RX)  : ORIGIN = 0x1F800340, LENGTH = 0x0000B600
-  m_data                (RW)  : ORIGIN = 0x1F80B940, LENGTH = 0x00008800
-  m_dtcm		(RW)  : ORIGIN = 0x20000000, LENGTH = 0x0000F000
+  m_tcml    (RWX) : ORIGIN = 0x1F800000, LENGTH = 0x0001B000
+  m_dtcm    (RW)  : ORIGIN = 0x20000000, LENGTH = 0x0000F000
   br_data               (R)   : ORIGIN = 0x2000F000, LENGTH = 0x00001000
 }
 
 /* Define output sections */
 SECTIONS
 {
+  .bootloader :
+  {
+  __firmware_bin_start = .;
+    . = ALIGN(4);
+    KEEP(*(.data.boot_header));
+  } > m_tcml
+
   .startup :
   {
     . = ALIGN(4);
@@ -35,20 +39,20 @@ SECTIONS
     KEEP(*(.start_up))
     . = ALIGN(4);
     __m_startup_end = .;      /* create a global symbol at m_startup end */
-  } > m_startup
+  } > m_tcml
 
-  /* The startup code goes first into internal RAM */
+  PROVIDE(__firmware_bin_src_offset = __m_startup_start - __firmware_bin_start);
+
   .interrupts :
   {
     __VECTOR_TABLE = .;
-    . = ALIGN(4);
+    . = ALIGN(0x100); /* isr_vector must be aligned to a power of two boundary, with the minimum alignment being 128 bytes (or 0x80 bytes) */
     __m_interrupts_start = .;      /* create a global symbol at interrupts start */
     KEEP(*(.isr_vector))     /* Startup code */
     . = ALIGN(4);
     __m_interrupts_end = .;      /* create a global symbol at interrupts end */
-  } > m_interrupts
+  } > m_tcml
 
-  /* The program code and other data goes into internal RAM */
   .text :
   {
     . = ALIGN(4);
@@ -63,19 +67,19 @@ SECTIONS
     KEEP (*(.init))
     KEEP (*(.fini))
     . = ALIGN(4);
-  } > m_text
+  } > m_tcml
 
   .ARM.extab :
   {
     *(.ARM.extab* .gnu.linkonce.armextab.*)
-  } > m_text
+  } > m_tcml
 
   .ARM :
   {
     __exidx_start = .;
     *(.ARM.exidx*)
     __exidx_end = .;
-  } > m_text
+  } > m_tcml
 
  .ctors :
   {
@@ -99,7 +103,7 @@ SECTIONS
     KEEP (*(SORT(.ctors.*)))
     KEEP (*(.ctors))
     __CTOR_END__ = .;
-  } > m_text
+  } > m_tcml
 
   .dtors :
   {
@@ -110,14 +114,14 @@ SECTIONS
     KEEP (*(SORT(.dtors.*)))
     KEEP (*(.dtors))
     __DTOR_END__ = .;
-  } > m_text
+  } > m_tcml
 
   .preinit_array :
   {
     PROVIDE_HIDDEN (__preinit_array_start = .);
     KEEP (*(.preinit_array*))
     PROVIDE_HIDDEN (__preinit_array_end = .);
-  } > m_text
+  } > m_tcml
 
   .init_array :
   {
@@ -125,7 +129,7 @@ SECTIONS
     KEEP (*(SORT(.init_array.*)))
     KEEP (*(.init_array*))
     PROVIDE_HIDDEN (__init_array_end = .);
-  } > m_text
+  } > m_tcml
 
   .fini_array :
   {
@@ -134,7 +138,7 @@ SECTIONS
     KEEP (*(.fini_array*))
     PROVIDE_HIDDEN (__fini_array_end = .);
     __m_text_end = .;      /* create a global symbol at text end */
-  } > m_text
+  } > m_tcml
 
   __etext = .;    /* define a global symbol at end of code */
 
@@ -151,7 +155,11 @@ SECTIONS
     KEEP(*(.jcr*))
     . = ALIGN(4);
     __data_end__ = .;        /* define a global symbol at data end */
-  } > m_data
+  } > m_tcml
+
+  .ARM.attributes 0 : { *(.ARM.attributes) } > m_tcml
+
+  PROVIDE(__firmware_bin_size = __data_end__ - __m_startup_start);
 
   /* Uninitialized data section */
   .bss :
@@ -166,7 +174,7 @@ SECTIONS
     . = ALIGN(4);
     __bss_end__ = .;
     __END_BSS = .;
-  } > m_data
+  } > m_tcml
 
   .heap :
   {
@@ -176,16 +184,17 @@ SECTIONS
     __HeapBase = .;
     . += HEAP_SIZE;
     __HeapLimit = .;
-  } > m_data
+  } > m_tcml
 
     .stack :
   {
     . = ALIGN(8);
     . += STACK_SIZE;
     __m_data_end = .;        /* define a global symbol at data end */
-  } > m_data
+  } > m_tcml
+
    /* Initializes stack on the end of block */
-  __StackTop   = ORIGIN(m_data) + LENGTH(m_data);
+  __StackTop   = __m_data_end;
   __StackLimit = __StackTop - STACK_SIZE;
   PROVIDE(__stack = __StackTop);
 
@@ -193,20 +202,18 @@ SECTIONS
   .hshake_rsvd :
   {
     __m_dtcm_start = .;      /* create a global symbol at data start */
-	/* Reserved 256 bytes: Used by Bootrom during warm-reset and boot hand-shake */
-	. += 0x100;
+  /* Reserved 256 bytes: Used by Bootrom during warm-reset and boot hand-shake */
+  . += 0x100;
   } > m_dtcm
 
   .cal_tbl (NOLOAD):
   {
-	. = ALIGN(0x1000);
-	__rfic_cal_start = .;
-	*(.cal_tbl)
-	__rfic_cal_end = .;
+  . = ALIGN(0x1000);
+  __rfic_cal_start = .;
+  *(.cal_tbl)
+  __rfic_cal_end = .;
         __m_dtcm_end = .;      /* create a global symbol at data end */
   } > m_dtcm
-
-  .ARM.attributes 0 : { *(.ARM.attributes) }
 
   ASSERT((__rfic_cal_end - __rfic_cal_start) <= 0xC000, "Cal table exceeded 48k")
   /*Does m_data overlaps HIF? */

@@ -1,1 +1,0 @@
-#define TURN_ON_HOST_MODE  1

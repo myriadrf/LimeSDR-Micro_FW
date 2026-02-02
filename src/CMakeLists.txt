@@ -49,6 +49,11 @@ set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 
 option(LA9310_COMMAND_LINE "Enable LA9310 command line interface" ON)
 option(LMS7002M_CLOCK "Configure LMS7002M clock generator to 153.6MHz" ON)
+option(BOOT_HEADER "Prefix firmware with a boot header" OFF)
+
+if (BOOT_HEADER)
+    target_sources(la9310 PRIVATE bootloader_header.c)
+endif()
 
 if(LMS7002M_CLOCK)
     add_subdirectory(limesdr_micro)
@@ -143,16 +148,17 @@ add_custom_target(la9310_bin ALL
 add_feature_info("LA9310_COMMAND_LINE" LA9310_COMMAND_LINE "Enable LA9310 command line interface")
 add_feature_info("EXT_REF_CLK" EXT_REF_CLK "Use external reference clock (${EXT_REF_CLK} Hz)")
 add_feature_info("LMS7002M_CLOCK" LMS7002M_CLOCK "Configure LMS7002M MCLK1 output (${LA9310_SYS_CLK_FREQ} Hz)")
+add_feature_info("BOOT_HEADER" BOOT_HEADER "Prefix firmware with a boot header")
 
 #########################################################################
 # summary
 #########################################################################
 message(STATUS "")
 message(STATUS "######################################################")
-message(STATUS "## ${PROJECT_NAME} enabled features")
-message(STATUS "######################################################")
-feature_summary(WHAT ENABLED_FEATURES)
-message(STATUS "######################################################")
 message(STATUS "## ${PROJECT_NAME} disabled features")
 message(STATUS "######################################################")
 feature_summary(WHAT DISABLED_FEATURES)
+message(STATUS "######################################################")
+message(STATUS "## ${PROJECT_NAME} enabled features")
+message(STATUS "######################################################")
+feature_summary(WHAT ENABLED_FEATURES)
