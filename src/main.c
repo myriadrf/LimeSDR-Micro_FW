@@ -327,7 +327,6 @@ void tmuInit( void ) {
 int iInitHandler ( void )
 {
     int irc = 0;
-    SyncTimingDeviceContext_t *pxContext = NULL;
     void * avihndl = NULL;
 
     ulMemLogIndex = 0;
@@ -373,17 +372,6 @@ int iInitHandler ( void )
         goto out;
     }
 
-
-    pxContext = pxSyncTimingDeviceInit();
-#if LA9310_UPGRADE_TIMESYNC_FW
-    if( lSyncTimingDeviceUpgradeFirmware( pxContext ) )
-    {
-        log_err( "\r\n" );
-        goto out;
-    }
-#else
-    ( void ) pxContext;
-#endif
     /*Till Here system is running at 100 Mhz*/
     vLa9310_do_handshake( pLa9310Info );
 
