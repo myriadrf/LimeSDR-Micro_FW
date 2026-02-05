@@ -595,7 +595,7 @@ void vDcsInit( int adc_mask, int adc_freq_mask, int dac_mask, int dac_freq_mask)
                 continue;
         }
 
-	PRINTF("CHECK_BIT(adc_freq_mask, (dcs -1) = %d\r\n", CHECK_BIT(adc_freq_mask, (dcs -1)));
+	   // PRINTF("CHECK_BIT(adc_freq_mask, (dcs -1) = %d\r\n", CHECK_BIT(adc_freq_mask, (dcs -1)));
         if (CHECK_BIT(adc_freq_mask, (dcs -1)) == Half_Freq)
                 Freq = Half_Freq;
         else

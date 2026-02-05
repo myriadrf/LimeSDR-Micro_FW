@@ -22,7 +22,7 @@ void vLa9310_do_handshake( struct la9310_info * vLa9310Info )
 {
 #ifdef TURN_ON_HOST_MODE
     struct ccsr_dcr * pxDcr = ( struct ccsr_dcr * ) vLa9310Info->pxDcr;
-    PRINTF( "%s: LA9310 -> Host: LA9310_HOST START_CLOCK_CONFIG\n\r", __func__ );
+    PRINTF("LA9310->Host: START_CLOCK_CONFIG\n");
     OUT_32( &pxDcr->ulScratchrw[ 1 ], LA9310_HOST_START_CLOCK_CONFIG );
     dmb();
 
@@ -31,7 +31,7 @@ void vLa9310_do_handshake( struct la9310_info * vLa9310Info )
     {
     }
 
-    PRINTF( "%s: Host -> LA9310: LA9310_HOST_COMPLETE_CLOCK_CONFIG\n\r", __func__ );
+    PRINTF("Host->LA9310: HOST_COMPLETE_CLOCK_CONFIG\n");
     dmb();
 #endif //TURN_ON_STANDALONE_MODE
     vSocResetHandshake();
@@ -41,7 +41,7 @@ void vLa9310_do_handshake( struct la9310_info * vLa9310Info )
     vBoardFinalInit();
 
 #ifdef TURN_ON_HOST_MODE
-    PRINTF( "%s: LA9310 -> HOST: LA9310_HOST_START_DRIVER_INIT\n\r", __func__ );
+    PRINTF("LA9310->HOST: START_DRIVER_INIT\n");
     OUT_32( &pxDcr->ulScratchrw[ 1 ], LA9310_HOST_START_DRIVER_INIT );
 
     // #ifndef LA9310_RESET_HANDSHAKE_POLLING_ENABLE

@@ -19,8 +19,6 @@
 #include "la9310_pinmux.h"
 #include "la9310_dcs_api.h"
 #include <phytimer.h>
-#include <sync_timing_device.h>
-#include <sync_timing_device_cli.h>
 #include "la9310_v2h_if.h"
 #include "drivers/avi/la9310_vspa_dma.h"
 #include <la9310_avi.h>
@@ -69,8 +67,7 @@ void v_main_Hif_Init( struct la9310_info * pLa9310Info )
     struct la9310_hif * pxHif = pLa9310Info->pHif;
 
     pxHif->hif_ver = LA9310_VER_MAKE( LA9310_HIF_MAJOR_VERSION, LA9310_HIF_MINOR_VERSION );
-    log_dbg( "%s: Initialized HIF - %d.%d", __func__, LA9310_HIF_MAJOR_VERSION,
-             LA9310_HIF_MINOR_VERSION );
+    log_dbg( "Initialized HIF - %d.%d\n", LA9310_HIF_MAJOR_VERSION, LA9310_HIF_MINOR_VERSION );
 
     pLa9310Info->stats = &pxHif->stats;
 }
@@ -471,36 +468,30 @@ out:
 int main( void )
 {
     int irc = 0;
-	uint32_t BootSource;
-
     /* Initialize hardware */
     vHardwareEarlyInit();
-    BootSource = ((IN_32( ( uint32_t * ) DCR_BASE_ADDR )) >>
-                   LX9310_BOOT_SRC_SHIFT) & LX9310_BOOT_SRC_MASK;
+    const uint32_t BootSource = ((IN_32((uint32_t*)DCR_BASE_ADDR )) >> LX9310_BOOT_SRC_SHIFT) & LX9310_BOOT_SRC_MASK;
 
+    PRINTF("Boot Source ");
     if ( BootSource == LA9310_BOOT_SRC_PCIE ) {
-        PRINTF( "STARTING NLM.. Boot Source (PCIe) \n\r" );
+        PRINTF("PCIe\n");
     } else if ( BootSource == LA9310_BOOT_SRC_I2C ) {
-        PRINTF( "STARTING NLM.. Boot Source (I2C) \n\r" );
+        PRINTF("I2C\n");
     } else {
-      log_err( "Invalid Boot Source \n\r");
-      goto out;
+        log_err("Invalid\n");
+        goto out;
     }
 
-	PRINTF("FreeRTOS Kernel vesrion %s\n\r",tskKERNEL_VERSION_NUMBER);
+	PRINTF("FreeRTOS " tskKERNEL_VERSION_NUMBER "\n");
     irc = iInitHandler();
     if ( irc )
     {
       goto out;
     }
 
-    #ifdef LA9310_ENABLE_COMMAND_LINE
-    #ifdef LA9310_DFE_APP
-        vRegisterDFETestCommands();
-    #endif
-        vUARTCommandConsoleStart( mainUART_COMMAND_CONSOLE_STACK_SIZE,
-                                  mainUART_COMMAND_CONSOLE_TASK_PRIORITY );
-    #endif
+#ifdef LA9310_ENABLE_COMMAND_LINE
+    vUARTCommandConsoleStart( mainUART_COMMAND_CONSOLE_STACK_SIZE, mainUART_COMMAND_CONSOLE_TASK_PRIORITY );
+#endif
 
     tmuInit();
 
@@ -508,8 +499,7 @@ int main( void )
     vTaskStartScheduler();
 
 out:
-    log_err( "%s: Something terrible has happend, rc %d\n\r", __func__, irc );
-    log_err( "%s: Going for infitite loop of death\n\r", __func__ );
+    log_err( "main() failed %d\n", irc);
 
     /* Should never reach this point */
     while( true )

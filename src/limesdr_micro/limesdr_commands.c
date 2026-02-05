@@ -8,6 +8,7 @@
 #include "debug_console.h"
 #include "io.h"
 #include "core_cm4.h"
+#include "drivers/serial/serial_ns16550.h"
 
 #include "log.h"
 #include "immap.h"
@@ -356,7 +357,7 @@ static lime_Result SetLA9310SystemClock(struct la9310_info * pLa9310Info, uint32
     if (result != lime_Result_Success)
         return result;
 
-    xDebugConsoleInit( ( void * ) UART_BASEADDR, la9310_refclk_hz*2, UART_BAUDRATE );
+    vSerialInit((void*)UART_BASEADDR, UART_BAUDRATE, la9310_refclk_hz*2 );
 
     uint32_t i2c_input_clk_hz = la9310_refclk_hz/2;
     iLa9310_I2C_Init( LA9310_FSL_I2C1, i2c_input_clk_hz, LA9310_I2C_FREQ );
@@ -497,7 +498,7 @@ static int lSwCmdEngineInit()
         return -1;
     }
     // xSemaphoreGive(xSwCmdSemaphore);
-    xRet = xTaskCreate( vSwCmdTask, "lms64c task", 512, NULL, tskIDLE_PRIORITY + 1, NULL );
+    xRet = xTaskCreate( vSwCmdTask, "", 512, NULL, tskIDLE_PRIORITY + 1, NULL );
     if( xRet != pdPASS )
     {
         return -1;
@@ -512,7 +513,7 @@ static int lSwCmdEngineInit()
 int LMS64C_protocol_init(void)
 {
     int ret = 0;
-    PRINTF("LMS64C init\r\n");
+    PRINTF("LMS64C init\n");
 
     if( lSwCmdEngineInit() != 0 )
     {

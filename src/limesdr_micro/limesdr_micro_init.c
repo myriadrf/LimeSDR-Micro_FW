@@ -218,9 +218,6 @@ int initialize_lms7002m_clock_generator()
 
     log_info("lime i2c config end\n\r");
 
-    // LMS7002 clock config
-    log_info("lime spi/lms7002m config start\n\r");
-
     // Initialize DSPI Handler
     lmsspihandle = pxDspiInit( ( ( 1 << DSPI_CS0 ) ), PRE_SYS_FREQ * 4 / 2, 4000000 );
     if (lmsspihandle == NULL)
@@ -266,9 +263,6 @@ int initialize_lms7002m_clock_generator()
 
     for (int i=0; i<sizeof(defaults)/4; ++i)
         lms7002m_spi_write(rfsoc, defaults[i*2], defaults[i*2+1]);
-
-    // lms7002m_destroy(rfsoc);
-    log_info("lime spi/lms7002m config end\n\r");
 
     uint16_t xo_dac = ReadXODAC_EEPROM();
     SetXODAC(xo_dac);
