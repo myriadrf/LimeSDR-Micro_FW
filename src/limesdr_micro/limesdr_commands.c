@@ -119,7 +119,15 @@ void SetXODAC(uint16_t value)
 {
     uint8_t buffer[2] = {value >> 8, value & 0xFF};
     int bytesWritten = iLa9310_I2C_Write(LA9310_FSL_I2C1, 0x4C, 0x30, LA9310_I2C_DEV_OFFSET_LEN_1_BYTE, buffer, 2);
-    xo_dac_value = value;
+    if (bytesWritten != 2)
+    {
+        log_err("Failed to write XODAC(%d)\n", value);
+    }
+    else
+    {
+        xo_dac_value = value;
+        log_info("XO_DAC set to (%d)\n", value);
+    }
 }
 
 void LMS64C_CustomParameterWrite(const struct LMS64CPacket* packet, struct LMS64CPacket* responsePacket)
