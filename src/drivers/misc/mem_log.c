@@ -19,6 +19,8 @@ void vMemlogWrite( const uint8_t * pucData,
     int i;
     struct debug_log_regs * pxDbglog = &pxHif->dbg_log_regs;
     uint8_t * ucdbgptr = ( uint8_t * ) ( pxDbglog->buf );
+    if (ucdbgptr == NULL)
+        return;
 
     ucdbgptr += ulMemLogIndex;
 

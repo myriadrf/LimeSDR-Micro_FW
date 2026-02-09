@@ -66,35 +66,16 @@ void v_main_Hif_Init( struct la9310_info * pLa9310Info )
 {
     struct la9310_hif * pxHif = pLa9310Info->pHif;
 
+    pxHif->adc_mask = 0xf;
+    pxHif->adc_rate_mask = 0xf;
+    pxHif->dac_mask = 0x1;
+    pxHif->dac_rate_mask = 0x1;
+
     pxHif->hif_ver = LA9310_VER_MAKE( LA9310_HIF_MAJOR_VERSION, LA9310_HIF_MINOR_VERSION );
     log_dbg( "Initialized HIF - %d.%d\n", LA9310_HIF_MAJOR_VERSION, LA9310_HIF_MINOR_VERSION );
 
     pLa9310Info->stats = &pxHif->stats;
 }
-
-#ifdef TURN_ON_HOST_MODE
-static int iCheckReadyState( struct la9310_info * pLa9310Info )
-{
-    int rc = HOST_NOT_READY;
-    struct la9310_hif * pHif = pLa9310Info->pHif;
-
-    log_info( "Waiting for HOST ready 0x%x\n\r", pHif->host_ready );
-
-    while( 1 )
-    {
-        dmb();
-
-        if( ( pHif->host_ready & LA9310_HOST_READY_MASK ) ==
-            LA9310_HOST_READY_MASK )
-        {
-            rc = SUCCESS;
-            break;
-        }
-    }
-
-    return rc;
-}
-#endif
 
 static void prvInitLa9310Info( struct la9310_info * pLa9310Info )
 {
@@ -403,24 +384,7 @@ int iInitHandler ( void )
         log_err( "%s: iLa9310HostPostInit Failed, rc %d\n\r", __func__, irc );
         goto out;
     }
-#ifdef TURN_ON_HOST_MODE
-    // if( bbdev_ipc_init( 0, 0 ) )
-    // {
-    //     log_err( "IPC Init failed\r\n" );
-    //     irc = FAILURE;
-    //     goto out;
-    // }
 
-    /* Till here Host should be ready */
-    irc = iCheckReadyState( pLa9310Info );
-
-    if( irc )
-    {
-        log_err( "%s: iCheckReadyState Failed, rc %d\n\r", __func__, irc );
-        goto out;
-    }
-
-#endif //TURN_ON_STANDALONE_MODE
     vPhyTimerReset();
     /* Run phy timer at PLAT_FREQ / 8 = ( 122.88 * 4 ) / 8 = 61.44MHz */
     vPhyTimerEnable( PHY_TMR_DIVISOR );
