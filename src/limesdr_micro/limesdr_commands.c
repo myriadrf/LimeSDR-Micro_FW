@@ -280,7 +280,7 @@ static int ProcessLMS64C_Command(const void* dataIn, void* dataOut)
     }
     case 0x21: // LMS7002_WR
     {
-        for (int i=0; i<packet->blockCount && i < 7; ++i)
+        for (int i=0; i<packet->blockCount && i < sizeof(packet->payload)/sizeof(uint32_t); ++i)
         {
             uint16_t addr = (packet->payload[i*4] << 8) | packet->payload[i*4+1];
             uint16_t value = (packet->payload[i*4+2] << 8) | packet->payload[i*4+3];
@@ -296,7 +296,7 @@ static int ProcessLMS64C_Command(const void* dataIn, void* dataOut)
     }
     case 0x22: // LMS7002_RD
     {
-        for (int i=0; i<packet->blockCount && i < 7; ++i)
+        for (int i=0; i<packet->blockCount && i < sizeof(packet->payload)/sizeof(uint32_t); ++i)
         {
             uint16_t addr = (packet->payload[i*2] << 8) | packet->payload[i*2+1];
             uint16_t value = 0;
