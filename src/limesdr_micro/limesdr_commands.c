@@ -352,17 +352,16 @@ static lime_Result SetLA9310SystemClock(struct la9310_info * pLa9310Info, uint32
     if (system_clk_hz == 0)
         return lime_Result_InvalidValue;
 
-    uint32_t la9310_refclk_hz = 4 * system_clk_hz;
-    lime_Result result = lms7002m_set_frequency_cgen(rfsoc, la9310_refclk_hz);
+    lime_Result result = lms7002m_set_frequency_cgen(rfsoc, 4 * system_clk_hz);
     if (result != lime_Result_Success)
         return result;
 
-    vSerialInit((void*)UART_BASEADDR, UART_BAUDRATE, la9310_refclk_hz*2 );
+    vSerialInit((void *)UART_BASEADDR, UART_BAUDRATE, system_clk_hz * 2);
 
-    uint32_t i2c_input_clk_hz = la9310_refclk_hz/2;
+    uint32_t i2c_input_clk_hz = system_clk_hz / 2;
     iLa9310_I2C_Init( LA9310_FSL_I2C1, i2c_input_clk_hz, LA9310_I2C_FREQ );
 
-    uint32_t spi_input_clk_hz = la9310_refclk_hz*4/2;
+    uint32_t spi_input_clk_hz = system_clk_hz * 4 / 2;
     uint32_t spi_frequency = 4000000;
     if (spi_input_clk_hz < spi_frequency*2)
         spi_frequency = spi_input_clk_hz/2;

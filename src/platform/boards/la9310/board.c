@@ -24,6 +24,10 @@ void vBoardFinalInit( void )
 
 	iLa9310_I2C_Init( LA9310_FSL_I2C1, FINAL_I2C_CLOCK_FREQUENCY, LA9310_I2C_FREQ );
 
-	// put GNSS module to low power standby mode, any further activity on UART will wake it up
-	vSerialWriteBlocking(( void * ) UART_BASEADDR, "$PMTK161,0*28\r\n", 15);
+    // wait for any data from GPS before submiting command, otherwise it might get ignored
+    uint8_t temp;
+    vSerialReadBlocking((void *)UART_BASEADDR, &temp, 1);
+    // Put GPS module to low power standby mode
+    vSerialWriteBlocking((void *)UART_BASEADDR, "$PMTK161,0*28\r\n", 15);
+    // following Tx activity on UART will wake it up
 }

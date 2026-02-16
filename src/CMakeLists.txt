@@ -47,7 +47,7 @@ message(STATUS "LA9310 Boot mode: ${LA9310_BOOT_MODE}")
 # Treat warnings as errors
 set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 
-option(LA9310_COMMAND_LINE "Enable LA9310 command line interface" ON)
+option(LA9310_COMMAND_LINE "Enable LA9310 command line interface" OFF)
 option(LMS7002M_CLOCK "Configure LMS7002M clock generator to 153.6MHz" ON)
 option(BOOT_HEADER "Prefix firmware with a boot header" OFF)
 
