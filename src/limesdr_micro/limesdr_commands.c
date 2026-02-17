@@ -21,6 +21,7 @@
 #include "lms7002m/spi.h"
 
 #include "eeprom.h"
+#include "fwloader.h"
 
 static uint16_t xo_dac_value = 0;
 
@@ -474,6 +475,10 @@ static void vSwCmdTask( void * pvParameters )
                 pxCmdDesc->data[0] = (uint32_t)result;
                 status = LA9310_SW_CMD_STATUS_DONE;
                 break;
+            }
+            case 5: { // Enter firmware reloading mode 
+                prepare_fwloader();
+                fwloader();
             }
             default:
                 log_err( "sw cmd not implemented: %d\r\n", pxCmdDesc->cmd );
