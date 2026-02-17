@@ -1,9 +1,26 @@
 CMAKE_MINIMUM_REQUIRED (VERSION 3.18)
-
 include(FeatureSummary)
 
+add_compile_options(-g -Wall)
 add_executable(la9310 "main.c")
 
+target_compile_options(la9310 PUBLIC
+    -fno-strict-aliasing
+    -Wno-unused-function
+    -mno-sched-prolog
+    -Wno-packed-bitfield-compat
+    -Wno-address-of-packed-member
+    -ffreestanding
+    -fno-builtin
+    -Os
+)
+
+target_link_options(la9310 PUBLIC
+    --specs=nano.specs
+    -z muldefs
+    -Wl,-gc-sections
+    -Wl,-print-memory-usage
+)
 target_link_libraries(la9310 PUBLIC freertos_kernel)
 
 # Reference clock setup
@@ -57,10 +74,6 @@ endif()
 
 if(LMS7002M_CLOCK)
     add_subdirectory(limesdr_micro)
-endif()
-
-if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    set(LA9310_COMMAND_LINE ON)
 endif()
 
 if(LA9310_COMMAND_LINE)
