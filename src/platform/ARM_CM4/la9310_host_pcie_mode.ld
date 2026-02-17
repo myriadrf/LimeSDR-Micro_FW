@@ -17,7 +17,8 @@ HEAP_SIZE = 0x200;
 
 MEMORY
 {
-  m_tcml    (RWX) : ORIGIN = 0x1F800000, LENGTH = 0x0001B000
+  m_tcml    (RWX) : ORIGIN = 0x1F800000, LENGTH = 0x0001A000
+  m_tcml_bl (RWX) : ORIGIN = 0x1F81A000, LENGTH = 0x00001000
   m_dtcm    (RW)  : ORIGIN = 0x20000000, LENGTH = 0x0000F000
   br_data               (R)   : ORIGIN = 0x2000F000, LENGTH = 0x00001000
 }
@@ -175,6 +176,15 @@ SECTIONS
     __bss_end__ = .;
     __END_BSS = .;
   } > m_tcml
+
+  .fwloader :
+  {
+      __FWL_DEST_ADDR__ = .;
+      KEEP(*.o(.text.*fwloader*))
+  } > m_tcml_bl AT > m_tcml
+
+  __FWL_LOAD_ADDR__ = LOADADDR(.fwloader );
+  __FWL_LOAD_END__ = __FWL_LOAD_ADDR__ + SIZEOF(.fwloader );
 
   .heap :
   {

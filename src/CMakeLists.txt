@@ -47,6 +47,7 @@ if (${LA9310_BOOT_MODE} STREQUAL "pcie")
         # "drivers/misc/bbdev_ipc.c"
         "drivers/pcie/la9310_pcie.c"
         "utils/task_stats.c"
+        "fwloader.c"
     )
 elseif(${LA9310_BOOT_MODE} STREQUAL "i2c")
     target_compile_definitions(la9310 PUBLIC "-DTURN_ON_STANDALONE_MODE")
