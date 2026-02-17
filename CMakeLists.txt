@@ -10,6 +10,7 @@ IF(NOT CMAKE_BUILD_TYPE)
 ENDIF()
 message(STATUS "BUILD_TYPE: " ${CMAKE_BUILD_TYPE})
 
+add_subdirectory(bootstrap)
 add_subdirectory(FreeRTOS)
 include_directories(include)
 add_subdirectory(src)
