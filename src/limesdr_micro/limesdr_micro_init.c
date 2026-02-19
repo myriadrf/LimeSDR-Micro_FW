@@ -145,11 +145,14 @@ int initialize_lms7002m_clock_generator()
     i2c_write8(LA9310_FSL_I2C1, i2c_expander_addr, 0x0A, 0x80); // IOCON, set addresing mode to separate banks
 
     // IC15 GPA
-    i2c_write8(LA9310_FSL_I2C1, i2c_expander_addr, 0x00, 0x00); // IODIR, bits 0-output, 1-input
+    uint8_t gpa_iodir = 0;
+    gpa_iodir |= (1 << 4); // GNSS_FIX
+    i2c_write8(LA9310_FSL_I2C1, i2c_expander_addr, 0x00, gpa_iodir); // IODIR, bits 0-output, 1-input
     // IC15 GPIOA output values
-    uint8_t gpioa = 0;
-    gpioa |= (1 << 0); // LMS_RESET, reset active when low
-    i2c_write8(LA9310_FSL_I2C1, i2c_expander_addr, 0x09, gpioa);
+    uint8_t gpa_value = 0;
+    gpa_value |= (1 << 0); // LMS_RESET, reset active when low
+    gpa_value |= (1 << 6); // SMB_CLK_OUT, disable clock output to mPCIe
+    i2c_write8(LA9310_FSL_I2C1, i2c_expander_addr, 0x09, gpa_value);
 
     // IC15 GPB
     uint8_t iodir = 0;
