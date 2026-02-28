@@ -479,6 +479,16 @@ static void vSwCmdTask( void * pvParameters )
             case 5: { // Enter firmware reloading mode 
                 prepare_fwloader();
                 fwloader();
+                break;
+            }
+            case 6: { // Signalize firmware is alive
+                uint32_t pattern = pxCmdDesc->data[0];
+                pxCmdDesc->status = LA9310_SW_CMD_STATUS_IN_PROGRESS;
+                pxCmdDesc->data[0] = ~pattern;
+                status = LA9310_SW_CMD_STATUS_DONE;
+                log_info("Alive Pattern - changed 0x%08x to 0x%08x\n", pattern, ~pattern);
+
+                break;
             }
             default:
                 log_err( "sw cmd not implemented: %d\r\n", pxCmdDesc->cmd );
