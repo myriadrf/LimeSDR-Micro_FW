@@ -62,6 +62,12 @@ extern int iLa9310IRQInit( struct la9310_info * pLa9310Info );
 extern void vLa9310_do_handshake( struct la9310_info * vLa9310Info );
 extern void vHardwareEarlyInit( void );
 
+// Empty functions to disable linker warning of them not being implemented in arm libs
+void _close() {};
+void _lseek() {};
+void _read() {};
+void _write() {};
+
 void v_main_Hif_Init( struct la9310_info * pLa9310Info )
 {
     struct la9310_hif * pxHif = pLa9310Info->pHif;
