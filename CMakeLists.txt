@@ -19,7 +19,6 @@ add_compile_options(
 add_link_options(--specs=nano.specs)
 
 add_subdirectory(la9310)
-add_subdirectory(bootstrap)
 add_subdirectory(FreeRTOS)
 include_directories(include)
 add_subdirectory(src)
