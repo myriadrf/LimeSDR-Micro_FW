@@ -24,7 +24,10 @@ target_link_options(la9310 PUBLIC
     -Wl,-gc-sections
     -Wl,-print-memory-usage
 )
-target_link_libraries(la9310 PUBLIC freertos_kernel)
+target_link_libraries(la9310 PUBLIC
+    la9310_cm4
+    freertos_kernel
+)
 
 # Reference clock setup
 SET(EXT_REF_CLK "0" CACHE STRING "External reference clock frequency")
