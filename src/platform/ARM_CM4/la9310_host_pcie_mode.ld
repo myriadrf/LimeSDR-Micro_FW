@@ -37,7 +37,7 @@ SECTIONS
   {
     . = ALIGN(4);
     __m_startup_start = .;      /* create a global symbol at m_startup start */
-    KEEP(*(.start_up))
+    KEEP(*(*.m4_reset_handler))
     . = ALIGN(4);
     __m_startup_end = .;      /* create a global symbol at m_startup end */
   } > m_tcml

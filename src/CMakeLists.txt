@@ -13,6 +13,9 @@ target_compile_options(la9310 PUBLIC
     -ffreestanding
     -fno-builtin
     -Os
+
+    -fdata-sections
+    -ffunction-sections
 )
 
 target_link_options(la9310 PUBLIC
@@ -104,7 +107,8 @@ target_include_directories(la9310 PRIVATE
 )
 
 target_sources(la9310 PRIVATE
-    "log.c"
+    platform/ARM_CM4/startup.c
+    log.c
     "drivers/serial/debug_console.c"
     "drivers/serial/print_scan.c"
     "drivers/serial/serial_ns16550.c"
@@ -112,7 +116,6 @@ target_sources(la9310 PRIVATE
     "drivers/misc/mem_log.c"
     "drivers/watchdog/la9310_watchdog.c"
     "platform/ARM_CM4/soc.c"
-    "platform/ARM_CM4/start.S"
     "platform/boards/la9310/board.c"
     "platform/ARM_CM4/exceptions.c"
     "platform/boards/la9310/hardware_init.c"
