@@ -5,6 +5,7 @@ add_compile_options(-g -Wall)
 add_executable(la9310 "main.c")
 
 target_compile_options(la9310 PUBLIC
+    -mthumb -mcpu=cortex-m4 -mfloat-abi=soft
     -fno-strict-aliasing
     -Wno-unused-function
     -mno-sched-prolog
@@ -73,10 +74,10 @@ set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 
 option(LA9310_COMMAND_LINE "Enable LA9310 command line interface" OFF)
 option(LMS7002M_CLOCK "Configure LMS7002M clock generator to 153.6MHz" ON)
-option(BOOT_HEADER "Prefix firmware with a boot header" OFF)
+option(BOOT_HEADER "Prefix firmware with a boot header" ON)
 
 if (BOOT_HEADER)
-    target_sources(la9310 PRIVATE bootloader_header.c)
+    target_sources(la9310 PRIVATE romboot_header.c)
 endif()
 
 if(LMS7002M_CLOCK)

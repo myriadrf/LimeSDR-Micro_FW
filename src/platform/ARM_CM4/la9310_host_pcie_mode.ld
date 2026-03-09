@@ -8,7 +8,7 @@ OUTPUT_FORMAT("elf32-littlearm", "elf32-littlearm", "elf32-littlearm")
 OUTPUT_ARCH(arm)
 
 /* Entry Point */
-ENTRY(m4_startup)
+ENTRY(m4_reset_handler)
 
 STACK_SIZE = 0x1000;
 HEAP_SIZE = 0x200;
@@ -28,14 +28,14 @@ SECTIONS
 {
   .bootloader :
   {
-  __firmware_bin_start = .;
     . = ALIGN(4);
-    KEEP(*(.data.boot_header));
+    KEEP(*(*.romboot_header));
   } > m_tcml
 
   .startup :
   {
     . = ALIGN(4);
+    __firmware_bin_start = .;
     __m_startup_start = .;      /* create a global symbol at m_startup start */
     KEEP(*(*.m4_reset_handler))
     . = ALIGN(4);
@@ -229,4 +229,16 @@ SECTIONS
   /*Does m_data overlaps HIF? */
   ASSERT(__StackTop < 0x1F81C000, "m_data overlaps to HIF")
   ASSERT(__StackLimit >= __HeapLimit, "region m_data overflowed with stack and heap")
+
+  PROVIDE_HIDDEN(__firmware_bin_size = __data_end__ - ADDR(.startup));
+  PROVIDE_HIDDEN(__firmware_bin_src_offset = ADDR(.startup) - ORIGIN(m_tcml));
+  PROVIDE_HIDDEN(__firmware_dest = ADDR(.startup));
+  PROVIDE_HIDDEN(__firmware_entry = m4_reset_handler);
+
+  ASSERT(__firmware_bin_size <= 0x20000, "Fw too big")
+  ASSERT(__firmware_bin_src_offset <= 0x20000, "Fw too big")
+  /*
+  ASSERT((__firmware_dest >= 0x1F800000 && __firmware_dest <= 0x1F830000) , "Fw out of range")
+  ASSERT((__firmware_entry >= 0x1F800000 && __firmware_entry <= 0x1F830000) , "Fw out of range")
+  */
 }

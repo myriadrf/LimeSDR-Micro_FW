@@ -10,6 +10,14 @@ IF(NOT CMAKE_BUILD_TYPE)
 ENDIF()
 message(STATUS "BUILD_TYPE: " ${CMAKE_BUILD_TYPE})
 
+add_compile_options(
+    -Os
+    -fdata-sections
+    -ffunction-sections
+    -fno-common
+)
+add_link_options(--specs=nano.specs)
+
 add_subdirectory(la9310)
 add_subdirectory(bootstrap)
 add_subdirectory(FreeRTOS)
