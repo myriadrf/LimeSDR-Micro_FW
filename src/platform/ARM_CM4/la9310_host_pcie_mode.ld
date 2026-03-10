@@ -12,62 +12,52 @@ ENTRY(m4_reset_handler)
 
 STACK_SIZE = 0x1000;
 HEAP_SIZE = 0x200;
+PROVIDE_HIDDEN(__bootloader_stack = 0x2000FF00);
 
 /* Specify the memory areas */
 
 MEMORY
 {
   m_tcml    (RWX) : ORIGIN = 0x1F800000, LENGTH = 0x0001A000
-  m_tcml_bl (RWX) : ORIGIN = 0x1F81A000, LENGTH = 0x00001000
+  m_tcml_bl (RWX) : ORIGIN = 0x1F81D000, LENGTH = 0x00003000
   m_dtcm    (RW)  : ORIGIN = 0x20000000, LENGTH = 0x0000F000
-  br_data               (R)   : ORIGIN = 0x2000F000, LENGTH = 0x00001000
+  br_data   (R)   : ORIGIN = 0x2000F000, LENGTH = 0x00001000
 }
 
 /* Define output sections */
 SECTIONS
 {
-  .bootloader :
-  {
-    . = ALIGN(4);
-    KEEP(*(*.romboot_header));
-  } > m_tcml
-
-  .startup :
+  .romboot_header :
   {
     . = ALIGN(4);
     __firmware_bin_start = .;
-    __m_startup_start = .;      /* create a global symbol at m_startup start */
-    KEEP(*(*.m4_reset_handler))
-    . = ALIGN(4);
-    __m_startup_end = .;      /* create a global symbol at m_startup end */
+    KEEP(*(*.romboot_header));
   } > m_tcml
+  PROVIDE(__firmware_bin_src_offset = __firmware_bin_start - ORIGIN(m_tcml));
 
-  PROVIDE(__firmware_bin_src_offset = __m_startup_start - __firmware_bin_start);
-
-  .interrupts :
+  .bootloader_lib :
   {
-    __VECTOR_TABLE = .;
-    . = ALIGN(0x100); /* isr_vector must be aligned to a power of two boundary, with the minimum alignment being 128 bytes (or 0x80 bytes) */
-    __m_interrupts_start = .;      /* create a global symbol at interrupts start */
-    KEEP(*(.isr_vector))     /* Startup code */
-    . = ALIGN(4);
-    __m_interrupts_end = .;      /* create a global symbol at interrupts end */
-  } > m_tcml
+    *bootloader.c.obj (SORT_BY_ALIGNMENT(*))
+  } > m_tcml_bl AT > m_tcml
+  PROVIDE_HIDDEN (__bootloader_src = LOADADDR(.bootloader_lib));
+  PROVIDE_HIDDEN (__bootloader_dest = ADDR(.bootloader_lib));
+  PROVIDE_HIDDEN (__bootloader_size =  SIZEOF(.bootloader_lib));
 
   .text :
   {
-    . = ALIGN(4);
-    __m_text_start = .;      /* create a global symbol at text start */
-    *(.text)                 /* .text sections (code) */
-    *(.text*)                /* .text* sections (code) */
-    *(.rodata)               /* .rodata sections (constants, strings, etc.) */
-    *(.rodata*)              /* .rodata* sections (constants, strings, etc.) */
-    *(.glue_7)               /* glue arm to thumb code */
-    *(.glue_7t)              /* glue thumb to arm code */
-    *(.eh_frame)
+    KEEP(*(*.m4_reset_handler))
+    . = ALIGN(0x100); /* isr_vector must be aligned to a power of two boundary, with the minimum alignment being 128 bytes (or 0x80 bytes) */
+    KEEP(*(.isr_vector))
     KEEP (*(.init))
     KEEP (*(.fini))
-    . = ALIGN(4);
+
+    *(.text)
+    *(.text*)
+    *(.rodata)
+    *(.rodata*)
+    *(.glue_7)
+    *(.glue_7t)
+    *(.eh_frame)
   } > m_tcml
 
   .ARM.extab :
@@ -77,9 +67,7 @@ SECTIONS
 
   .ARM :
   {
-    __exidx_start = .;
     *(.ARM.exidx*)
-    __exidx_end = .;
   } > m_tcml
 
  .ctors :
@@ -148,9 +136,6 @@ SECTIONS
     . = ALIGN(4);
     __DATA_RAM = .;
     __data_start__ = .;      /* create a global symbol at data start */
-    __m_data_start = .;      /* create a global symbol at data start */
-    *(.rfctrl)               /* .rfctrl section */
-    *(.rfctrl*)              /* .rfctrl* section */
     *(.data)                 /* .data sections */
     *(.data*)                /* .data* sections */
     KEEP(*(.jcr*))
@@ -160,10 +145,10 @@ SECTIONS
 
   .ARM.attributes 0 : { *(.ARM.attributes) } > m_tcml
 
-  PROVIDE(__firmware_bin_size = __data_end__ - __m_startup_start);
+  PROVIDE(__firmware_bin_size = __data_end__ - __firmware_bin_start);
 
   /* Uninitialized data section */
-  .bss :
+  .bss (NOLOAD) :
   {
     /* This is used by the startup in order to initialize the .bss section */
     . = ALIGN(4);
@@ -177,16 +162,7 @@ SECTIONS
     __END_BSS = .;
   } > m_tcml
 
-  .fwloader :
-  {
-      __FWL_DEST_ADDR__ = .;
-      KEEP(*.o(.text.*fwloader*))
-  } > m_tcml_bl AT > m_tcml
-
-  __FWL_LOAD_ADDR__ = LOADADDR(.fwloader );
-  __FWL_LOAD_END__ = __FWL_LOAD_ADDR__ + SIZEOF(.fwloader );
-
-  .heap :
+  .heap (NOLOAD) :
   {
     . = ALIGN(8);
     __end__ = .;
@@ -196,7 +172,7 @@ SECTIONS
     __HeapLimit = .;
   } > m_tcml
 
-    .stack :
+  .stack (NOLOAD) :
   {
     . = ALIGN(8);
     . += STACK_SIZE;
@@ -216,29 +192,17 @@ SECTIONS
   . += 0x100;
   } > m_dtcm
 
-  .cal_tbl (NOLOAD):
-  {
-  . = ALIGN(0x1000);
-  __rfic_cal_start = .;
-  *(.cal_tbl)
-  __rfic_cal_end = .;
-        __m_dtcm_end = .;      /* create a global symbol at data end */
-  } > m_dtcm
-
-  ASSERT((__rfic_cal_end - __rfic_cal_start) <= 0xC000, "Cal table exceeded 48k")
   /*Does m_data overlaps HIF? */
   ASSERT(__StackTop < 0x1F81C000, "m_data overlaps to HIF")
   ASSERT(__StackLimit >= __HeapLimit, "region m_data overflowed with stack and heap")
 
-  PROVIDE_HIDDEN(__firmware_bin_size = __data_end__ - ADDR(.startup));
-  PROVIDE_HIDDEN(__firmware_bin_src_offset = ADDR(.startup) - ORIGIN(m_tcml));
-  PROVIDE_HIDDEN(__firmware_dest = ADDR(.startup));
+  PROVIDE_HIDDEN(__firmware_bin_size = __data_end__ - ADDR(.romboot_header));
+  PROVIDE_HIDDEN(__firmware_bin_src_offset = ADDR(.romboot_header) - ORIGIN(m_tcml));
+  PROVIDE_HIDDEN(__firmware_dest = ADDR(.romboot_header));
   PROVIDE_HIDDEN(__firmware_entry = m4_reset_handler);
 
-  ASSERT(__firmware_bin_size <= 0x20000, "Fw too big")
-  ASSERT(__firmware_bin_src_offset <= 0x20000, "Fw too big")
-  /*
+  ASSERT(__firmware_bin_size <= 0x20000, "Firmware size too big")
+  ASSERT(__firmware_bin_src_offset <= 0x40000000, "Firmware src offset too big")
   ASSERT((__firmware_dest >= 0x1F800000 && __firmware_dest <= 0x1F830000) , "Fw out of range")
-  ASSERT((__firmware_entry >= 0x1F800000 && __firmware_entry <= 0x1F830000) , "Fw out of range")
-  */
+  ASSERT((__firmware_entry >= 0x1F800000 && __firmware_entry <= 0x1F830000) , "Fw entry out of range")
 }

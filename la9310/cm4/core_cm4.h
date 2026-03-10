@@ -62,12 +62,22 @@ typedef struct {
     __IO uint32_t CPACR; /*!< Offset: 0x088 (R/W)  Coprocessor Access Control Register                   */
 } SCB_Type;
 
+typedef struct {
+    __IO uint32_t STCSR; ///< SysTick Control and Status Register
+    __IO uint32_t STRVR; ///< SysTick Reload Value Register
+    __IO uint32_t STCVR; ///< SysTick Current Value Register
+    __I uint32_t STCR; ///< SysTick Calibration Value Register
+} SYST_Type;
+
 #define NVIC_BASE 0xE000E100
 #define NVIC ((NVIC_Type *)NVIC_BASE)
 
 #define SCS_BASE (0xE000E000UL) /*!< System Control Space Base Address  */
 #define SCB_BASE (SCS_BASE + 0x0D00UL) /*!< System Control Block Base Address  */
 #define SCB ((SCB_Type *)SCB_BASE) /*!< SCB configuration struct           */
+
+#define SYST_BASE (SCS_BASE + 0x10UL)
+#define SYST ((SYST_Type *)SYST_BASE)
 
 /* SCB CPUID Register Definitions */
 #define SCB_CPUID_IMPLEMENTER_POS 24

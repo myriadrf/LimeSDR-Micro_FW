@@ -9,7 +9,7 @@ MEMORY
 {
   fw_image   (R)  : ORIGIN = 0x0, LENGTH = 0x00020000
   m_tcml     (RX) : ORIGIN = 0x1F81FC00, LENGTH = 0x300
-  m_dtcm     (RW) : ORIGIN = 0x2000F000, LENGTH = 0x1000
+  m_dtcm     (RW) : ORIGIN = 0x2000FF00, LENGTH = 0x1000
 }
 
 SECTIONS

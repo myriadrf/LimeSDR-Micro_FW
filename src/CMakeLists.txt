@@ -1,7 +1,7 @@
 CMAKE_MINIMUM_REQUIRED (VERSION 3.18)
 include(FeatureSummary)
 
-add_compile_options(-g -Wall)
+add_compile_options(-Wall)
 add_executable(la9310 "main.c")
 
 target_compile_options(la9310 PUBLIC
@@ -24,10 +24,15 @@ target_link_options(la9310 PUBLIC
     -z muldefs
     -Wl,-gc-sections
     -Wl,-print-memory-usage
+    -Wl,--strip-all
+    -Wl,--strip-discarded
+    -Wl,--discard-all
+    -Wl,--discard-locals
 )
 target_link_libraries(la9310 PUBLIC
     la9310_cm4
     freertos_kernel
+    bootloader
 )
 
 # Reference clock setup
@@ -54,7 +59,6 @@ if (${LA9310_BOOT_MODE} STREQUAL "pcie")
         # "drivers/misc/bbdev_ipc.c"
         "drivers/pcie/la9310_pcie.c"
         "utils/task_stats.c"
-        "fwloader.c"
     )
 elseif(${LA9310_BOOT_MODE} STREQUAL "i2c")
     target_compile_definitions(la9310 PUBLIC "-DTURN_ON_STANDALONE_MODE")

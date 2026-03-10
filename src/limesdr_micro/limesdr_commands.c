@@ -1,6 +1,7 @@
 #include "FreeRTOS.h"
 #include <semphr.h>
 
+#include "config.h"
 #include "fsl_dspi.h"
 #include "la9310_dcs_api.h"
 #include "la9310_host_if.h"
@@ -21,7 +22,6 @@
 #include "lms7002m/spi.h"
 
 #include "eeprom.h"
-#include "fwloader.h"
 
 static uint16_t xo_dac_value = 0;
 
@@ -30,6 +30,7 @@ extern int32_t spi_lms7002m_read( struct LA931xDspiInstance * pDspiHandle, uint1
 extern int32_t spi_lms7002m_write( struct LA931xDspiInstance * pDspiHandle, uint16_t addr, uint16_t value );
 extern void UseExternalReferenceClock(bool external);
 extern int IsExternalRefClkUsed();
+extern void bootloader_reset_handler(void);
 
 extern struct lms7002m_context* rfsoc;
 extern struct la9310_info g_la9310_info;
@@ -426,11 +427,29 @@ static lime_Result ConfigureReferenceClock(uint32_t clk_hz, bool external)
     return status;
 }
 
+extern uint32_t __bootloader_dest;
+extern uint32_t __bootloader_src;
+extern uint32_t __bootloader_size;
+static void LoadBootloader(void)
+{
+    volatile struct la9310_boot_header *boot_header = (struct la9310_boot_header *)TCMU_PHY_ADDR;
+    boot_header->preamble = 0x0;
+    uint32_t *dst = &__bootloader_dest;
+    const uint32_t *src = &__bootloader_src;
+    const uint32_t size = (uint32_t)&__bootloader_size;
+    log_info("bl_src_offset: 0x%08x\n", src);
+    log_info("bl_dest: 0x%08x\n", dst);
+    log_info("bl_size: 0x%08x\n", size);
+    memcpy(dst, src, size);
+    dmb();
+}
+
 static void vSwCmdTask( void * pvParameters )
 {
     struct la9310_hif * pxHif = g_la9310_info.pHif;
     volatile struct la9310_sw_cmd_desc * pxCmdDesc = &( pxHif->sw_cmd_desc );
 
+    uint8_t input[64];
     uint8_t response[64];
 
     while( runEngine )
@@ -448,8 +467,9 @@ static void vSwCmdTask( void * pvParameters )
         switch( pxCmdDesc->cmd )
         {
             case 1:
-                ProcessLMS64C_Command(pxCmdDesc->data, response);
-                memcpy(pxCmdDesc->data, response, sizeof(response));
+                memcpy(input, (void *)pxCmdDesc->data, sizeof(input));
+                ProcessLMS64C_Command(input, response);
+                memcpy((void *)pxCmdDesc->data, response, sizeof(response));
                 status = LA9310_SW_CMD_STATUS_DONE;
                 break;
             case 2: { // Set LA9310 system clock
@@ -476,9 +496,13 @@ static void vSwCmdTask( void * pvParameters )
                 status = LA9310_SW_CMD_STATUS_DONE;
                 break;
             }
-            case 5: { // Enter firmware reloading mode 
-                prepare_fwloader();
-                fwloader();
+            case 5: { // Prepare for jumping to new firmware
+                log_info("LoadBootloader\r\n");
+                LoadBootloader();
+                log_info("jump to %8x\r\n", &bootloader_reset_handler);
+                pxCmdDesc->status = LA9310_SW_CMD_STATUS_DONE;
+                bootloader_reset_handler();
+                // stops here, jumped to bootloader code.
                 break;
             }
             case 6: { // Signalize firmware is alive

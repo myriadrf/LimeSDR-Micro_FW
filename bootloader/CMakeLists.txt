@@ -23,6 +23,14 @@ target_compile_options(bootloader PUBLIC
     -Os
     -s
 )
+target_link_options(bootloader PUBLIC
+    -Wl,-gc-sections
+    -Wl,-print-memory-usage
+    -Wl,--strip-all
+    -Wl,--strip-discarded
+    -Wl,--discard-all
+    -Wl,--discard-locals
+)
 
 target_link_libraries(bootloader PUBLIC la9310_cm4)
 

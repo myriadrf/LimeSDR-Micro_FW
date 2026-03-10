@@ -186,7 +186,8 @@ __attribute__((aligned(0x100), section(".isr_vector"))) struct la9310_cm4_isrvec
 
 void m4_reset_handler(void)
 {
-    asm("cpsid i" : : :); // disable interupts
+    disable_irq();
+    SYST->STCSR = (SYST->STCSR & ~(0x1)); // disable systick
 
     /* Initialize Core Registers */
     asm("mov    r0, #0x0\n"
@@ -222,7 +223,7 @@ void m4_reset_handler(void)
         :);
 
     /* Jump to IBR Main Code */
-    asm("cpsie i" : : :); // unmask interrupts
+    enable_irq();
     _start();
 
     // Never returns from here

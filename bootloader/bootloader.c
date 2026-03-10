@@ -44,7 +44,7 @@ __attribute__((interrupt)) static void DefaultISR(void)
     };
 }
 
-__attribute__((interrupt)) void bootloader_reset_handler(void);
+__attribute__((noreturn)) void bootloader_reset_handler(void);
 extern uint32_t __bootloader_stack;
 
 // isr_vector must be aligned to a power of two boundary, with the minimum alignment of 0x100 bytes
@@ -200,7 +200,8 @@ __attribute__((aligned(0x100))) static const struct la9310_cm4_isrvectors bootlo
 
 __attribute__((noreturn)) void bootloader_reset_handler(void)
 {
-    asm("cpsid i" : : :); // disable interupts
+    disable_irq();
+    SYST->STCSR = (SYST->STCSR & ~(0x1)); // disable systick
 
     // Initialize stack pointer
     asm("ldr r0, = __bootloader_stack\n"
@@ -211,8 +212,8 @@ __attribute__((noreturn)) void bootloader_reset_handler(void)
 
     // relocate interrupt vector table
     SCB->VTOR = (uint32_t)&bootloader_isrvector;
-    isb();
     dmb();
+    isb();
 
     // Set Priviledged Mode
     asm("mrs    r0, control\n"
@@ -222,6 +223,7 @@ __attribute__((noreturn)) void bootloader_reset_handler(void)
         :
         :);
 
+    enable_irq();
     bootloader_main();
 
     // Never returns to here
