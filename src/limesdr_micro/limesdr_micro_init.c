@@ -135,88 +135,90 @@ void UseExternalReferenceClock(bool external)
 
 int initialize_lms7002m_clock_generator()
 {
-    uint16_t IC26_ADDR = 0x60;
-    uint16_t IC30_ADDR = 0x60;
-
     log_info("lime i2c config start\n\r");
 
     // I2C I/O expander (IC15, MCP23017-E/ML)
     const uint8_t i2c_expander_addr = 0x20;
-    i2c_write8(LA9310_FSL_I2C1, i2c_expander_addr, 0x0A, 0x80); // IOCON, set addresing mode to separate banks
-
     // IC15 GPA
-    uint8_t gpa_iodir = 0;
-    gpa_iodir |= (1 << 4); // GNSS_FIX
-    i2c_write8(LA9310_FSL_I2C1, i2c_expander_addr, 0x00, gpa_iodir); // IODIR, bits 0-output, 1-input
+    {
+        uint8_t iodir_a = 0;
+        iodir_a |= (1 << 4); // GNSS_FIX
+        i2c_write8(LA9310_FSL_I2C1, i2c_expander_addr, 0x00, iodir_a); // IODIR, bits 0-output, 1-input
+    }
     // IC15 GPIOA output values
-    uint8_t gpa_value = 0;
-    gpa_value |= (1 << 0); // LMS_RESET, reset active when low
-    gpa_value |= (1 << 6); // SMB_CLK_OUT, disable clock output to mPCIe
-    i2c_write8(LA9310_FSL_I2C1, i2c_expander_addr, 0x09, gpa_value);
+    {
+        uint8_t gpio_a = 0;
+        gpio_a |= (1 << 0); // LMS_RESET, reset active when low
+        gpio_a |= (1 << 6); // SMB_CLK_OUT, disable clock output to mPCIe
+        i2c_write8(LA9310_FSL_I2C1, i2c_expander_addr, 0x12, gpio_a);
+    }
 
     // IC15 GPB
-    uint8_t iodir = 0;
-    // inputs
-    iodir |= (1 << 7); // PCIE_RESERVED
-    iodir |= (1 << 6); // HW_VER1
-    iodir |= (1 << 5); // HW_VER0
-    iodir |= (1 << 4); // BOM_VER0
-    // outputs
-    iodir |= (0 << 3); // I2C_SDA_SEL
-    iodir |= (0 << 2); // RX_SW3
-    iodir |= (0 << 1); // TX_SW
-    iodir |= (0 << 0); // RX_SW2
-    i2c_write8(LA9310_FSL_I2C1, i2c_expander_addr, 0x10, iodir); // IODIR, bits 0-output, 1-input
+    {
+        uint8_t iodir_b = 0; // IODIR, bits 0-output, 1-input
+        // inputs
+        iodir_b |= (1 << 7); // PCIE_RESERVED
+        iodir_b |= (1 << 6); // HW_VER1
+        iodir_b |= (1 << 5); // HW_VER0
+        iodir_b |= (1 << 4); // BOM_VER0
+        // outputs
+        iodir_b |= (0 << 3); // I2C_SDA_SEL
+        iodir_b |= (0 << 2); // RX_SW3
+        iodir_b |= (0 << 1); // TX_SW
+        iodir_b |= (0 << 0); // RX_SW2
+        i2c_write8(LA9310_FSL_I2C1, i2c_expander_addr, 0x01, iodir_b);
+    }
 
+    const uint16_t dcconv_addr = 0x60; // LP8758A2E3YFFR DCDC Converter
     // Switching regulators configuration
     {
-        // IC15, set I2C_SDA_SEL to direct I2C to LA_I2C_SDA0 (IC26)
-        uint8_t gpb = 0;
-        gpb |= (0 << 3); // I2C_SDA_SEL: 0-IC26, 1-IC30
-        i2c_write8(LA9310_FSL_I2C1, i2c_expander_addr, 0x19, gpb);
+        // IC15, set I2C_SDA_SEL to direct I2C to LA_I2C_SDA0
+        uint8_t gpio_b = 0;
+        gpio_b |= (0 << 3); // I2C_SDA_SEL
+        i2c_write8(LA9310_FSL_I2C1, i2c_expander_addr, 0x13, gpio_b);
 
         // IC26 configuration
         const uint8_t buck_ctrl0 = 0x88; // EN_BUCK, EN_RDIS
         const uint8_t buck_ctrl2 = 0x12; // ILIM (2.5A) SLEW_RATE (10 mV/μs)
-        i2c_write8(LA9310_FSL_I2C1, IC26_ADDR, 0x02, buck_ctrl0);
-        i2c_write8(LA9310_FSL_I2C1, IC26_ADDR, 0x03, buck_ctrl2);
-        i2c_write8(LA9310_FSL_I2C1, IC26_ADDR, 0x04, buck_ctrl0);
-        i2c_write8(LA9310_FSL_I2C1, IC26_ADDR, 0x05, buck_ctrl2);
-        i2c_write8(LA9310_FSL_I2C1, IC26_ADDR, 0x06, buck_ctrl0);
-        i2c_write8(LA9310_FSL_I2C1, IC26_ADDR, 0x07, buck_ctrl2);
-        i2c_write8(LA9310_FSL_I2C1, IC26_ADDR, 0x08, buck_ctrl0);
-        i2c_write8(LA9310_FSL_I2C1, IC26_ADDR, 0x09, buck_ctrl2);
+        i2c_write8(LA9310_FSL_I2C1, dcconv_addr, 0x02, buck_ctrl0);
+        i2c_write8(LA9310_FSL_I2C1, dcconv_addr, 0x03, buck_ctrl2);
+        i2c_write8(LA9310_FSL_I2C1, dcconv_addr, 0x04, buck_ctrl0);
+        i2c_write8(LA9310_FSL_I2C1, dcconv_addr, 0x05, buck_ctrl2);
+        i2c_write8(LA9310_FSL_I2C1, dcconv_addr, 0x06, buck_ctrl0);
+        i2c_write8(LA9310_FSL_I2C1, dcconv_addr, 0x07, buck_ctrl2);
+        i2c_write8(LA9310_FSL_I2C1, dcconv_addr, 0x08, buck_ctrl0);
+        i2c_write8(LA9310_FSL_I2C1, dcconv_addr, 0x09, buck_ctrl2);
 
         // Set IC26 output voltages
-        //i2c_write8(LA9310_FSL_I2C1, IC26_ADDR, 0x0A, 0x39); // Default (0.9V) is OK. Do not touch it.
-        i2c_write8(LA9310_FSL_I2C1, IC26_ADDR, 0x0C, 0x93);  // BUCK1_VSET Set to 1.35V
-        //i2c_write8(LA9310_FSL_I2C1, IC26_ADDR, 0x0E, 0xB1); // Default (1.8V) is OK. Do not touch it.
-        i2c_write8(LA9310_FSL_I2C1, IC26_ADDR, 0x10, 0xFC);  // BUCK3_VSET Set to 3.3V
+        //i2c_write8(LA9310_FSL_I2C1, dcconv_addr, 0x0A, 0x39); // Default (0.9V) is OK. Do not touch it.
+        i2c_write8(LA9310_FSL_I2C1, dcconv_addr, 0x0C, 0x93); // BUCK1_VSET Set to 1.35V
+        //i2c_write8(LA9310_FSL_I2C1, dcconv_addr, 0x0E, 0xB1); // Default (1.8V) is OK. Do not touch it.
+        i2c_write8(LA9310_FSL_I2C1, dcconv_addr, 0x10, 0xFC); // BUCK3_VSET Set to 3.3V
     }
     {
-        // IC15, set I2C_SDA_SEL to direct I2C to LA_I2C_SDA0 (IC30)
-        uint8_t gpb = 0;
-        gpb |= (1 << 3); // I2C_SDA_SEL: 0-IC26, 1-IC30
-        gpb |= (1 << 2); // RX_SW3
-        i2c_write8(LA9310_FSL_I2C1, i2c_expander_addr, 0x19, gpb);
+        // IC15, set I2C_SDA_SEL to direct I2C to LA_I2C_SDA0
+        uint8_t gpio_b = 0;
+        gpio_b |= (1 << 3); // I2C_SDA_SEL
+        gpio_b |= (1 << 2); // RX_SW3
+        i2c_write8(LA9310_FSL_I2C1, i2c_expander_addr, 0x13, gpio_b);
 
         // IC30 configuration
         const uint8_t buck_ctrl0 = 0x88; // EN_BUCK, EN_RDIS
         const uint8_t buck_ctrl2 = 0x12; // ILIM (2.5A) SLEW_RATE (10 mV/μs)
-        i2c_write8(LA9310_FSL_I2C1, IC30_ADDR, 0x02, buck_ctrl0);
-        i2c_write8(LA9310_FSL_I2C1, IC30_ADDR, 0x03, buck_ctrl2);
-        i2c_write8(LA9310_FSL_I2C1, IC30_ADDR, 0x04, buck_ctrl0);
-        i2c_write8(LA9310_FSL_I2C1, IC30_ADDR, 0x05, buck_ctrl2);
-        i2c_write8(LA9310_FSL_I2C1, IC30_ADDR, 0x06, buck_ctrl0);
-        i2c_write8(LA9310_FSL_I2C1, IC30_ADDR, 0x07, buck_ctrl2);
-        i2c_write8(LA9310_FSL_I2C1, IC30_ADDR, 0x08, buck_ctrl0);
-        i2c_write8(LA9310_FSL_I2C1, IC30_ADDR, 0x09, buck_ctrl2);
+        i2c_write8(LA9310_FSL_I2C1, dcconv_addr, 0x02, buck_ctrl0);
+        i2c_write8(LA9310_FSL_I2C1, dcconv_addr, 0x03, buck_ctrl2);
+        i2c_write8(LA9310_FSL_I2C1, dcconv_addr, 0x04, buck_ctrl0);
+        i2c_write8(LA9310_FSL_I2C1, dcconv_addr, 0x05, buck_ctrl2);
+        i2c_write8(LA9310_FSL_I2C1, dcconv_addr, 0x06, buck_ctrl0);
+        i2c_write8(LA9310_FSL_I2C1, dcconv_addr, 0x07, buck_ctrl2);
+        i2c_write8(LA9310_FSL_I2C1, dcconv_addr, 0x08, buck_ctrl0);
+        i2c_write8(LA9310_FSL_I2C1, dcconv_addr, 0x09, buck_ctrl2);
 
         // Set IC30 output voltages
-        i2c_write8(LA9310_FSL_I2C1, IC30_ADDR, 0x0A, 0xA2); // BUCK0_VSET Set to 1.5V
-        i2c_write8(LA9310_FSL_I2C1, IC30_ADDR, 0x0C, 0xAE); // BUCK1_VSET Set to 1.74V
-        i2c_write8(LA9310_FSL_I2C1, IC30_ADDR, 0x0E, 0xBD); // BUCK2_VSET Set to 2.04V
-        i2c_write8(LA9310_FSL_I2C1, IC30_ADDR, 0x10, 0xFC); // BUCK3_VSET Set to 3.3V
+        i2c_write8(LA9310_FSL_I2C1, dcconv_addr, 0x0A, 0xA2); // BUCK0_VSET Set to 1.5V
+        i2c_write8(LA9310_FSL_I2C1, dcconv_addr, 0x0C, 0xAE); // BUCK1_VSET Set to 1.74V
+        i2c_write8(LA9310_FSL_I2C1, dcconv_addr, 0x0E, 0xBD); // BUCK2_VSET Set to 2.04V
+        i2c_write8(LA9310_FSL_I2C1, dcconv_addr, 0x10, 0xFC); // BUCK3_VSET Set to 3.3V
     }
 
     log_info("lime i2c config end\n\r");
