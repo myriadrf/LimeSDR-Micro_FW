@@ -314,10 +314,7 @@ static void prvStop_I2C_Cntrl( i2c_regs_t * i2c_regs )
     }
 }
 
-static uint32_t prvWrite_Data( i2c_regs_t * i2c_regs,
-                               uint8_t * psrc,
-                               uint32_t
-                               ulD_Len )
+static uint32_t prvWrite_Data(i2c_regs_t *i2c_regs, const uint8_t *psrc, uint32_t ulD_Len)
 {
     int ret = 0;
     uint8_t ucTemp = 0;
@@ -785,13 +782,12 @@ int iLa9310_I2C_Read( uint32_t ulI2C_Regs_P,
     return ulRet_Bytes;
 }
 
-int iLa9310_I2C_Write( uint32_t ulI2C_Regs_P,
-                       uint8_t ucDev_Addr,
-                       uint32_t
-                       ulDev_Offset,
-                       uint8_t ucDev_Offset_Len,
-                       uint8_t * psrc,
-                       uint32_t ulD_Len )
+int iLa9310_I2C_Write(uint32_t ulI2C_Regs_P,
+    uint8_t ucDev_Addr,
+    uint32_t ulDev_Offset,
+    uint8_t ucDev_Offset_Len,
+    const uint8_t *psrc,
+    uint32_t ulD_Len)
 {
     i2c_regs_t * i2c_regs = NULL;
     int ret = 0;

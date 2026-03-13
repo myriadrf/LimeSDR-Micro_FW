@@ -120,11 +120,11 @@ int iLa9310_I2C_Read( uint32_t ulI2C_Regs_P,
  *      Error - on error
  ****************************************************************************/
 
-int iLa9310_I2C_Write( uint32_t ulI2C_Regs_P,
-                       uint8_t ucDev_Addr,
-                       uint32_t ulDev_Offset,
-                       uint8_t ucDev_Offset_Len,
-                       uint8_t * psrc,
-                       uint32_t ulD_Len );
+int iLa9310_I2C_Write(uint32_t ulI2C_Regs_P,
+    uint8_t ucDev_Addr,
+    uint32_t ulDev_Offset,
+    uint8_t ucDev_Offset_Len,
+    const uint8_t *psrc,
+    uint32_t ulD_Len);
 
 #endif /* _LA9310_I2C_H_ */
