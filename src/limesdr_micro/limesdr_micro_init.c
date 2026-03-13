@@ -139,18 +139,20 @@ int initialize_lms7002m_clock_generator()
 
     // I2C I/O expander (IC15, MCP23017-E/ML)
     const uint8_t i2c_expander_addr = 0x20;
-    // IC15 GPA
-    {
-        uint8_t iodir_a = 0;
-        iodir_a |= (1 << 4); // GNSS_FIX
-        i2c_write8(LA9310_FSL_I2C1, i2c_expander_addr, 0x00, iodir_a); // IODIR, bits 0-output, 1-input
-    }
+
     // IC15 GPIOA output values
     {
         uint8_t gpio_a = 0;
         gpio_a |= (1 << 0); // LMS_RESET, reset active when low
-        gpio_a |= (1 << 6); // SMB_CLK_OUT, disable clock output to mPCIe
+        gpio_a |= (1 << 6); // SMB_CLK_OUT, disable ref clock output to mPCIe SMBus CLK
+        // First set output values, and only then configure IODIR, to avoid connecting
+        // Ref clk to SMBus CLK, as that can affect host system stability (freeze/reboot)
         i2c_write8(LA9310_FSL_I2C1, i2c_expander_addr, 0x12, gpio_a);
+    }
+    {
+        uint8_t iodir_a = 0; // IODIR, bits 0-output, 1-input
+        iodir_a |= (1 << 4); // GNSS_FIX
+        i2c_write8(LA9310_FSL_I2C1, i2c_expander_addr, 0x00, iodir_a);
     }
 
     // IC15 GPB
