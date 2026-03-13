@@ -20,6 +20,7 @@
 
 #include "limesuiteng/embedded/lms7002m/lms7002m.h"
 #include "lms7002m/spi.h"
+#include "limesdr_micro.h"
 
 #include "eeprom.h"
 
@@ -272,7 +273,7 @@ static int ProcessLMS64C_Command(const void* dataIn, void* dataOut)
         outPacket->payload[0] = 1; //firmware version
         outPacket->payload[1] = 29; // device id
         outPacket->payload[2] = 0; // protocol version
-        outPacket->payload[3] = 0; // hardware version
+        outPacket->payload[3] = hardware_version; // hardware version
         outPacket->payload[4] = 0; // expansion/daughter board id
         for (int i = 10; i < 18; i++) // serial number
         {

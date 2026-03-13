@@ -18,6 +18,8 @@ struct lms7002m_context* rfsoc = NULL;
 extern uint16_t ReadXODAC_EEPROM();
 extern void SetXODAC(uint16_t value);
 
+uint8_t hardware_version = 0;
+
 // ARM bare metal does not have usleep(), it's used within lms7002m procedures
 void usleep(int microSeconds)
 {
@@ -169,7 +171,13 @@ int initialize_lms7002m_clock_generator()
         iodir_b |= (0 << 1); // TX_SW
         iodir_b |= (0 << 0); // RX_SW2
         i2c_write8(LA9310_FSL_I2C1, i2c_expander_addr, 0x01, iodir_b);
+
+        // pull-ups
+        i2c_write8(LA9310_FSL_I2C1, i2c_expander_addr, 0x0D, 0x70);
     }
+
+    iLa9310_I2C_Read(LA9310_FSL_I2C1, i2c_expander_addr, 0x13, LA9310_I2C_DEV_OFFSET_LEN_1_BYTE, &hardware_version, 1);
+    hardware_version = (hardware_version & 0x60) >> 5;
 
     const uint16_t dcconv_addr = 0x60; // LP8758A2E3YFFR DCDC Converter
     // Switching regulators configuration

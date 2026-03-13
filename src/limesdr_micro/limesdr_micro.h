@@ -4,4 +4,6 @@
 int initialize_lms7002m_clock_generator();
 int LMS64C_protocol_init(void);
 
+extern uint8_t hardware_version;
+
 #endif
