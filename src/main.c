@@ -7,22 +7,14 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "config.h"
-#include "immap.h"
 #include "la9310_tmu.h"
 #include "la9310_irq.h"
 #include "la9310_gpio.h"
 #include "la9310_edmaAPI.h"
-#include "la9310_i2cAPI.h"
 #include "exceptions.h"
-#include <la9310.h>
-#include <fsl_dspi.h>
 #include "la9310_pinmux.h"
 #include "la9310_dcs_api.h"
 #include <phytimer.h>
-#include "la9310_v2h_if.h"
-#include "drivers/avi/la9310_vspa_dma.h"
-#include <la9310_avi.h>
-#include "drivers/avi/la9310_avi_ds.h"
 
 #include "la9310_info.h"
 #include "la9310_host_if.h"
@@ -36,6 +28,7 @@
 #if NXP_ERRATUM_A_009410
     #include "la9310_pci.h"
 #endif
+
 #include "la9310_avi.h"
 #ifdef LMS7002M_CLOCK
     #include "limesdr_micro/limesdr_micro.h"
@@ -220,32 +213,6 @@ void vInitMsgUnit( void )
     NVIC_EnableIRQ( IRQ_MSG3 );
 }
 
-#if LA9310_UPGRADE_TIMESYNC_FW
-int lSyncTimingDeviceUpgradeFirmware( SyncTimingDeviceContext_t *pxContext )
-{
-    struct ccsr_dcr * pxDcr = ( struct ccsr_dcr * ) pLa9310Info->pxDcr;
-    struct la9310_hif * pxHif = pLa9310Info->pHif;
-    struct la9310_sw_cmd_desc * pxCmdDesc = &( pxHif->sw_cmd_desc );
-    struct la9310_std_fwupgrade_data *pxStdFwCmdData = ( struct la9310_std_fwupgrade_data * )( pxCmdDesc->data );
-    SyncStatus_t returnStatus = eSyncStatusFailure;
-
-    OUT_32( &pxDcr->ulScratchrw[ 1 ], LA9310_HOST_TIMESYNC_FW_LOAD );
-    PRINTF( "Waiting to update timesync firmware\r\n" );
-    while( IN_32( &pxDcr->ulScratchrw[ 1 ] ) != LA9310_HOST_TIMESYNC_FW_LOADED )
-    {
-        dmb();
-    }
-
-    returnStatus = xSyncTimingDeviceFwUpgrade( pxContext, pxStdFwCmdData );
-    if( returnStatus != eSyncStatusSuccess )
-    {
-        return -1;
-    }
-
-    return 0;
-}
-#endif
-
 void tmuInit( void ) {
 	int idx;
 	TmuRegs_t *pTmuHandle = ( TmuRegs_t * ) TMU_BASE_ADDR;
@@ -361,14 +328,6 @@ int iInitHandler ( void )
     #endif //TURN_ON_STANDALONE_MODE
 
     vInitMsgUnit();
-#ifdef LA9310_SYNC_TIME_MODE
-    if( lSwCmdEngineInit() != 0 )
-    {
-            log_err( "sw cmd engine init failed\r\n" );
-            irc = FAILURE;
-            goto out;
-    }
-#endif
 #ifdef LMS7002M_CLOCK
     if (LMS64C_protocol_init() != 0)
     {
