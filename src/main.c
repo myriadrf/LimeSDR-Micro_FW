@@ -353,11 +353,6 @@ int iInitHandler ( void )
 		IN_32(&pLa9310Info->pHif->adc_rate_mask),
 		IN_32(&pLa9310Info->pHif->dac_mask),
 		IN_32(&pLa9310Info->pHif->dac_rate_mask));
-
-    #ifdef LA9310_ENABLE_COMMAND_LINE
-        vRegisterTimesyncCLICommands();
-    #endif
-
     irc = SUCCESS;
 
 out:

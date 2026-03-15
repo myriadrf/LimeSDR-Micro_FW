@@ -73,7 +73,6 @@ if(LA9310_COMMAND_LINE)
     target_sources(la9310 PRIVATE
         "utils/FreeRTOS-Plus-CLI/FreeRTOS_CLI.c"
         "utils/UARTCommandConsole.c"
-        "drivers/timesync/sync_timing_device_cli.c"
     )
 endif()
 
@@ -88,7 +87,6 @@ target_include_directories(la9310 PRIVATE
     drivers/i2c/
     drivers/dspi
     drivers/phy_timer
-    drivers/timesync
     utils
     drivers/dcs
 )
@@ -116,7 +114,6 @@ target_sources(la9310 PRIVATE
     "drivers/dspi/fsl_dspi.c"
     "utils/delay.c"
     "drivers/phy_timer/phytimer.c"
-    "drivers/timesync/sync_timing_device.c"
     "drivers/dspi/dspi_test.c"
     "drivers/dcs/la9310_dcs.c"
 )
