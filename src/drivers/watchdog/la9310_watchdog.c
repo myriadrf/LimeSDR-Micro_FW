@@ -20,11 +20,6 @@ extern struct la9310_info g_la9310_info;
 int iWdogEnable( uint32_t wdog_load_val,
                  struct la9310_info * pLa9310Info )
 {
-	#ifdef TURN_ON_HOST_MODE
-	struct la9310_msi_info * pMsiInfo;
-	#else
-	uint8_t pin;
-	#endif
     int ret = SUCCESS;
 
     edma_channel_info_t * pEdmaCh = pvPortMalloc( sizeof
@@ -41,20 +36,19 @@ int iWdogEnable( uint32_t wdog_load_val,
     OUT_32( EDMA_ERQ_REG, ( 1 << WDOG_eDMA_CHANNEL ) |
             IN_32( ( uint32_t * ) EDMA_ERQ_REG ) );
 
-    #ifdef TURN_ON_HOST_MODE
-        pMsiInfo = &pLa9310Info->msi_info[ MSI_IRQ_WDOG ];
-        ret = iEdmaXferReq( ( uint32_t ) &pMsiInfo->data,
-                            pMsiInfo->addr, ( uint32_t ) 4, pEdmaCh );
-	#else //TURN_ON_STANDALONE_MODE
+#ifdef TURN_ON_HOST_MODE
+    struct la9310_msi_info *pMsiInfo = &pLa9310Info->msi_info[MSI_IRQ_WDOG];
+    ret = iEdmaXferReq((uint32_t)&pMsiInfo->data, pMsiInfo->addr, (uint32_t)4, pEdmaCh);
+#else //TURN_ON_STANDALONE_MODE
         iGpioInit( GPIO_PIN_I2C_BOOT_RESET, output, false );
         gpio_port_t * gpioport = ( struct gpio_port * ) GPIO_BASE_ADDR;
         uint32_t * p_reg = ( uint32_t * ) gpioport;
-        pin = 31 - GPIO_PIN_I2C_BOOT_RESET;
+        uint8_t pin = 31 - GPIO_PIN_I2C_BOOT_RESET;
         uint32_t sa[ 1 ] = { 0 };
         sa[ 0 ] = (uint32_t) BITS( pin );
         ret = iEdmaXferReq( ( uint32_t ) sa,( uint32_t ) ( &p_reg[ GPIO_DAT ] ),
                      ( uint32_t ) 4, pEdmaCh );
-	#endif
+#endif
     /* WDOG Enable */
     OUT_32( WDOG_LOCK_REG, WDOG_UNLOCK );
     OUT_32( WDOG_LOAD_REG, load_value );

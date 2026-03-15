@@ -11,6 +11,8 @@
 #include "debug_console.h"
 #include "la9310_pci.h"
 
+#define CLOCK_CONFIG_BY_HOST 1
+
 extern struct la9310_info g_la9310_info;
 extern void vRaiseMsi(struct la9310_info *pla9310Info, enum la9310_msi_id msi);
 extern void vSocResetHandshake( void );
@@ -20,7 +22,7 @@ extern void vBoardEarlyInit();
 
 void vLa9310_do_handshake( struct la9310_info * vLa9310Info )
 {
-#ifdef TURN_ON_HOST_MODE
+#if CLOCK_CONFIG_BY_HOST
     struct ccsr_dcr * pxDcr = ( struct ccsr_dcr * ) vLa9310Info->pxDcr;
     PRINTF("LA9310->Host: START_CLOCK_CONFIG\n");
     OUT_32( &pxDcr->ulScratchrw[ 1 ], LA9310_HOST_START_CLOCK_CONFIG );
@@ -33,14 +35,14 @@ void vLa9310_do_handshake( struct la9310_info * vLa9310Info )
 
     PRINTF("Host->LA9310: HOST_COMPLETE_CLOCK_CONFIG\n");
     dmb();
-#endif //TURN_ON_STANDALONE_MODE
+#endif
     vSocResetHandshake();
     dmb();
 
     /*Clock changes from 100 Mhz to 160Mhz after handshake*/
     vBoardFinalInit();
 
-#ifdef TURN_ON_HOST_MODE
+#if CLOCK_CONFIG_BY_HOST
     PRINTF("LA9310->HOST: START_DRIVER_INIT\n");
     OUT_32( &pxDcr->ulScratchrw[ 1 ], LA9310_HOST_START_DRIVER_INIT );
 
@@ -49,16 +51,14 @@ void vLa9310_do_handshake( struct la9310_info * vLa9310Info )
     //     /*Raise Msi for Host handshaking*/
     //     vRaiseMsi( vLa9310Info, MSI_IRQ_HOST_HANDSHAKE );
     // #endif
-#endif //TURN_ON_STANDALONE_MODE
+#endif
 }
 
 void vHardwareEarlyInit( void )
 {
-    #ifdef TURN_ON_HOST_MODE
-    #if NXP_ERRATUM_A_009531
-        vPCIEIDOClear();
-    #endif
-    #endif //TURN_ON_STANDALONE_MODE
+#if NXP_ERRATUM_A_009531
+    vPCIEIDOClear();
+#endif
     vSocInit();
     vBoardEarlyInit();
 }

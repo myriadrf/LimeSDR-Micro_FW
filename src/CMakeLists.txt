@@ -19,6 +19,9 @@ target_compile_options(la9310 PUBLIC
     -ffunction-sections
 )
 
+set(LA9310_LINKER_SCRIPT ${CMAKE_CURRENT_LIST_DIR}/platform/ARM_CM4/la9310_host_pcie_mode.ld)
+set_target_properties(la9310 PROPERTIES LINK_DEPENDS ${LA9310_LINKER_SCRIPT}) # relinks if script is modified
+
 target_link_options(la9310 PUBLIC
     --specs=nano.specs
     -z muldefs
@@ -28,6 +31,7 @@ target_link_options(la9310 PUBLIC
     -Wl,--strip-discarded
     -Wl,--discard-all
     -Wl,--discard-locals
+    -T${LA9310_LINKER_SCRIPT}
 )
 target_link_libraries(la9310 PUBLIC
     la9310_cm4
@@ -47,31 +51,6 @@ add_compile_definitions(LA9310_SYS_CLK_FREQ=${LA9310_SYS_CLK_FREQ})
 message(STATUS "LA9310 system clock: ${LA9310_SYS_CLK_FREQ}")
 
 target_include_directories(la9310 PRIVATE ${CMAKE_CURRENT_LIST_DIR})
-
-# BOOT MODE SETUP
-set(LA9310_BOOT_MODE_OPTIONS "pcie" "i2c")
-set(LA9310_BOOT_MODE "pcie" CACHE STRING "LA9310 boot mode")
-set_property(CACHE LA9310_BOOT_MODE PROPERTY STRINGS ${LA9310_BOOT_MODE_OPTIONS})
-if (${LA9310_BOOT_MODE} STREQUAL "pcie")
-    target_compile_definitions(la9310 PUBLIC "-DTURN_ON_HOST_MODE=1")
-    set(LA9310_LINKER_SCRIPT ${CMAKE_CURRENT_LIST_DIR}/platform/ARM_CM4/la9310_host_pcie_mode.ld)
-    target_sources(la9310 PRIVATE
-        # "drivers/misc/bbdev_ipc.c"
-        "drivers/pcie/la9310_pcie.c"
-        "utils/task_stats.c"
-    )
-elseif(${LA9310_BOOT_MODE} STREQUAL "i2c")
-    target_compile_definitions(la9310 PUBLIC "-DTURN_ON_STANDALONE_MODE")
-    set(LA9310_LINKER_SCRIPT ${CMAKE_CURRENT_LIST_DIR}/platform/ARM_CM4/la9310_standalone_i2c_mode.ld)
-    target_sources(la9310 PRIVATE
-        "drivers/avi/la9310_vspa_dma.c"
-    )
-else()
-    message(FATAL_ERROR "LA9310_BOOT_MODE must be one of: ${LA9310_BOOT_MODE_OPTIONS}")
-endif()
-set_target_properties(la9310 PROPERTIES LINK_DEPENDS ${LA9310_LINKER_SCRIPT})
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -T${LA9310_LINKER_SCRIPT} -static")
-message(STATUS "LA9310 Boot mode: ${LA9310_BOOT_MODE}")
 
 # Treat warnings as errors
 set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
@@ -117,6 +96,8 @@ target_include_directories(la9310 PRIVATE
 target_sources(la9310 PRIVATE
     platform/ARM_CM4/startup.c
     log.c
+    utils/task_stats.c
+    drivers/pcie/la9310_pcie.c
     "drivers/serial/debug_console.c"
     "drivers/serial/print_scan.c"
     "drivers/serial/serial_ns16550.c"

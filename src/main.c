@@ -78,62 +78,44 @@ void v_main_Hif_Init( struct la9310_info * pLa9310Info )
 
 static void prvInitLa9310Info( struct la9310_info * pLa9310Info )
 {
-	#ifdef TURN_ON_HOST_MODE
-    int i = 0;
-    uint32_t uMSIAddrVal = 0;
-    uint32_t __IO * pMsiAddrReg;
-    uint32_t __IO * pMsiDataAddr;
-    struct la9310_msi_info * pMsiInfo;
-	#endif
-    struct ccsr_dcr * pxDcr;
-
     pLa9310Info->itcm_addr = ( void * ) TCML_PHY_ADDR;
     pLa9310Info->dtcm_addr = ( void * ) TCMU_PHY_ADDR;
     pLa9310Info->pcie_addr = ( void * ) PCIE_BASE_ADDR;
     pLa9310Info->msg_unit = ( struct la9310_msg_unit * ) MSG_UNIT_BASE_ADDR;
 
     pLa9310Info->pcie_obound = ( void * ) PCIE_PHY_ADDR;
-    pLa9310Info->pHif = ( struct la9310_hif * ) ( ( uint32_t ) pLa9310Info->itcm_addr +
-                                                  LA9310_EP_HIF_OFFSET );
-	pLa9310Info->pHif->dbg_log_regs.log_level = LA9310_LOG_LEVEL_INFO;
+    pLa9310Info->pHif = ( struct la9310_hif * ) ( ( uint32_t ) pLa9310Info->itcm_addr + LA9310_EP_HIF_OFFSET );
+    pLa9310Info->pHif->dbg_log_regs.log_level = LA9310_LOG_LEVEL_INFO;
     pLa9310Info->pxDcr = ( void * ) DCR_BASE_ADDR;
 
-	#ifdef TURN_ON_HOST_MODE
     /* Initialize MSI */
-    pMsiAddrReg = ( uint32_t * ) ( ( uint32_t ) pLa9310Info->pcie_addr +
-                                   PCIE_MSI_ADDR_REG );
+    uint32_t __IO *pMsiAddrReg = (uint32_t *)((uint32_t)pLa9310Info->pcie_addr + PCIE_MSI_ADDR_REG);
+    uint32_t __IO *pMsiDataAddr = (uint32_t *)((uint32_t)pLa9310Info->pcie_addr + PCIE_MSI_DATA_REG_1);
 
-    pMsiDataAddr = ( uint32_t * ) ( ( uint32_t ) pLa9310Info->pcie_addr +
-                                    PCIE_MSI_DATA_REG_1 );
-
-    pMsiInfo = &pLa9310Info->msi_info[ MSI_IRQ_MUX ];
+    struct la9310_msi_info *pMsiInfo = &pLa9310Info->msi_info[MSI_IRQ_MUX];
 
     /* According to PCI bus standerd multiple MSIs are allocated consecutively*/
-    uMSIAddrVal = ( IN_32( pMsiAddrReg ) & 0xFFF );
-    #ifdef LS1046_HOST_MSI_RAISE
-        /*This method to initialize MSI structure is non-standard and dedicated for
-         * LS1046 host */
+    uint32_t uMSIAddrVal = (IN_32(pMsiAddrReg) & 0xFFF);
+#ifdef LS1046_HOST_MSI_RAISE
+    // This method to initialize MSI structure is non-standard and dedicated for LS1046 host
 
-        for( i = 0; i < LA9310_MSI_MAX_CNT; i++ )
-        {
-            pMsiInfo[ i ].addr = ( LA9310_EP_TOHOST_MSI_PHY_ADDR | uMSIAddrVal );
-            val = IN_32( pMsiDataAddr );
-            pMsiInfo[ i ].data = ( ( val + i ) << 2 );
-            log_info( "%s: MSI init[%d], addr 0x%x, data 0x%x\n\r", __func__,
-                      i, pMsiInfo[ i ].addr, pMsiInfo[ i ].data );
-        }
-    #else /* ifdef LS1046_HOST_MSI_RAISE */
-        for( i = 0; i < LA9310_MSI_MAX_CNT; i++ )
-        {
-            pMsiInfo[ i ].addr = ( LA9310_EP_TOHOST_MSI_PHY_ADDR | uMSIAddrVal );
-            pMsiInfo[ i ].data = ( IN_32( pMsiDataAddr ) + i );
-            log_info( "%s: MSI init[%d], addr 0x%x, data 0x%x\n\r", __func__,
-                      i, pMsiInfo[ i ].addr, pMsiInfo[ i ].data );
-        }
-    #endif /* ifdef LS1046_HOST_MSI_RAISE */
-	#endif //TURN_ON_STANDALONE_MODE
+    for (int i = 0; i < LA9310_MSI_MAX_CNT; i++)
+    {
+        pMsiInfo[i].addr = (LA9310_EP_TOHOST_MSI_PHY_ADDR | uMSIAddrVal);
+        val = IN_32(pMsiDataAddr);
+        pMsiInfo[i].data = ((val + i) << 2);
+        log_info("%s: MSI init[%d], addr 0x%x, data 0x%x\n\r", __func__, i, pMsiInfo[i].addr, pMsiInfo[i].data);
+    }
+#else
+    for (int i = 0; i < LA9310_MSI_MAX_CNT; i++)
+    {
+        pMsiInfo[i].addr = (LA9310_EP_TOHOST_MSI_PHY_ADDR | uMSIAddrVal);
+        pMsiInfo[i].data = (IN_32(pMsiDataAddr) + i);
+        log_info("%s: MSI init[%d], addr 0x%x, data 0x%x\n\r", __func__, i, pMsiInfo[i].addr, pMsiInfo[i].data);
+    }
+#endif // ifdef LS1046_HOST_MSI_RAISE
 
-	pxDcr = ( struct ccsr_dcr * ) pLa9310Info->pxDcr;
+    struct ccsr_dcr *pxDcr = pLa9310Info->pxDcr;
 	OUT_32(&pxDcr->ulScratchrw[LA9310_BOOT_HSHAKE_HIF_REG], LA9310_EP_HIF_OFFSET);
 	dmb();
 	OUT_32(&pxDcr->ulScratchrw[LA9310_BOOT_HSHAKE_HIF_SIZ_REG], sizeof(struct la9310_hif));
@@ -294,14 +276,12 @@ int iInitHandler ( void )
     }
 
     memset( pLa9310Info, 0, sizeof( struct la9310_info ) );
-#ifdef TURN_ON_HOST_MODE
     if( sizeof( struct la9310_hif ) > LA9310_EP_HIF_SIZE )
     {
         PRINTF( "Invalid HIF size\r\n" );
         irc = FAILURE;
         goto out;
     }
-#endif //TURN_ON_STANDALONE_MODE
     /*XXX: DO NOT CALL log_*() before prvInitLa9310Info(), use PRINTF instead.*/
     prvInitLa9310Info( pLa9310Info );
 
@@ -321,11 +301,9 @@ int iInitHandler ( void )
     /*Till Here system is running at 100 Mhz*/
     vLa9310_do_handshake( pLa9310Info );
 
-    #ifdef TURN_ON_HOST_MODE
-    #if NXP_ERRATUM_A_009410
-        vPCIEInterruptInit();
-    #endif
-    #endif //TURN_ON_STANDALONE_MODE
+#if NXP_ERRATUM_A_009410
+    vPCIEInterruptInit();
+#endif
 
     vInitMsgUnit();
 #ifdef LMS7002M_CLOCK

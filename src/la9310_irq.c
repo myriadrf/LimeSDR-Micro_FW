@@ -9,11 +9,6 @@
 #include "la9310_irq.h"
 #include "la9310_edma.h"
 #include "la9310_host_if.h"
-#ifdef TURN_ON_HOST_MODE
-#ifdef __RFIC
-#include "rfic_core.h"
-#endif
-#endif
 
 #include "la9310_info.h"
 #include "log.h"
@@ -103,14 +98,12 @@ void La9310MSG_1_IRQHandler( void )
     {
         vLa9310IrqMuxIrq();
     }
-#ifdef TURN_ON_HOST_MODE
 #ifdef __RFIC
     /* RFIC SW CMD */
     if( ( msir & BITMASK( LA9310_RF_SW_CMD_MSG_UNIT_BIT ) ) )
     {
         vRficSwCmdIrq( pLa9310Info->pRficDev );
     }
-#endif
 #endif
 
     NVIC_ClearPendingIRQ( IRQ_MSG1 );
