@@ -316,11 +316,6 @@ int iInitHandler ( void )
     ulMemLogIndex = 0;
 
     InitBlinkLEDs();
-
-#if !defined(LA9310_DFE_APP) && !defined(RFNM) && !defined(SEEVE)
-    /* Let PhyTimer control RFCTL[] GPIOs  */
-    iGpioInitRFIC();
-#endif
     vEnableExceptions();
 
     struct la9310_info *pLa9310Info = &g_la9310_info;
