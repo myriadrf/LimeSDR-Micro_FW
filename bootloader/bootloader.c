@@ -39,9 +39,10 @@ __attribute__((noreturn)) static void bootloader_main(void)
 
 __attribute__((interrupt)) static void DefaultISR(void)
 {
-    while (1)
-    {
-    };
+    // Do nothing
+    // while (1)
+    // {
+    // };
 }
 
 __attribute__((noreturn)) void bootloader_reset_handler(void);

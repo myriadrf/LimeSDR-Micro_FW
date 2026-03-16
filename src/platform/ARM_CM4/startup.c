@@ -25,9 +25,10 @@ extern void _start(void);
 
 static void DefaultISR(void)
 {
-    while (1)
-    {
-    };
+    // Do nothing
+    // while (1)
+    // {
+    // };
 }
 
 extern uint32_t __stack;
