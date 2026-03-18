@@ -46,7 +46,7 @@ if (${EXT_REF_CLK})
     message(STATUS "Use external reference clock: ${EXT_REF_CLK}")
 endif()
 
-SET(LA9310_SYS_CLK_FREQ "61440000" CACHE STRING "LA9310 post init system clock frequency")
+SET(LA9310_SYS_CLK_FREQ "122880000" CACHE STRING "LA9310 post init system clock frequency")
 add_compile_definitions(LA9310_SYS_CLK_FREQ=${LA9310_SYS_CLK_FREQ})
 message(STATUS "LA9310 system clock: ${LA9310_SYS_CLK_FREQ}")
 
