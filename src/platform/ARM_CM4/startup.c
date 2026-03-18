@@ -188,7 +188,6 @@ __attribute__((aligned(0x100), section(".isr_vector"))) struct la9310_cm4_isrvec
 void m4_reset_handler(void)
 {
     disable_irq();
-    SYST->STCSR = (SYST->STCSR & ~(0x1)); // disable systick
 
     /* Initialize Core Registers */
     asm("mov    r0, #0x0\n"
@@ -222,6 +221,10 @@ void m4_reset_handler(void)
         :
         :
         :);
+
+    SYST->STCSR = (SYST->STCSR & ~(0x1)); // disable systick
+    NVIC->ICER[0] = 0xFFFFFFFF; // disable external interrupts
+    NVIC->ICPR[0] = 0xFFFFFFFF; // clear pending interrupt flags
 
     /* Jump to IBR Main Code */
     enable_irq();

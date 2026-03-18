@@ -365,13 +365,11 @@ void La9310VSPA_IRQRelayHandler( void )
 
 void La9310VSPA_IRQDirectHandler( void )
 {
-    struct la9310_msi_info * pMsiInfo;
-    struct vspa_regs * pVspaRegs = ( struct vspa_regs * ) pAviHndlr->pVspaRegs;
-
+    struct vspa_regs *pVspaRegs = (struct vspa_regs *)VSPA_BASE_ADDR;
     OUT_32( &pVspaRegs->dma_irq_stat, IN_32( &pVspaRegs->dma_irq_stat ));
     NVIC_ClearPendingIRQ( IRQ_VSPA );
 
-    pMsiInfo = &pLa9310Info->msi_info[ LA9310_IRQ_MUX_MSI ];
+    struct la9310_msi_info *pMsiInfo = &pLa9310Info->msi_info[LA9310_IRQ_MUX_MSI];
     OUT_32( pMsiInfo->addr, pMsiInfo->data );
     dmb();
 }
@@ -497,6 +495,8 @@ int iLa9310AviConfig( void )
     OUT_32( &pVspaRegs->vspa_irqen,
             ( IN_32( &pVspaRegs->vspa_irqen ) | uMailboxMonitorMask ) );
 
+    // clear VSPA DMA irq flag
+    OUT_32(&pVspaRegs->dma_irq_stat, IN_32(&pVspaRegs->dma_irq_stat));
     /* Enable VSPA interrupt handling for FreeRTOS */
     log_info( "INFO:%s: Enabling IRQ_VSPA\n\r", __func__ );
     NVIC_SetPriority( IRQ_VSPA, VSPA_IRQ_PRIORITY );
