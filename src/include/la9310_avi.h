@@ -27,6 +27,7 @@
 #define TRIGGER_3                       ( VSPA_BASE_ADDR + 0x2001C )
 #define TRIGGER_4                       ( VSPA_BASE_ADDR + 0x20024 )
 #define TRIGGER_11                      ( VSPA_BASE_ADDR + 0x2005C )
+#define TRIGGER_19 (VSPA_BASE_ADDR + 0x2009C)
 #define MSG_IN_0_VALID                  ( 1 << 2 )
 #define DBGGNCR                         0xE00800EC
 

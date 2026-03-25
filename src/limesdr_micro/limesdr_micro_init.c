@@ -2,6 +2,8 @@
 #include "fsl_dspi.h"
 #include "debug_console.h"
 
+#include "io.h"
+#include "la9310_avi.h"
 #include "utils/delay.h"
 #include "log.h"
 #include "immap.h"
@@ -212,6 +214,9 @@ int initialize_lms7002m_clock_generator()
     }
 
     log_info("lime i2c config end\n\r");
+
+    // Enable transmitter
+    OUT_32(TRIGGER_19, 0x8); // PHYTimer 19, controls LMS_TXEN pin
 
     // Initialize DSPI Handler
     lmsspihandle = pxDspiInit( ( ( 1 << DSPI_CS0 ) ), PRE_SYS_FREQ * 4 / 2, 4000000 );
