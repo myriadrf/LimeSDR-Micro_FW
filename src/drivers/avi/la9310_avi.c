@@ -376,10 +376,13 @@ void La9310VSPA_IRQDirectHandler( void )
 
 void La9310VSPA_IRQHandler( void )
 {
-    IntHndlr();
+    if (IntHndlr)
+    {
+        IntHndlr();
     #if ARM_ERRATUM_838869
         dsb();
     #endif
+    }
 }
 
 
@@ -518,6 +521,7 @@ int iLa9310AviDirectConfig( void )
     IntHndlr = La9310VSPA_IRQDirectHandler;
 
     NVIC_SetPriority( IRQ_VSPA, VSPA_IRQ_PRIORITY );
+    NVIC_ClearPendingIRQ(IRQ_VSPA);
     NVIC_EnableIRQ( IRQ_VSPA );
 
     pVspaRegs = ((struct avi_hndlr *)pAviHndlr)->pVspaRegs;
