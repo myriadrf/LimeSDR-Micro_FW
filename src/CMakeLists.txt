@@ -2,9 +2,9 @@ CMAKE_MINIMUM_REQUIRED (VERSION 3.18)
 include(FeatureSummary)
 
 add_compile_options(-Wall)
-add_executable(la9310 "main.c")
+add_executable(limesdr-micro-m4 "main.c")
 
-target_compile_options(la9310 PUBLIC
+target_compile_options(limesdr-micro-m4 PUBLIC
     -mthumb -mcpu=cortex-m4 -mfloat-abi=soft
     -fno-strict-aliasing
     -Wno-unused-function
@@ -20,9 +20,9 @@ target_compile_options(la9310 PUBLIC
 )
 
 set(LA9310_LINKER_SCRIPT ${CMAKE_CURRENT_LIST_DIR}/platform/ARM_CM4/la9310.ld)
-set_target_properties(la9310 PROPERTIES LINK_DEPENDS ${LA9310_LINKER_SCRIPT}) # relinks if script is modified
+set_target_properties(limesdr-micro-m4 PROPERTIES LINK_DEPENDS ${LA9310_LINKER_SCRIPT}) # relinks if script is modified
 
-target_link_options(la9310 PUBLIC
+target_link_options(limesdr-micro-m4 PUBLIC
     --specs=nano.specs
     -z muldefs
     -Wl,-gc-sections
@@ -33,7 +33,7 @@ target_link_options(la9310 PUBLIC
     -Wl,--discard-locals
     -T${LA9310_LINKER_SCRIPT}
 )
-target_link_libraries(la9310 PUBLIC
+target_link_libraries(limesdr-micro-m4 PUBLIC
     la9310_cm4
     freertos_kernel
     bootloader
@@ -50,7 +50,7 @@ SET(LA9310_SYS_CLK_FREQ "122880000" CACHE STRING "LA9310 post init system clock 
 add_compile_definitions(LA9310_SYS_CLK_FREQ=${LA9310_SYS_CLK_FREQ})
 message(STATUS "LA9310 system clock: ${LA9310_SYS_CLK_FREQ}")
 
-target_include_directories(la9310 PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+target_include_directories(limesdr-micro-m4 PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 
 # Treat warnings as errors
 set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
@@ -60,7 +60,7 @@ option(LMS7002M_CLOCK "Configure LMS7002M clock generator to 153.6MHz" ON)
 option(BOOT_HEADER "Prefix firmware with a boot header" ON)
 
 if (BOOT_HEADER)
-    target_sources(la9310 PRIVATE romboot_header.c)
+    target_sources(limesdr-micro-m4 PRIVATE romboot_header.c)
 endif()
 
 if(LMS7002M_CLOCK)
@@ -68,15 +68,15 @@ if(LMS7002M_CLOCK)
 endif()
 
 if(LA9310_COMMAND_LINE)
-    target_compile_definitions(la9310 PUBLIC "-DLA9310_ENABLE_COMMAND_LINE")
-    target_include_directories(la9310 PRIVATE utils/FreeRTOS-Plus-CLI)
-    target_sources(la9310 PRIVATE
+    target_compile_definitions(limesdr-micro-m4 PUBLIC "-DLA9310_ENABLE_COMMAND_LINE")
+    target_include_directories(limesdr-micro-m4 PRIVATE utils/FreeRTOS-Plus-CLI)
+    target_sources(limesdr-micro-m4 PRIVATE
         "utils/FreeRTOS-Plus-CLI/FreeRTOS_CLI.c"
         "utils/UARTCommandConsole.c"
     )
 endif()
 
-target_include_directories(la9310 PRIVATE
+target_include_directories(limesdr-micro-m4 PRIVATE
     ${LA9310_COMMON_HEADERS}/
     include
     platform/ARM_CM4/include/
@@ -91,7 +91,7 @@ target_include_directories(la9310 PRIVATE
     drivers/dcs
 )
 
-target_sources(la9310 PRIVATE
+target_sources(limesdr-micro-m4 PRIVATE
     platform/ARM_CM4/startup.c
     log.c
     utils/task_stats.c
@@ -118,32 +118,26 @@ target_sources(la9310 PRIVATE
     "drivers/dcs/la9310_dcs.c"
 )
 
-TARGET_LINK_LIBRARIES(la9310 PRIVATE -Wl,--start-group)
+TARGET_LINK_LIBRARIES(limesdr-micro-m4 PRIVATE -Wl,--start-group)
 # Additional libraries
 
 # SYSTEM LIBRARIES
-TARGET_LINK_LIBRARIES(la9310 PRIVATE m c gcc nosys)
-TARGET_LINK_LIBRARIES(la9310 PRIVATE -Wl,--end-group)
+TARGET_LINK_LIBRARIES(limesdr-micro-m4 PRIVATE m c gcc nosys)
+TARGET_LINK_LIBRARIES(limesdr-micro-m4 PRIVATE -Wl,--end-group)
 
 # MAP FILE
-set(MEMORY_MAP_FILENAME "${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/la9310")
+set(MEMORY_MAP_FILENAME "${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/limesdr-micro-m4")
 SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}  -Xlinker -Map=${MEMORY_MAP_FILENAME}.map")
-set_target_properties(la9310 PROPERTIES ADDITIONAL_CLEAN_FILES "${MEMORY_MAP_FILENAME}.map")
+set_target_properties(limesdr-micro-m4 PROPERTIES ADDITIONAL_CLEAN_FILES "${MEMORY_MAP_FILENAME}.map")
 
 # BIN AND HEX
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE})
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE})
 
-add_custom_target(la9310_hex ALL
-    COMMAND ${CMAKE_OBJCOPY} -Oihex "$<TARGET_FILE:la9310>" "${MEMORY_MAP_FILENAME}.hex"
-    BYPRODUCTS "${MEMORY_MAP_FILENAME}.hex"
-    DEPENDS la9310
-    COMMENT "Generating .HEX file"
-)
-add_custom_target(la9310_bin ALL
-    COMMAND ${CMAKE_OBJCOPY} -Obinary "$<TARGET_FILE:la9310>" "${MEMORY_MAP_FILENAME}.bin"
+add_custom_target(limesdr-micro-m4-bin ALL
+    COMMAND ${CMAKE_OBJCOPY} -Obinary "$<TARGET_FILE:limesdr-micro-m4>" "${MEMORY_MAP_FILENAME}.bin"
     BYPRODUCTS "${MEMORY_MAP_FILENAME}.bin"
-    DEPENDS la9310
+    DEPENDS limesdr-micro-m4
     COMMENT "Generating .BIN file"
 )
 

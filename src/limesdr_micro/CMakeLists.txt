@@ -1,5 +1,5 @@
-target_compile_definitions(la9310 PUBLIC "-DLMS7002M_CLOCK")
-target_sources(la9310 PRIVATE
+target_compile_definitions(limesdr-micro-m4 PUBLIC "-DLMS7002M_CLOCK")
+target_sources(limesdr-micro-m4 PRIVATE
     "limesdr_micro_init.c"
     "limesdr_commands.c"
     "eeprom.c"
@@ -8,4 +8,4 @@ target_sources(la9310 PRIVATE
     timer64.c
 )
 
-target_link_libraries(la9310 PRIVATE lms7002m)
+target_link_libraries(limesdr-micro-m4 PRIVATE lms7002m)
