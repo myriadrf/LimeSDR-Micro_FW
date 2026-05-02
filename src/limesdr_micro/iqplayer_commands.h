@@ -1,0 +1,6 @@
+#ifndef IQPLAYER_COMMANDS_H
+#define IQPLAYER_COMMANDS_H
+
+#define IQPLAYER_BIT_START 0x1
+
+#endif

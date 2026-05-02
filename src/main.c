@@ -337,11 +337,11 @@ int iInitHandler ( void )
     vVSPAMboxMonitorMaskSet(CM4_MBOX1_STATUS | VSPA_MBOX1_STATUS /* | CM4_MBOX0_STATUS | VSPA_MBOX0_STATUS */);
 #endif
     avihndl = iLa9310AviInit();
-
     if( NULL == avihndl )
     {
         log_err( "ERR: %s: AVI Initialization Failed\n\r", __func__ );
     }
+    vAxiqLoopbackSet(false, SET_AXIQ_LOOPBACK_MASK_ALL);
 #ifdef TURN_ON_STANDALONE_MODE
 	iLoadTableToTCM();
     LoadVSPAImage();

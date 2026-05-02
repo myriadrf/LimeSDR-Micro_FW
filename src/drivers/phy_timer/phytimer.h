@@ -167,6 +167,7 @@ uint32_t ulPhyTimerCapture( uint8_t ucComparator );
  *
  */
 void vPhyTimerComparatorDisable( uint8_t ucComparator );
+void vPhyTimerComparatorClearCIF(uint8_t ucComparator);
 
 /**
  *  @Function	    vPhyTimerComparatorForce

@@ -20,7 +20,7 @@ struct xPhyTimerRegs * regs = ( struct xPhyTimerRegs * ) ( PHY_TIMER_BASE_ADDRES
 static uint32_t ulNextPPSOUT;
 static PhyTimerPPSOUTCallback_t pps_out_cb = NULL;
 
-static uint32_t prvPhyTimerComparatorGetConfig( uint8_t ucComparator )
+uint32_t prvPhyTimerComparatorGetConfig(uint8_t ucComparator)
 {
     return IN_32( &regs->xTmPhyTmrN[ ucComparator ].ulTmPhyTmrCncrs );
 }
@@ -63,6 +63,11 @@ void vPhyTimerComparatorDisable( uint8_t ucComparator )
 {
     OUT_32( &regs->xTmPhyTmrN[ ucComparator ].ulTmPhyTmrCncrs,
             PHY_TIMER_COMPARATOR_DISABLE );
+}
+
+void vPhyTimerComparatorClearCIF(uint8_t ucComparator)
+{
+    OUT_32(&regs->xTmPhyTmrN[ucComparator].ulTmPhyTmrCncrs, PHY_TIMER_COMPARATOR_CLEAR_INT);
 }
 
 void vPhyTimerComparatorForce( uint8_t ucComparator,

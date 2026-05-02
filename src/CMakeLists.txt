@@ -19,7 +19,7 @@ target_compile_options(la9310 PUBLIC
     -ffunction-sections
 )
 
-set(LA9310_LINKER_SCRIPT ${CMAKE_CURRENT_LIST_DIR}/platform/ARM_CM4/la9310_host_pcie_mode.ld)
+set(LA9310_LINKER_SCRIPT ${CMAKE_CURRENT_LIST_DIR}/platform/ARM_CM4/la9310.ld)
 set_target_properties(la9310 PROPERTIES LINK_DEPENDS ${LA9310_LINKER_SCRIPT}) # relinks if script is modified
 
 target_link_options(la9310 PUBLIC

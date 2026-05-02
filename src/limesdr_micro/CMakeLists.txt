@@ -4,6 +4,8 @@ target_sources(la9310 PRIVATE
     "limesdr_commands.c"
     "eeprom.c"
     leds.c
+    scheduled_commands.c
+    timer64.c
 )
 
 target_link_libraries(la9310 PRIVATE lms7002m)

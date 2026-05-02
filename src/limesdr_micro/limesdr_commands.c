@@ -3,6 +3,7 @@
 
 #include "config.h"
 #include "fsl_dspi.h"
+#include "la9310_avi.h"
 #include "la9310_dcs_api.h"
 #include "la9310_host_if.h"
 #include "la9310_i2cAPI.h"
@@ -21,8 +22,11 @@
 #include "limesuiteng/embedded/lms7002m/lms7002m.h"
 #include "lms7002m/spi.h"
 #include "limesdr_micro.h"
+#include "m4_commands.h"
 
 #include "eeprom.h"
+#include "timer64.h"
+#include "scheduled_commands.h"
 
 static uint16_t xo_dac_value = 0;
 
@@ -201,7 +205,7 @@ void LMS64C_CustomParameterRead(const struct LMS64CPacket* packet, struct LMS64C
                 responsePacket->payload[byteIndex++] = id;
                 responsePacket->payload[byteIndex++] = 5 << 4; // degrees
                 uint8_t raw_value[2];
-                int bytesRead = iLa9310_I2C_Read(LA9310_FSL_I2C1, 0x4B, 0x00, 1, raw_value, 2);
+                iLa9310_I2C_Read(LA9310_FSL_I2C1, 0x4B, 0x00, 1, raw_value, 2);
                 int16_t raw_value_int = ((int16_t)raw_value[0]) << 8 | raw_value[1];
                 int32_t temp = hex2temperature_mC(raw_value_int) / 100;
                 responsePacket->payload[byteIndex++] = temp >> 8;
@@ -226,7 +230,7 @@ void LMS64C_MemoryWrite(const struct LMS64CPacket* packet, struct LMS64CPacket* 
     address |= ((int32_t)packet->payload[8]) << 8;
     address |= ((int32_t)packet->payload[9]);
 
-    uint8_t* data = &packet->payload[24];
+    const uint8_t *data = &packet->payload[24];
 
     if (memoryTarget != 3) // EEPROM
     {
@@ -376,6 +380,7 @@ static lime_Result SetLA9310SystemClock(struct la9310_info * pLa9310Info, uint32
         IN_32(&pLa9310Info->pHif->dac_rate_mask));
 
     // TODO: reconfigure PPS out phytimer
+    timer64_reset();
 
     return result;
 }
@@ -445,86 +450,111 @@ static void LoadBootloader(void)
     dmb();
 }
 
+static void HandleCommand(struct la9310_sw_cmd_desc *desc)
+{
+    desc->status = LA9310_SW_CMD_STATUS_IN_PROGRESS;
+    uint32_t status = 0;
+
+    switch (desc->cmd)
+    {
+    case LIME_M4_LMS64C_PACKET: {
+        uint8_t input[64];
+        uint8_t response[64];
+        memcpy(input, (void *)desc->data, sizeof(input));
+        ProcessLMS64C_Command(input, response);
+        memcpy((void *)desc->data, response, sizeof(response));
+        status = LA9310_SW_CMD_STATUS_DONE;
+        break;
+    }
+    case LIME_M4_SET_SYSTEM_CLOCK_FREQUENCY: {
+        desc->data[0] = SetLA9310SystemClock(&g_la9310_info, desc->data[0]);
+        status = LA9310_SW_CMD_STATUS_DONE;
+        break;
+    }
+    case LIME_M4_GET_REFERENCE_CLOCK_FREQUENCY: { // Get Reference clock
+        desc->status = LA9310_SW_CMD_STATUS_IN_PROGRESS;
+        uint32_t frequency = lms7002m_get_reference_clock(rfsoc);
+        desc->data[0] = frequency;
+        status = LA9310_SW_CMD_STATUS_DONE;
+        break;
+    }
+    case LIME_M4_SET_REFERENCE_CLOCK_FREQUENCY: { // Set Reference clock and source
+        desc->status = LA9310_SW_CMD_STATUS_IN_PROGRESS;
+        uint32_t frequency = desc->data[0];
+        uint32_t external = desc->data[1];
+        lime_Result result = ConfigureReferenceClock(frequency, external);
+        desc->data[0] = (uint32_t)result;
+        status = LA9310_SW_CMD_STATUS_DONE;
+        break;
+    }
+    case LIME_M4_BOOTLOADER: {
+        log_info("LoadBootloader\r\n");
+        LoadBootloader();
+        log_info("jump to %8x\r\n", &bootloader_reset_handler);
+        desc->data[0] = 0;
+        desc->status = LA9310_SW_CMD_STATUS_DONE;
+        bootloader_reset_handler();
+        // stops here, jumped to bootloader code.
+        break;
+    }
+    case LIME_M4_HEARTHBEAT: { // Signalize firmware is alive
+        uint32_t pattern = desc->data[0];
+        desc->status = LA9310_SW_CMD_STATUS_IN_PROGRESS;
+        desc->data[0] = ~pattern;
+        status = LA9310_SW_CMD_STATUS_DONE;
+        log_info("Alive Pattern - changed 0x%08x to 0x%08x\n", pattern, ~pattern);
+        break;
+    }
+    case LIME_M4_SCHEDULE_CMD: {
+        const struct scheduled_cmd *in_cmd = (struct scheduled_cmd *)&desc->data[0];
+        uint32_t *cmd_payload = &in_cmd->data[0];
+        desc->data[0] = scheduled_commands_enqueue(in_cmd->timepoint, in_cmd->cmd, cmd_payload, 6);
+        status = LA9310_SW_CMD_STATUS_DONE;
+        break;
+    }
+    case LIME_M4_HARDWARE_COUNTER_RESET: {
+        desc->status = LA9310_SW_CMD_STATUS_IN_PROGRESS;
+        // ClearEvents();
+        scheduled_commands_clear();
+        timer64_reset();
+        desc->data[0] = 0;
+        status = LA9310_SW_CMD_STATUS_DONE;
+        break;
+    }
+    case LIME_M4_HARDWARE_COUNTER_GET: {
+        desc->status = LA9310_SW_CMD_STATUS_IN_PROGRESS;
+        uint64_t *counter = (uint64_t *)&desc->data[0];
+        *counter = timer64_get_counter();
+        status = LA9310_SW_CMD_STATUS_DONE;
+        break;
+    }
+    case LIME_M4_DIGITAL_LOOPBACK: {
+        vAxiqLoopbackSet(desc->data[0], SET_AXIQ_LOOPBACK_MASK_ALL);
+        status = LA9310_SW_CMD_STATUS_DONE;
+    }
+    default:
+        log_err("sw cmd not implemented: %d\r\n", desc->cmd);
+        status = LA9310_SW_CMD_STATUS_ERROR;
+        break;
+    }
+    desc->status = status;
+}
+
 static void vSwCmdTask( void * pvParameters )
 {
+    timer64_reset();
     struct la9310_hif * pxHif = g_la9310_info.pHif;
     volatile struct la9310_sw_cmd_desc * pxCmdDesc = &( pxHif->sw_cmd_desc );
 
-    uint8_t input[64];
-    uint8_t response[64];
-
     while( runEngine )
     {
-        // xSemaphoreTake( xSwCmdSemaphore, portMAX_DELAY );
+        scheduled_commands_update();
 
-        if( pxCmdDesc->status != LA9310_SW_CMD_STATUS_POSTED )
-        {
-            // log_err( "sw cmd status is not posted\r\n" );
+        if (pxCmdDesc->status != LA9310_SW_CMD_STATUS_POSTED)
             continue;
-        }
 
-        memset(response, 0, sizeof(response));
-        int status = LA9310_SW_CMD_STATUS_IN_PROGRESS;
-        switch( pxCmdDesc->cmd )
-        {
-            case 1:
-                memcpy(input, (void *)pxCmdDesc->data, sizeof(input));
-                ProcessLMS64C_Command(input, response);
-                memcpy((void *)pxCmdDesc->data, response, sizeof(response));
-                status = LA9310_SW_CMD_STATUS_DONE;
-                break;
-            case 2: { // Set LA9310 system clock
-                pxCmdDesc->status = LA9310_SW_CMD_STATUS_IN_PROGRESS;
-                uint32_t frequency = pxCmdDesc->data[0];
-                lime_Result result = SetLA9310SystemClock(&g_la9310_info, frequency);
-                pxCmdDesc->data[0] = (uint32_t)result;
-                status = LA9310_SW_CMD_STATUS_DONE;
-                break;
-            }
-            case 3: { // Get Reference clock
-                pxCmdDesc->status = LA9310_SW_CMD_STATUS_IN_PROGRESS;
-                uint32_t frequency = lms7002m_get_reference_clock(rfsoc);
-                pxCmdDesc->data[0] = frequency;
-                status = LA9310_SW_CMD_STATUS_DONE;
-                break;
-            }
-            case 4: { // Set Reference clock and source
-                pxCmdDesc->status = LA9310_SW_CMD_STATUS_IN_PROGRESS;
-                uint32_t frequency = pxCmdDesc->data[0];
-                uint32_t external = pxCmdDesc->data[1];
-                lime_Result result = ConfigureReferenceClock(frequency, external);
-                pxCmdDesc->data[0] = (uint32_t)result;
-                status = LA9310_SW_CMD_STATUS_DONE;
-                break;
-            }
-            case 5: { // Prepare for jumping to new firmware
-                log_info("LoadBootloader\r\n");
-                LoadBootloader();
-                log_info("jump to %8x\r\n", &bootloader_reset_handler);
-                pxCmdDesc->status = LA9310_SW_CMD_STATUS_DONE;
-                bootloader_reset_handler();
-                // stops here, jumped to bootloader code.
-                break;
-            }
-            case 6: { // Signalize firmware is alive
-                uint32_t pattern = pxCmdDesc->data[0];
-                pxCmdDesc->status = LA9310_SW_CMD_STATUS_IN_PROGRESS;
-                pxCmdDesc->data[0] = ~pattern;
-                status = LA9310_SW_CMD_STATUS_DONE;
-                log_info("Alive Pattern - changed 0x%08x to 0x%08x\n", pattern, ~pattern);
-
-                break;
-            }
-            default:
-                log_err( "sw cmd not implemented: %d\r\n", pxCmdDesc->cmd );
-                status = LA9310_SW_CMD_STATUS_ERROR;
-                break;
-        }
-
+        HandleCommand(pxCmdDesc);
         dmb();
-        pxCmdDesc->status = status;
-
-        // xSemaphoreGive(xSwCmdSemaphore);
     }
 }
 
