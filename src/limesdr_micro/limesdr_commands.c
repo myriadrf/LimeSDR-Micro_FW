@@ -27,6 +27,7 @@
 #include "eeprom.h"
 #include "timer64.h"
 #include "scheduled_commands.h"
+#include "tx_control.h"
 
 static uint16_t xo_dac_value = 0;
 
@@ -516,6 +517,7 @@ static void HandleCommand(struct la9310_sw_cmd_desc *desc)
         desc->status = LA9310_SW_CMD_STATUS_IN_PROGRESS;
         // ClearEvents();
         scheduled_commands_clear();
+        tx_control_init();
         timer64_reset();
         desc->data[0] = 0;
         status = LA9310_SW_CMD_STATUS_DONE;
@@ -531,6 +533,12 @@ static void HandleCommand(struct la9310_sw_cmd_desc *desc)
     case LIME_M4_DIGITAL_LOOPBACK: {
         vAxiqLoopbackSet(desc->data[0], SET_AXIQ_LOOPBACK_MASK_ALL);
         status = LA9310_SW_CMD_STATUS_DONE;
+        break;
+    }
+    case LIME_M4_TX_CONTROL: {
+        desc->data[0] = TxControlCommand(desc->data);
+        status = LA9310_SW_CMD_STATUS_DONE;
+        break;
     }
     default:
         log_err("sw cmd not implemented: %d\r\n", desc->cmd);
@@ -548,6 +556,7 @@ static void vSwCmdTask( void * pvParameters )
 
     while( runEngine )
     {
+        process_tx_schedule();
         scheduled_commands_update();
 
         if (pxCmdDesc->status != LA9310_SW_CMD_STATUS_POSTED)

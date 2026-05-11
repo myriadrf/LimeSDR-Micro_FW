@@ -92,6 +92,7 @@ target_include_directories(limesdr-micro-m4 PRIVATE
 )
 
 target_sources(limesdr-micro-m4 PRIVATE
+    queue.c
     platform/ARM_CM4/startup.c
     log.c
     utils/task_stats.c

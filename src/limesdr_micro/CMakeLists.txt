@@ -6,6 +6,7 @@ target_sources(limesdr-micro-m4 PRIVATE
     leds.c
     scheduled_commands.c
     timer64.c
+    tx_control.c
 )
 
 target_link_libraries(limesdr-micro-m4 PRIVATE lms7002m)
