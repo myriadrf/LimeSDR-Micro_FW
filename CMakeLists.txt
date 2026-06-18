@@ -16,7 +16,6 @@ add_compile_options(
     -ffunction-sections
     -fno-common
 )
-add_link_options(--specs=nano.specs)
 
 add_subdirectory(la9310)
 add_subdirectory(bootloader)

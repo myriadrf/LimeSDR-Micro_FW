@@ -1,6 +1,8 @@
 CMAKE_MINIMUM_REQUIRED (VERSION 3.18)
 include(FeatureSummary)
 
+add_link_options(--specs=nano.specs)
+
 add_compile_options(-Wall)
 add_executable(limesdr-micro-m4 "main.c")
 

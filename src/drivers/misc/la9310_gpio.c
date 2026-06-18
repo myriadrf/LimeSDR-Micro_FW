@@ -3,18 +3,12 @@
 /*
  * Copyright 2017, 2021 NXP
  */
-#include <stdio.h>
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
+#include <stdint.h>
 #include <string.h>
-#include "debug_console.h"
 #include "la9310_gpio.h"
 #include "io.h"
 
-#include "log.h"
-
-gpio_port_t gpioports[ 1 ];
+// #include "log.h"
 
 static uint32_t uGetportaddr( void )
 {
@@ -49,8 +43,8 @@ int32_t iGpioSetData( uint8_t pin,
 
     if( iIsPinSupported( pin ) )
     {
-        log_err( "iGpioSetData - GPIO PIN (%d)\
-				is not supported \n\n\r", pin );
+        // log_err( "iGpioSetData - GPIO PIN (%d)\
+		// 		is not supported \n\n\r", pin );
         return -GPIO_PIN_NOT_SUPPORTED;
     }
 
@@ -75,7 +69,7 @@ int32_t iGpioSetData( uint8_t pin,
     }
     else
     {
-        log_err( "iGpioSetData - Pin is INPUT mode\n\n\r" );
+        // log_err( "iGpioSetData - Pin is INPUT mode\n\n\r" );
         return -GPIO_TYPE_NOT_SET;
     }
 
@@ -88,8 +82,8 @@ int32_t iGpioGetData( uint8_t pin )
 
     if( iIsPinSupported( pin ) )
     {
-        log_err( "iGpioGetData-GPIO PIN (%d) is\
-					not supported\n\n\r", pin );
+        // log_err( "iGpioGetData-GPIO PIN (%d) is\
+		// 			not supported\n\n\r", pin );
         return -GPIO_PIN_NOT_SUPPORTED;
     }
 
@@ -116,7 +110,7 @@ int32_t iGpioInit( uint8_t pin,
 {
     if( iIsPinSupported( pin ) )
     {
-        log_err( "iGpioInit:GPIO PIN (%d) is not supported\n\n\r", pin );
+        // log_err( "iGpioInit:GPIO PIN (%d) is not supported\n\n\r", pin );
         return -GPIO_PIN_NOT_SUPPORTED;
     }
 
@@ -148,8 +142,8 @@ int32_t iGpioSetBit( uint8_t pin,
 {
     if( iIsPinSupported( pin ) )
     {
-        log_err( "iGpioSetBit - GPIO PIN (%d)\
-				is not supported \n\n\r", pin );
+        // log_err( "iGpioSetBit - GPIO PIN (%d)\
+		// 		is not supported \n\n\r", pin );
         return FAILURE;
     }
 

@@ -19,7 +19,7 @@ PROVIDE_HIDDEN(__bootloader_stack = 0x2000FF00);
 MEMORY
 {
   m_tcml    (RWX) : ORIGIN = 0x1F800000, LENGTH = 0x0001A000
-  m_tcml_bl (RWX) : ORIGIN = 0x1F81D000, LENGTH = 0x00003000
+  m_tcml_bootloader     (RWX) : ORIGIN = 0x1F81FC00, LENGTH = 0x400
   m_dtcm    (RW)  : ORIGIN = 0x20000000, LENGTH = 0x0000F000
   br_data   (R)   : ORIGIN = 0x2000F000, LENGTH = 0x00001000
 }
@@ -38,7 +38,7 @@ SECTIONS
   .bootloader_lib :
   {
     *bootloader.c.obj (SORT_BY_ALIGNMENT(*))
-  } > m_tcml_bl AT > m_tcml
+  } > m_tcml_bootloader AT > m_tcml
   PROVIDE_HIDDEN (__bootloader_src = LOADADDR(.bootloader_lib));
   PROVIDE_HIDDEN (__bootloader_dest = ADDR(.bootloader_lib));
   PROVIDE_HIDDEN (__bootloader_size =  SIZEOF(.bootloader_lib));

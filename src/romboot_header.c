@@ -1,4 +1,4 @@
-#include "boot_header.h"
+#include "la9310_boot_header.h"
 
 // values provided by linker script
 extern uint32_t __firmware_bin_size;
@@ -16,5 +16,5 @@ __attribute__((used, section(".romboot_header"))) static const struct la9310_boo
     .bl_src_offset = (uint32_t)&__firmware_bin_src_offset, // I2C memory offset
     .bl_dest = (uint32_t)&__firmware_dest, // absolute 32-bit physical address to which firmware will be copied
     .bl_entry = (uint32_t)&__firmware_entry, // absolute 32-bit physical address of the code entry point in firmware
-    .flags = BOOTROM_SKIP_BOOT_PLUGIN | BOOTROM_SKIP_EDMA_COPY // Boot options specified by Host.
+    .flags = BOOTROM_EARLY_EXIT | BOOTROM_NO_EDMA_USE_MEMCPY // Boot options specified by Host.
 };

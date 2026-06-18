@@ -6,7 +6,7 @@
 #ifndef __IMMAP_H__
 #define __IMMAP_H__
 
-#include <types.h>
+#include <stdint.h>
 
 #define CCSR_BASE_ADDR 0x40000000
 

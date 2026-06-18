@@ -674,7 +674,7 @@ BaseType_t vLa9310DCSClockSwitch( LA9310XcvrDCS_t dcs,  DCSFreq_t freq )
             log_err( "%s: DCS (%d) power up failed.\n\r", dcs, __func__ );
             break;
         }
-    } while( false );
+    } while (0);
 
     return xRet;
 }

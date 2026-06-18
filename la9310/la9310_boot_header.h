@@ -12,8 +12,8 @@ struct la9310_boot_header {
     uint32_t bl_dest;
     uint32_t bl_entry;
 
-#define BOOTROM_SKIP_EDMA_COPY (1 << 0)
-#define BOOTROM_SKIP_BOOT_PLUGIN (1 << 16)
+#define BOOTROM_NO_EDMA_USE_MEMCPY (1 << 0)
+#define BOOTROM_EARLY_EXIT (1 << 16) // defers clock setup to be done by loaded firmware
     uint32_t flags;
 } __attribute__((packed));
 
