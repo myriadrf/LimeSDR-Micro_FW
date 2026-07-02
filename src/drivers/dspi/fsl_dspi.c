@@ -149,12 +149,12 @@ int8_t lDspiClaimBus( struct LA931xDspiInstance * xDspiHandle )
 
     vDspiFslClearFifo( xDspiHandle );
 
-    log_info( "MCR    %x\r\n", in_le32( &xDspiHandle->DspiRegs->ulMcr ) );
-    log_info( "TCR    %x\r\n", in_le32( &xDspiHandle->DspiRegs->ulTcr ) );
-    log_info( "CTAR0  %x\r\n", in_le32( &xDspiHandle->DspiRegs->ulCtar[ 0 ] ) );
-    log_info( "SR     %x\r\n", in_le32( &xDspiHandle->DspiRegs->ulSr ) );
-    log_info( "RSER   %x\r\n", in_le32( &xDspiHandle->DspiRegs->ulIrsr ) );
-    log_info( "CTARE0 %x\r\n", in_le32( &xDspiHandle->DspiRegs->ulCtarX[ 0 ] ) );
+    log_dbg("MCR    %x\r\n", in_le32(&xDspiHandle->DspiRegs->ulMcr));
+    log_dbg("TCR    %x\r\n", in_le32(&xDspiHandle->DspiRegs->ulTcr));
+    log_dbg("CTAR0  %x\r\n", in_le32(&xDspiHandle->DspiRegs->ulCtar[0]));
+    log_dbg("SR     %x\r\n", in_le32(&xDspiHandle->DspiRegs->ulSr));
+    log_dbg("RSER   %x\r\n", in_le32(&xDspiHandle->DspiRegs->ulIrsr));
+    log_dbg("CTARE0 %x\r\n", in_le32(&xDspiHandle->DspiRegs->ulCtarX[0]));
 
     /*Check module TX and RX status */
     while( retry )

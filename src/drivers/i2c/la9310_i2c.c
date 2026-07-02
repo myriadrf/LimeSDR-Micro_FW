@@ -61,7 +61,7 @@ static void prvSet_I2C_Bus_Speed( i2c_regs_t * i2c_regs,
         }
     }
 
-    log_info( "ucFdr is::::%d\n\r", ucFdr );
+    log_dbg("ucFdr is::::%d\n\r", ucFdr);
     OUT_8( &i2c_regs->ucI2C_Ibfd, ucFdr ); /* Write divider value */
 }
 

@@ -10,21 +10,35 @@
 #include "la9310_host_if.h"
 #include "debug_console.h"
 #include "la9310_pci.h"
+#include "log.h"
+
+#include <la9310.h>
+#include <la9310_i2cAPI.h>
 
 #define CLOCK_CONFIG_BY_HOST 1
 
 extern struct la9310_info g_la9310_info;
-extern void vRaiseMsi(struct la9310_info *pla9310Info, enum la9310_msi_id msi);
-extern void vSocResetHandshake( void );
-extern void vBoardFinalInit();
+extern void vSocResetHandshake(void);
 extern void vSocInit();
-extern void vBoardEarlyInit();
+
+static void vBoardEarlyInit(void)
+{
+    xDebugConsoleInit((void *)UART_BASEADDR, EARLY_UART_CLOCK_FREQUENCY, UART_BAUDRATE);
+    iLa9310_I2C_Init(LA9310_FSL_I2C1, EARLY_I2C_CLOCK_FREQUENCY, LA9310_I2C_FREQ);
+}
+
+static void vBoardFinalInit(void)
+{
+    xDebugConsoleInit((void *)UART_BASEADDR, FINAL_UART_CLOCK_FREQUENCY, UART_BAUDRATE);
+
+    iLa9310_I2C_Init(LA9310_FSL_I2C1, FINAL_I2C_CLOCK_FREQUENCY, LA9310_I2C_FREQ);
+}
 
 void vLa9310_do_handshake( struct la9310_info * vLa9310Info )
 {
 #if CLOCK_CONFIG_BY_HOST
     struct ccsr_dcr * pxDcr = ( struct ccsr_dcr * ) vLa9310Info->pxDcr;
-    PRINTF("LA9310->Host: START_CLOCK_CONFIG\n");
+    log_info("LA9310->Host: START_CLOCK_CONFIG\r\n");
     OUT_32( &pxDcr->ulScratchrw[ 1 ], LA9310_HOST_START_CLOCK_CONFIG );
     dmb();
 
@@ -33,24 +47,20 @@ void vLa9310_do_handshake( struct la9310_info * vLa9310Info )
     {
     }
 
-    PRINTF("Host->LA9310: HOST_COMPLETE_CLOCK_CONFIG\n");
+    log_info("Host->LA9310: HOST_COMPLETE_CLOCK_CONFIG\r\n");
     dmb();
 #endif
+    log_info("System clock switch...");
     vSocResetHandshake();
     dmb();
+    log_info("done\r\n");
 
-    /*Clock changes from 100 Mhz to 160Mhz after handshake*/
+    // Clock changed from 100 Mhz to 160Mhz after handshake
     vBoardFinalInit();
 
 #if CLOCK_CONFIG_BY_HOST
-    PRINTF("LA9310->HOST: START_DRIVER_INIT\n");
-    OUT_32( &pxDcr->ulScratchrw[ 1 ], LA9310_HOST_START_DRIVER_INIT );
-
-    // #ifndef LA9310_RESET_HANDSHAKE_POLLING_ENABLE
-    //     vWaitForPCIeLinkStability();
-    //     /*Raise Msi for Host handshaking*/
-    //     vRaiseMsi( vLa9310Info, MSI_IRQ_HOST_HANDSHAKE );
-    // #endif
+    log_info("LA9310->HOST: START_DRIVER_INIT\n");
+    OUT_32(&pxDcr->ulScratchrw[1], LA9310_HOST_START_DRIVER_INIT);
 #endif
 }
 

@@ -19,8 +19,6 @@
 #define PRINTF        debug_printf
 #define PUTCHAR       debug_putchar
 
-extern uint32_t ulMemLogIndex;
-
 /*! @brief Error code for the debug console driver. */
 typedef enum _debug_console_status
 {
@@ -82,6 +80,4 @@ int debug_putchar( int ch );
  */
 int debug_getchar( unsigned char * ch );
 
-void vMemlogWrite( const uint8_t * pucData,
-                   size_t xLength );
 #endif /* __DEBUG_CONSOLE_H__ */

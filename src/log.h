@@ -35,4 +35,8 @@
         log_format_output(LA9310_LOG_LEVEL_ISR, __VA_ARGS__ ); \
     } while( 0 )
 
+    struct debug_log_regs;
+
+    void log_initialize(struct debug_log_regs *log);
+
 #endif // LA9310_LOGING_H

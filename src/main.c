@@ -23,6 +23,8 @@
 #include "log.h"
 #include "core_cm4.h"
 
+#include "drivers/serial/serial_ns16550.h"
+
 #include <string.h>
 
 #if NXP_ERRATUM_A_009410
@@ -88,6 +90,8 @@ static void prvInitLa9310Info( struct la9310_info * pLa9310Info )
     pLa9310Info->pHif->dbg_log_regs.log_level = LA9310_LOG_LEVEL_INFO;
     pLa9310Info->pxDcr = ( void * ) DCR_BASE_ADDR;
 
+    log_initialize(&pLa9310Info->pHif->dbg_log_regs);
+
     /* Initialize MSI */
     uint32_t __IO *pMsiAddrReg = (uint32_t *)((uint32_t)pLa9310Info->pcie_addr + PCIE_MSI_ADDR_REG);
     uint32_t __IO *pMsiDataAddr = (uint32_t *)((uint32_t)pLa9310Info->pcie_addr + PCIE_MSI_DATA_REG_1);
@@ -104,22 +108,23 @@ static void prvInitLa9310Info( struct la9310_info * pLa9310Info )
         pMsiInfo[i].addr = (LA9310_EP_TOHOST_MSI_PHY_ADDR | uMSIAddrVal);
         val = IN_32(pMsiDataAddr);
         pMsiInfo[i].data = ((val + i) << 2);
-        log_info("%s: MSI init[%d], addr 0x%x, data 0x%x\n\r", __func__, i, pMsiInfo[i].addr, pMsiInfo[i].data);
+        log_dbg("%s: MSI init[%d], addr 0x%x, data 0x%x\n\r", __func__, i, pMsiInfo[i].addr, pMsiInfo[i].data);
     }
 #else
     for (int i = 0; i < LA9310_MSI_MAX_CNT; i++)
     {
         pMsiInfo[i].addr = (LA9310_EP_TOHOST_MSI_PHY_ADDR | uMSIAddrVal);
         pMsiInfo[i].data = (IN_32(pMsiDataAddr) + i);
-        log_info("%s: MSI init[%d], addr 0x%x, data 0x%x\n\r", __func__, i, pMsiInfo[i].addr, pMsiInfo[i].data);
+        log_dbg("%s: MSI init[%d], addr 0x%x, data 0x%x\n\r", __func__, i, pMsiInfo[i].addr, pMsiInfo[i].data);
     }
 #endif // ifdef LS1046_HOST_MSI_RAISE
 
+    // fill scratch registers with Host Interface offset and size, for host driver to pick up.
     struct ccsr_dcr *pxDcr = pLa9310Info->pxDcr;
-	OUT_32(&pxDcr->ulScratchrw[LA9310_BOOT_HSHAKE_HIF_REG], LA9310_EP_HIF_OFFSET);
-	dmb();
-	OUT_32(&pxDcr->ulScratchrw[LA9310_BOOT_HSHAKE_HIF_SIZ_REG], sizeof(struct la9310_hif));
-	dmb();
+    OUT_32(&pxDcr->ulScratchrw[LA9310_BOOT_HSHAKE_HIF_REG], LA9310_EP_HIF_OFFSET);
+    dmb();
+    OUT_32(&pxDcr->ulScratchrw[LA9310_BOOT_HSHAKE_HIF_SIZ_REG], sizeof(struct la9310_hif));
+    dmb();
 }
 
 /* iLa9310HostPreInit: Host and La9310 both do a handshake for clock configuration
@@ -132,7 +137,7 @@ static void prvInitLa9310Info( struct la9310_info * pLa9310Info )
  * initialized by la9310 for it's initialization, then add call your init
  * function here.
  */
-int iLa9310HostPreInit( struct la9310_info * pLa9310Info )
+static int iLa9310HostPreInit(struct la9310_info *pLa9310Info)
 {
     int irc = 0;
 
@@ -189,7 +194,7 @@ void iGpioInitRFIC( void )
     }
 }
 
-void vInitMsgUnit( void )
+static void vInitMsgUnit(void)
 {
     NVIC_SetPriority( IRQ_MSG3, 3 );
     NVIC_EnableIRQ( IRQ_MSG3 );
@@ -257,48 +262,32 @@ void tmuInit( void ) {
 	out_le32( &pTmuHandle->tmr, TMU_TMR_ENABLE );
 }
 
-int iInitHandler ( void )
+static int iInitHandler(struct la9310_info *pLa9310Info)
 {
     int irc = 0;
-    void * avihndl = NULL;
-
-    ulMemLogIndex = 0;
-
-    InitBlinkLEDs();
-    vEnableExceptions();
-
-    struct la9310_info *pLa9310Info = &g_la9310_info;
-    if( !pLa9310Info )
-    {
-        PRINTF( "pLA9310info alloc failed. going for while(true)\n\r" );
-        irc = -pdFREERTOS_ERRNO_ENOMEM;
-        goto out;
-    }
 
     memset( pLa9310Info, 0, sizeof( struct la9310_info ) );
     if( sizeof( struct la9310_hif ) > LA9310_EP_HIF_SIZE )
     {
         PRINTF( "Invalid HIF size\r\n" );
-        irc = FAILURE;
-        goto out;
+        return FAILURE;
     }
     /*XXX: DO NOT CALL log_*() before prvInitLa9310Info(), use PRINTF instead.*/
     prvInitLa9310Info( pLa9310Info );
 
-    log_dbg( "%s: Allocated pLa9310Info %#x\n\r\n", __func__, pLa9310Info );
+    InitBlinkLEDs();
 
     /* XXX:NOTE - Do all initialization that is required by Host driver to
      * function like IRQ MUX, IPC, DMA in iLa9310HostPreInit().
      */
-    irc = iLa9310HostPreInit( pLa9310Info );
-
+    irc = iLa9310HostPreInit(pLa9310Info);
     if( irc )
     {
         log_err( "%s: iLa9310HostPreInit Failed, rc %d\n\r", __func__, irc );
-        goto out;
+        return irc;
     }
 
-    /*Till Here system is running at 100 Mhz*/
+    // Till Here system is running of PCIe 100 Mhz clock
     vLa9310_do_handshake( pLa9310Info );
 
 #if NXP_ERRATUM_A_009410
@@ -306,15 +295,6 @@ int iInitHandler ( void )
 #endif
 
     vInitMsgUnit();
-#ifdef LMS7002M_CLOCK
-    if (LMS64C_protocol_init() != 0)
-    {
-         log_err( "sw cmd LMS64C_protocol_init init failed\r\n" );
-        irc = FAILURE;
-        goto out;
-    }
-#endif
-
     irc = iLa9310HostPostInit( pLa9310Info );
 
     if( irc )
@@ -336,7 +316,7 @@ int iInitHandler ( void )
     /* Tell AVI driver that MBOX0 should not be monitored */
     vVSPAMboxMonitorMaskSet(CM4_MBOX1_STATUS | VSPA_MBOX1_STATUS /* | CM4_MBOX0_STATUS | VSPA_MBOX0_STATUS */);
 #endif
-    avihndl = iLa9310AviInit();
+    void *avihndl = iLa9310AviInit();
     if( NULL == avihndl )
     {
         log_err( "ERR: %s: AVI Initialization Failed\n\r", __func__ );
@@ -359,16 +339,30 @@ out:
     return irc;
 }
 
+static void gps_module_stop(void)
+{
+    // // wait for any data from GPS before submiting command, otherwise it might get ignored
+    log_info("Stopping GPS module...");
+    uint8_t temp;
+    vSerialReadBlocking((void *)UART_BASEADDR, &temp, 1);
+    // Put GPS module to low power standby mode
+    vSerialWriteBlocking((void *)UART_BASEADDR, "$PMTK161,0*28\r\n", 15);
+    // following Tx activity on UART will wake it up
+    log_info("done\r\n");
+}
+
 /*
  *        La9310 Application Entry point
  */
 int main( void )
 {
     int irc = 0;
-    /* Initialize hardware */
-    vHardwareEarlyInit();
-    const uint32_t BootSource = ((IN_32((uint32_t*)DCR_BASE_ADDR )) >> LX9310_BOOT_SRC_SHIFT) & LX9310_BOOT_SRC_MASK;
+    vEnableExceptions();
 
+    // Initialize hardware
+    vHardwareEarlyInit();
+
+    const uint32_t BootSource = ((IN_32((uint32_t *)DCR_BASE_ADDR)) >> LX9310_BOOT_SRC_SHIFT) & LX9310_BOOT_SRC_MASK;
     PRINTF("Boot Source ");
     if ( BootSource == LA9310_BOOT_SRC_PCIE ) {
         PRINTF("PCIe\n");
@@ -379,11 +373,11 @@ int main( void )
         goto out;
     }
 
-	PRINTF("FreeRTOS " tskKERNEL_VERSION_NUMBER "\n");
-    irc = iInitHandler();
+    PRINTF("FreeRTOS " tskKERNEL_VERSION_NUMBER "\n");
+    irc = iInitHandler(&g_la9310_info);
     if ( irc )
     {
-      goto out;
+        goto out;
     }
 
 #ifdef LA9310_ENABLE_COMMAND_LINE
@@ -391,6 +385,15 @@ int main( void )
 #endif
 
     tmuInit();
+
+#ifdef LMS7002M_CLOCK
+    if (LMS64C_protocol_init() != 0)
+    {
+        log_err("LMS64C_protocol_init failed\r\n");
+        goto out;
+    }
+#endif
+    gps_module_stop();
 
     /* Start FreeRTOS scheduler */
     vTaskStartScheduler();
