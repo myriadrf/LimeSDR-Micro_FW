@@ -34,10 +34,9 @@ static void vBoardFinalInit(void)
     iLa9310_I2C_Init(LA9310_FSL_I2C1, FINAL_I2C_CLOCK_FREQUENCY, LA9310_I2C_FREQ);
 }
 
-void vLa9310_do_handshake( struct la9310_info * vLa9310Info )
+void vLa9310_do_handshake(struct ccsr_dcr *pxDcr)
 {
 #if CLOCK_CONFIG_BY_HOST
-    struct ccsr_dcr * pxDcr = ( struct ccsr_dcr * ) vLa9310Info->pxDcr;
     log_info("LA9310->Host: START_CLOCK_CONFIG\r\n");
     OUT_32( &pxDcr->ulScratchrw[ 1 ], LA9310_HOST_START_CLOCK_CONFIG );
     dmb();
@@ -57,11 +56,13 @@ void vLa9310_do_handshake( struct la9310_info * vLa9310Info )
 
     // Clock changed from 100 Mhz to 160Mhz after handshake
     vBoardFinalInit();
+}
 
-#if CLOCK_CONFIG_BY_HOST
+// Signal host that the M4 core has completed initialization
+void la9310_m4_init_complete(struct ccsr_dcr *pxDcr)
+{
     log_info("LA9310->HOST: START_DRIVER_INIT\n");
     OUT_32(&pxDcr->ulScratchrw[1], LA9310_HOST_START_DRIVER_INIT);
-#endif
 }
 
 void vHardwareEarlyInit( void )

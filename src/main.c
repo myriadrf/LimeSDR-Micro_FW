@@ -54,7 +54,8 @@ struct la9310_info g_la9310_info;
 
 extern void vVSPAMboxInit();
 extern int iLa9310IRQInit( struct la9310_info * pLa9310Info );
-extern void vLa9310_do_handshake( struct la9310_info * vLa9310Info );
+extern void vLa9310_do_handshake(struct ccsr_dcr *pxDcr);
+extern void la9310_m4_init_complete(struct ccsr_dcr *pxDcr);
 extern void vHardwareEarlyInit( void );
 
 // Empty functions to disable linker warning of them not being implemented in arm libs
@@ -288,7 +289,7 @@ static int iInitHandler(struct la9310_info *pLa9310Info)
     }
 
     // Till Here system is running of PCIe 100 Mhz clock
-    vLa9310_do_handshake( pLa9310Info );
+    vLa9310_do_handshake(pLa9310Info->pxDcr);
 
 #if NXP_ERRATUM_A_009410
     vPCIEInterruptInit();
@@ -394,6 +395,7 @@ int main( void )
     }
 #endif
     gps_module_stop();
+    la9310_m4_init_complete(g_la9310_info.pxDcr);
 
     /* Start FreeRTOS scheduler */
     vTaskStartScheduler();
