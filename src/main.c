@@ -394,7 +394,9 @@ int main( void )
         goto out;
     }
 #endif
-    gps_module_stop();
+    // It appears the default UART baudrate of GPS module is not always 9600 as per data sheet.
+    // TODO: detect GPS module UART baudrate
+    // gps_module_stop();
     la9310_m4_init_complete(g_la9310_info.pxDcr);
 
     /* Start FreeRTOS scheduler */
