@@ -15,6 +15,8 @@
 #include <la9310.h>
 #include <la9310_i2cAPI.h>
 
+#include "drivers/serial/serial_ns16550.h"
+
 #define CLOCK_CONFIG_BY_HOST 1
 
 extern struct la9310_info g_la9310_info;
@@ -23,13 +25,14 @@ extern void vSocInit();
 
 static void vBoardEarlyInit(void)
 {
-    xDebugConsoleInit((void *)UART_BASEADDR, EARLY_UART_CLOCK_FREQUENCY, UART_BAUDRATE);
+    // xDebugConsoleInit((void *)UART_BASEADDR, EARLY_UART_CLOCK_FREQUENCY, UART_BAUDRATE);
     iLa9310_I2C_Init(LA9310_FSL_I2C1, EARLY_I2C_CLOCK_FREQUENCY, LA9310_I2C_FREQ);
 }
 
 static void vBoardFinalInit(void)
 {
-    xDebugConsoleInit((void *)UART_BASEADDR, FINAL_UART_CLOCK_FREQUENCY, UART_BAUDRATE);
+    vSerialInit((void *)UART_BASEADDR, UART_BAUDRATE, FINAL_UART_CLOCK_FREQUENCY);
+    // xDebugConsoleInit((void *)UART_BASEADDR, FINAL_UART_CLOCK_FREQUENCY, UART_BAUDRATE);
 
     iLa9310_I2C_Init(LA9310_FSL_I2C1, FINAL_I2C_CLOCK_FREQUENCY, LA9310_I2C_FREQ);
 }

@@ -367,12 +367,14 @@ static lime_Result SetLA9310SystemClock(struct la9310_info * pLa9310Info, uint32
     if (result != lime_Result_Success)
         return result;
 
-    vSerialInit((void *)UART_BASEADDR, UART_BAUDRATE, system_clk_hz * 2);
+    const uint32_t platform_clock = system_clk_hz * 4;
 
-    uint32_t i2c_input_clk_hz = system_clk_hz / 2;
+    vSerialInit((void *)UART_BASEADDR, UART_BAUDRATE, platform_clock);
+
+    uint32_t i2c_input_clk_hz = platform_clock / 8;
     iLa9310_I2C_Init( LA9310_FSL_I2C1, i2c_input_clk_hz, LA9310_I2C_FREQ );
 
-    uint32_t spi_input_clk_hz = system_clk_hz * 4 / 2;
+    uint32_t spi_input_clk_hz = platform_clock / 2;
     uint32_t spi_frequency = 4000000;
     if (spi_input_clk_hz < spi_frequency*2)
         spi_frequency = spi_input_clk_hz/2;
@@ -594,8 +596,6 @@ static int lSwCmdEngineInit()
 int LMS64C_protocol_init(void)
 {
     int ret = 0;
-    PRINTF("LMS64C init\n");
-
     if( lSwCmdEngineInit() != 0 )
     {
         ret = -1;

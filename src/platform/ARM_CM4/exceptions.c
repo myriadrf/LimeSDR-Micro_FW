@@ -9,101 +9,96 @@
 #include "core_cm4.h"
 #include "io.h"
 
+#include "log.h"
+
 static void prvPrintUsageFaultReason( uint32_t ulVal )
 {
-    PRINTF( "Usage fault: " );
+    log_err("Usage fault: ");
 
     if( ( ulVal & ( 1 << 0 ) ) )
     {
-        PRINTF( "Undefined instruction\n\r" );
+        log_err("Undefined instruction" LOG_EOL);
     }
     else if( ( ulVal & ( 1 << 1 ) ) )
     {
-        PRINTF( "Invalid state Usage Fault\n\r" );
+        log_err("Invalid state Usage Fault" LOG_EOL);
     }
     else if( ( ulVal & ( 1 << 2 ) ) )
     {
-        PRINTF( "Invalid PC load UsageFault caused by invalid \
-		       EXC_RETURN value\n\r" );
+        log_err("Invalid PC load UsageFault caused by invalid EXC_RETURN value" LOG_EOL);
     }
     else if( ( ulVal & ( 1 << 3 ) ) )
     {
-        PRINTF( "Coprocessor access error\n\r" );
+        log_err("Coprocessor access error" LOG_EOL);
     }
     else if( ( ulVal & ( 1 << 8 ) ) )
     {
-        PRINTF( "Unaligned access error\n\r" );
+        log_err("Unaligned access error" LOG_EOL);
     }
     else if( ( ulVal & ( 1 << 9 ) ) )
     {
-        PRINTF( "Divide by zero\n\r" );
+        log_err("Divide by zero" LOG_EOL);
     }
 }
 
 static void prvPrintBusFaultReason( uint32_t ulVal )
 {
-    PRINTF( "Bus fault: " );
+    log_err("Bus fault: ");
 
     if( ( ulVal & ( 1 << 0 ) ) )
     {
-        PRINTF( "This bit indicates a bus fault on an instruction \
-		       prefetch\n\r" );
+        log_err("This bit indicates a bus fault on an instruction prefetch" LOG_EOL);
     }
     else if( ( ulVal & ( 1 << 2 ) ) )
     {
-        PRINTF( "Imprecise data access error\n\r" );
+        log_err("Imprecise data access error" LOG_EOL);
     }
     else if( ( ulVal & ( 1 << 3 ) ) )
     {
-        PRINTF( "bus fault has occurred on exception return\n\r" );
+        log_err("bus fault has occurred on exception return" LOG_EOL);
     }
     else if( ( ulVal & ( 1 << 4 ) ) )
     {
-        PRINTF( "Bus fault has occurred on exception entry\n\r" );
+        log_err("Bus fault has occurred on exception entry" LOG_EOL);
     }
     else if( ( ulVal & ( 1 << 5 ) ) )
     {
-        PRINTF( " fault occurred during floating-point lazy state \
-		       preservation\n\r" );
+        log_err(" fault occurred during floating-point lazy state preservation" LOG_EOL);
     }
     else if( ( ulVal & ( 1 << 7 ) ) && ( ulVal & ( 1 << 1 ) ) )
     {
-        PRINTF( "Precise data access error. Bus Fault Address Register is: \
-		       %x\n\r", SCB->BFAR );
+        log_err("Precise data access error. Bus Fault Address Register is: %x" LOG_EOL, SCB->BFAR);
     }
 }
 
 static void prvPrintMemMngFaultReason( uint32_t ulVal )
 {
-    PRINTF( "Memory fault: " );
+    log_err("Memory fault: ");
 
     if( ( ulVal & ( 1 << 0 ) ) )
     {
-        PRINTF( "Instruction access violation\n\r" );
+        log_err("Instruction access violation" LOG_EOL);
     }
     else if( ( ulVal & ( 1 << 1 ) ) )
     {
-        PRINTF( "Data access violation\n\r" );
+        log_err("Data access violation" LOG_EOL);
     }
     else if( ( ulVal & ( 1 << 3 ) ) )
     {
-        PRINTF( "Memory Management Fault on unstacking for a return \
-		       from exception\n\r" );
+        log_err("Memory Management Fault on unstacking for a return from exception" LOG_EOL);
     }
     else if( ( ulVal & ( 1 << 4 ) ) )
     {
-        PRINTF( "Memory Management Fault on stacking for \
-		       exception entry\n\r" );
+        log_err("Memory Management Fault on stacking for exception entry" LOG_EOL);
     }
     else if( ( ulVal & ( 1 << 5 ) ) )
     {
-        PRINTF( "Memory Management Fault during floating point \
-		       lazy state preservation\n\r" );
+        log_err("Memory Management Fault during floating point lazy state preservation" LOG_EOL);
     }
 
     if( ( ulVal & ( 1 << 7 ) ) )
     {
-        PRINTF( "Memory management fault address : %x\n\r", SCB->MMFAR );
+        log_err("Memory management fault address : %x" LOG_EOL, SCB->MMFAR);
     }
 }
 
@@ -111,24 +106,23 @@ static void prvGetHardFaultReason( void )
 {
     uint32_t ulCFSRValue;
 
-    PRINTF( "SCB->CFSR = 0x%08x\n\r", SCB->CFSR );
-    PRINTF( "SCB->HFSR = 0x%08x\n\r", SCB->HFSR );
+    log_err("SCB->CFSR = 0x%08x" LOG_EOL, SCB->CFSR);
+    log_err("SCB->HFSR = 0x%08x" LOG_EOL, SCB->HFSR);
 
     ulCFSRValue = SCB->CFSR;
 
     if( ( SCB->HFSR & SCB_HFSR_DEBUGEVT_MSK ) )
     {
-        PRINTF( "Debug Event Hard Fault\n\r" );
-        PRINTF( "SCB->DFSR = 0x%08x\n", SCB->DFSR );
+        log_err("Debug Event Hard Fault" LOG_EOL);
+        log_err("SCB->DFSR = 0x%08x\n", SCB->DFSR);
     }
     else if( ( SCB->HFSR & SCB_HFSR_VECTTBL_MSK ) )
     {
-        PRINTF( "Fault was due to vector table read on exception \
-		       processing\n\r" );
+        log_err("Fault was due to vector table read on exception processing" LOG_EOL);
     }
     else if( ( SCB->HFSR & SCB_HFSR_FORCED_MSK ) )
     {
-        PRINTF( "Forced Hard Fault\n\r" );
+        log_err("Forced Hard Fault" LOG_EOL);
 
         if( ( SCB->CFSR & SCB_CFSR_USGFAULTSR_MSK ) )
         {
@@ -175,23 +169,23 @@ static void prvDumpStackFrame( uint32_t * pulMSP )
     stacked_pc = ( ( uint32_t ) pulMSP[ 6 ] );
     stacked_psr = ( ( uint32_t ) pulMSP[ 7 ] );
 
-    PRINTF( "========STACK FRAME=========\r\n" );
-    PRINTF( "\tr0 : %x\r\n", stacked_r0 );
-    PRINTF( "\tr1 : %x\r\n", stacked_r1 );
-    PRINTF( "\tr2 : %x\r\n", stacked_r2 );
-    PRINTF( "\tr3 : %x\r\n", stacked_r3 );
-    PRINTF( "\tr12 : %x\r\n", stacked_r12 );
-    PRINTF( "\tlr : %x\r\n", stacked_lr );
-    PRINTF( "\tpc : %x\r\n", stacked_pc );
-    PRINTF( "\tpsr : %x\r\n", stacked_psr );
-    PRINTF( "=====END OF STACK FRAME======\r\n" );
+    log_err("========STACK FRAME=========" LOG_EOL);
+    log_err("\tr0 : %x" LOG_EOL, stacked_r0);
+    log_err("\tr1 : %x" LOG_EOL, stacked_r1);
+    log_err("\tr2 : %x" LOG_EOL, stacked_r2);
+    log_err("\tr3 : %x" LOG_EOL, stacked_r3);
+    log_err("\tr12 : %x" LOG_EOL, stacked_r12);
+    log_err("\tlr : %x" LOG_EOL, stacked_lr);
+    log_err("\tpc : %x" LOG_EOL, stacked_pc);
+    log_err("\tpsr : %x" LOG_EOL, stacked_psr);
+    log_err("=====END OF STACK FRAME======" LOG_EOL);
 }
 
 void vAnalyzeFault( uint32_t * pulMSP,
                     uint32_t ulFaultAddr )
 {
     prvDumpStackFrame( pulMSP );
-    PRINTF( "\nFault Address : %x\r\n", ulFaultAddr );
+    log_err(LOG_EOL "Fault Address : %x" LOG_EOL, ulFaultAddr);
     prvGetHardFaultReason();
 }
 

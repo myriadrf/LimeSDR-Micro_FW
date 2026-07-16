@@ -74,7 +74,7 @@ if(LA9310_COMMAND_LINE)
     target_include_directories(limesdr-micro-m4 PRIVATE utils/FreeRTOS-Plus-CLI)
     target_sources(limesdr-micro-m4 PRIVATE
         "utils/FreeRTOS-Plus-CLI/FreeRTOS_CLI.c"
-        "utils/UARTCommandConsole.c"
+        # "utils/UARTCommandConsole.c"
     )
 endif()
 
@@ -99,7 +99,7 @@ target_sources(limesdr-micro-m4 PRIVATE
     log.c
     utils/task_stats.c
     drivers/pcie/la9310_pcie.c
-    "drivers/serial/debug_console.c"
+    # "drivers/serial/debug_console.c"
     "drivers/serial/print_scan.c"
     "drivers/serial/serial_ns16550.c"
     "drivers/edma/la9310_edma.c"

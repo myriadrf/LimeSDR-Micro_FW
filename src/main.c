@@ -270,7 +270,7 @@ static int iInitHandler(struct la9310_info *pLa9310Info)
     memset( pLa9310Info, 0, sizeof( struct la9310_info ) );
     if( sizeof( struct la9310_hif ) > LA9310_EP_HIF_SIZE )
     {
-        PRINTF( "Invalid HIF size\r\n" );
+        // PRINTF( "Invalid HIF size\r\n" );
         return FAILURE;
     }
     /*XXX: DO NOT CALL log_*() before prvInitLa9310Info(), use PRINTF instead.*/
@@ -305,12 +305,9 @@ static int iInitHandler(struct la9310_info *pLa9310Info)
     }
 
     vPhyTimerReset();
-    /* Run phy timer at PLAT_FREQ / 8 = ( 122.88 * 4 ) / 8 = 61.44MHz */
     vPhyTimerEnable( PHY_TMR_DIVISOR );
 #ifndef LA9310_DFE_APP
     vPhyTimerPPSOUTConfigGPSlike();
-    /* Force RO1 always on */
-    vPhyTimerComparatorForce(PHY_TIMER_COMP_R01, ePhyTimerComparatorOut1);
 #endif
     /*VSPA AVI Init*/
 #ifdef LA9310_DFE_APP
@@ -364,17 +361,17 @@ int main( void )
     vHardwareEarlyInit();
 
     const uint32_t BootSource = ((IN_32((uint32_t *)DCR_BASE_ADDR)) >> LX9310_BOOT_SRC_SHIFT) & LX9310_BOOT_SRC_MASK;
-    PRINTF("Boot Source ");
+    // PRINTF("Boot Source ");
     if ( BootSource == LA9310_BOOT_SRC_PCIE ) {
-        PRINTF("PCIe\n");
+        // PRINTF("PCIe\n");
     } else if ( BootSource == LA9310_BOOT_SRC_I2C ) {
-        PRINTF("I2C\n");
+        // PRINTF("I2C\n");
     } else {
-        log_err("Invalid\n");
+        // log_err("Invalid\n");
         goto out;
     }
 
-    PRINTF("FreeRTOS " tskKERNEL_VERSION_NUMBER "\n");
+    // PRINTF("FreeRTOS " tskKERNEL_VERSION_NUMBER "\n");
     irc = iInitHandler(&g_la9310_info);
     if ( irc )
     {
@@ -382,7 +379,7 @@ int main( void )
     }
 
 #ifdef LA9310_ENABLE_COMMAND_LINE
-    vUARTCommandConsoleStart( mainUART_COMMAND_CONSOLE_STACK_SIZE, mainUART_COMMAND_CONSOLE_TASK_PRIORITY );
+    // vUARTCommandConsoleStart( mainUART_COMMAND_CONSOLE_STACK_SIZE, mainUART_COMMAND_CONSOLE_TASK_PRIORITY );
 #endif
 
     tmuInit();

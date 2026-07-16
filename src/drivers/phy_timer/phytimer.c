@@ -229,7 +229,7 @@ void vPhyTimerPPSINDisable()
 
 __attribute__( ( weak ) )  void vPhyTimerPPSINHandler()
 {
-    PRINTF( "%x\r\n", ulPhyTimerComparatorRead( PHY_TIMER_COMP_PPS_IN ) );
+    // PRINTF( "%x\r\n", ulPhyTimerComparatorRead( PHY_TIMER_COMP_PPS_IN ) );
     NVIC_ClearPendingIRQ( IRQ_PPS_IN );
 }
 

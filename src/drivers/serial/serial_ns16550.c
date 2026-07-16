@@ -7,6 +7,8 @@
 #include <la9310.h>
 #include "serial_ns16550.h"
 
+#include "log.h"
+
 #define SERIAL_LCRVAL    SERIAL_LCR_8N1
 #define SERIAL_FCRVAL      \
     ( SERIAL_FCR_FIFO_EN | \
@@ -21,9 +23,11 @@ void vSerialInit( NS16550_t base,
                   uint32_t ulSrcClockHz )
 {
     int lBaudDivisor;
-
-    while( !( IN_8( &base->lsr ) & SERIAL_LSR_TEMT ) )
+    log_info("SerialInit: baud:%u, clk:%u wait for TEMT...", ulBaudRate, ulSrcClockHz);
+    uint32_t retries = ulSrcClockHz / 1000;
+    while (!(IN_8(&base->lsr) & SERIAL_LSR_TEMT) && retries)
     {
+        --retries;
     }
 
     lBaudDivisor = ulSrcClockHz / ( 16 * ulBaudRate );
@@ -38,6 +42,9 @@ void vSerialInit( NS16550_t base,
 
     dmb();
     OUT_8( &base->lcr, SERIAL_LCRVAL );
+    if (retries == 0)
+        log_err("timeout...");
+    log_info("done" LOG_EOL);
 }
 
 void vSerialWriteBlocking( NS16550_t xBase,

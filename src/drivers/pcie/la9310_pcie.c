@@ -124,22 +124,22 @@ void vBusyDelay( uint32_t ulLoopCount )
 
 void vWaitForPCIeLinkStability()
 {
-    volatile uint32_t ulDbgRegVal;
-    volatile uint32_t ulCount;
-    uint32_t * pulPEX_PF0_DBG;
-
-    pulPEX_PF0_DBG = ( uint32_t * ) ( PCIE_PF0_DBG_REG );
-    ulCount = 0;
+    volatile uint32_t ulCount = 0;
+    uint32_t *pulPEX_PF0_DBG = (uint32_t *)(PCIE_PF0_DBG_REG);
 
     /* Check link Stability @ L0 state */
+    log_info("PCIe LTSSM..");
+    uint32_t last_state = 0xFFFFFFFF;
     while( 1 )
     {
-        ulDbgRegVal = IN_32( pulPEX_PF0_DBG );
-
-        if( ( ulDbgRegVal & PCIE_LTSSM_MASK ) ==
-            PCIE_LTSSM_L0_STATE )
+        volatile uint32_t ulDbgRegVal = IN_32(pulPEX_PF0_DBG);
+        const uint32_t state = ulDbgRegVal & PCIE_LTSSM_MASK;
+        if (state != last_state)
+            log_info(".%X", state);
+        last_state = state;
+        if (state == PCIE_LTSSM_L0_STATE)
         {
-            ulCount += 1;
+            ++ulCount;
         }
         else
         {
@@ -153,6 +153,7 @@ void vWaitForPCIeLinkStability()
 
         vBusyDelay( PCIE_LTSSM_DELAY_COUNT );
     }
+    log_info(".done" LOG_EOL);
 }
 
 #if NXP_ERRATUM_A_009531
