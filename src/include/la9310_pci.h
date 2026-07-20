@@ -95,6 +95,7 @@
     #define PCIE_LINK_STABLE_COUNT          ( 10 )
     #define PCIE_LTSSM_MASK                 ( 0x3F )
     #define PCIE_LTSSM_L0_STATE             ( 0x11 )
+    #define PCIE_LTSSM_L0s_STATE (0x12)
     #define PCIE_LTSSM_DELAY_COUNT          ( 128 )
 #endif /* if NXP_ERRATUM_A_009410 */
 

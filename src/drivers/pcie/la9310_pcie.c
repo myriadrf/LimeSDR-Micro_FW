@@ -137,7 +137,8 @@ void vWaitForPCIeLinkStability()
         if (state != last_state)
             log_info(".%X", state);
         last_state = state;
-        if (state == PCIE_LTSSM_L0_STATE)
+        // Link status might be constantly flipping between L0 and L0s(standby) states
+        if (state == PCIE_LTSSM_L0_STATE || state == PCIE_LTSSM_L0s_STATE)
         {
             ++ulCount;
         }
