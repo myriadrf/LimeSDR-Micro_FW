@@ -17,7 +17,7 @@
 
 #include "drivers/serial/serial_ns16550.h"
 
-#define CLOCK_CONFIG_BY_HOST 1
+#define CLOCK_CONFIG_BY_HOST 0
 
 extern struct la9310_info g_la9310_info;
 extern void vSocResetHandshake(void);

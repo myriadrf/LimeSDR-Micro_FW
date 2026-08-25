@@ -15,12 +15,14 @@ HEAP_SIZE = 0x200;
 PROVIDE_HIDDEN(__bootloader_stack = 0x2000FF00);
 
 /* Specify the memory areas */
-
 MEMORY
 {
-  m_tcml    (RWX) : ORIGIN = 0x1F800000, LENGTH = 0x0001A000
-  m_tcml_bootloader     (RWX) : ORIGIN = 0x1F81FC00, LENGTH = 0x400
-  m_dtcm    (RW)  : ORIGIN = 0x20000000, LENGTH = 0x0000F000
+  /* TCML is 32bit accessible */
+  m_tcml    (RWX) : ORIGIN = 0x1F800000, LENGTH = 120K
+  m_tcml_bootloader     (RWX) : ORIGIN = 0x1F800000 + 120K, LENGTH = 8K
+
+  /* TCMU is 64bit accessible */
+  m_dtcm    (RW)  : ORIGIN = 0x20000000, LENGTH = 64K
   br_data   (R)   : ORIGIN = 0x2000F000, LENGTH = 0x00001000
 }
 
@@ -190,6 +192,11 @@ SECTIONS
     __m_dtcm_start = .;      /* create a global symbol at data start */
   /* Reserved 256 bytes: Used by Bootrom during warm-reset and boot hand-shake */
   . += 0x100;
+  } > m_dtcm
+
+  .host_interface (NOLOAD):
+  {
+    *(.hif)
   } > m_dtcm
 
   /*Does m_data overlaps HIF? */

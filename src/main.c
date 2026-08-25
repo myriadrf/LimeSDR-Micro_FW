@@ -19,11 +19,12 @@
 #include "la9310_info.h"
 #include "la9310_host_if.h"
 
-#include "debug_console.h"
 #include "log.h"
 #include "core_cm4.h"
 
 #include "drivers/serial/serial_ns16550.h"
+
+#include "iqstream/iqstream.h"
 
 #include <string.h>
 
@@ -35,25 +36,13 @@
 #ifdef LMS7002M_CLOCK
     #include "limesdr_micro/limesdr_micro.h"
 #endif
-#ifdef LA9310_ENABLE_COMMAND_LINE
-    #include "UARTCommandConsole.h"
-    #define mainUART_COMMAND_CONSOLE_STACK_SIZE       ( configMINIMAL_STACK_SIZE * 2 )
-    #define mainUART_COMMAND_CONSOLE_TASK_PRIORITY    ( tskIDLE_PRIORITY + 1 )
 
-/* cOutputBuffer is used by FreeRTOS+CLI.  It is declared here so the
- * persistent qualifier can be used.  For the buffer to be declared here, rather
- * than in FreeRTOS_CLI.c, configAPPLICATION_PROVIDES_cOutputBuffer must be set to
- * 1 in FreeRTOSConfig.h. */
-    char cOutputBuffer[ configCOMMAND_INT_MAX_OUTPUT_SIZE ] = { 0 };
-#endif
-
-extern uint32_t ulMemLogIndex;
 extern int InitBlinkLEDs();
 
 struct la9310_info g_la9310_info;
 
 extern void vVSPAMboxInit();
-extern int iLa9310IRQInit( struct la9310_info * pLa9310Info );
+
 extern void vLa9310_do_handshake(struct ccsr_dcr *pxDcr);
 extern void la9310_m4_init_complete(struct ccsr_dcr *pxDcr);
 extern void vHardwareEarlyInit( void );
@@ -93,33 +82,6 @@ static void prvInitLa9310Info( struct la9310_info * pLa9310Info )
 
     log_initialize(&pLa9310Info->pHif->dbg_log_regs);
 
-    /* Initialize MSI */
-    uint32_t __IO *pMsiAddrReg = (uint32_t *)((uint32_t)pLa9310Info->pcie_addr + PCIE_MSI_ADDR_REG);
-    uint32_t __IO *pMsiDataAddr = (uint32_t *)((uint32_t)pLa9310Info->pcie_addr + PCIE_MSI_DATA_REG_1);
-
-    struct la9310_msi_info *pMsiInfo = &pLa9310Info->msi_info[MSI_IRQ_MUX];
-
-    /* According to PCI bus standerd multiple MSIs are allocated consecutively*/
-    uint32_t uMSIAddrVal = (IN_32(pMsiAddrReg) & 0xFFF);
-#ifdef LS1046_HOST_MSI_RAISE
-    // This method to initialize MSI structure is non-standard and dedicated for LS1046 host
-
-    for (int i = 0; i < LA9310_MSI_MAX_CNT; i++)
-    {
-        pMsiInfo[i].addr = (LA9310_EP_TOHOST_MSI_PHY_ADDR | uMSIAddrVal);
-        val = IN_32(pMsiDataAddr);
-        pMsiInfo[i].data = ((val + i) << 2);
-        log_dbg("%s: MSI init[%d], addr 0x%x, data 0x%x\n\r", __func__, i, pMsiInfo[i].addr, pMsiInfo[i].data);
-    }
-#else
-    for (int i = 0; i < LA9310_MSI_MAX_CNT; i++)
-    {
-        pMsiInfo[i].addr = (LA9310_EP_TOHOST_MSI_PHY_ADDR | uMSIAddrVal);
-        pMsiInfo[i].data = (IN_32(pMsiDataAddr) + i);
-        log_dbg("%s: MSI init[%d], addr 0x%x, data 0x%x\n\r", __func__, i, pMsiInfo[i].addr, pMsiInfo[i].data);
-    }
-#endif // ifdef LS1046_HOST_MSI_RAISE
-
     // fill scratch registers with Host Interface offset and size, for host driver to pick up.
     struct ccsr_dcr *pxDcr = pLa9310Info->pxDcr;
     OUT_32(&pxDcr->ulScratchrw[LA9310_BOOT_HSHAKE_HIF_REG], LA9310_EP_HIF_OFFSET);
@@ -144,13 +106,6 @@ static int iLa9310HostPreInit(struct la9310_info *pLa9310Info)
 
     v_main_Hif_Init( pLa9310Info );
 
-    irc = iLa9310IRQInit( pLa9310Info );
-
-    if( irc )
-    {
-        goto out;
-    }
-
     vVSPAMboxInit();
 
     // I2C already initialized in vBoardEarlyInit()
@@ -158,7 +113,6 @@ static int iLa9310HostPreInit(struct la9310_info *pLa9310Info)
     if (initialize_lms7002m_clock_generator())
         log_err( "Failed to configure LMS7002M clock\n");
 #endif
-out:
     return irc;
 }
 
@@ -295,6 +249,8 @@ static int iInitHandler(struct la9310_info *pLa9310Info)
     vPCIEInterruptInit();
 #endif
 
+    la9310_sirq_initialize(&pLa9310Info->softirq, pLa9310Info->pxDcr->ulScratchrw);
+
     vInitMsgUnit();
     irc = iLa9310HostPostInit( pLa9310Info );
 
@@ -326,6 +282,7 @@ static int iInitHandler(struct la9310_info *pLa9310Info)
 #endif //TURN_ON_STANDALONE_MODE
     // iLa9310AviConfig();
     iLa9310AviDirectConfig();
+    // NVIC_EnableIRQ( IRQ_AXIQ );
 
     vDcsInit(IN_32(&pLa9310Info->pHif->adc_mask),
 		IN_32(&pLa9310Info->pHif->adc_rate_mask),
@@ -344,11 +301,12 @@ static void gps_module_stop(void)
     uint8_t temp;
     vSerialReadBlocking((void *)UART_BASEADDR, &temp, 1);
     // Put GPS module to low power standby mode
-    vSerialWriteBlocking((void *)UART_BASEADDR, "$PMTK161,0*28\r\n", 15);
+    vSerialWriteBlocking((void *)UART_BASEADDR, (uint8_t *)"$PMTK161,0*28\r\n", 15);
     // following Tx activity on UART will wake it up
     log_info("done\r\n");
 }
 
+extern void ServiceCommands();
 /*
  *        La9310 Application Entry point
  */
@@ -394,10 +352,15 @@ int main( void )
     // It appears the default UART baudrate of GPS module is not always 9600 as per data sheet.
     // TODO: detect GPS module UART baudrate
     // gps_module_stop();
+
+    iqstream_init();
+
     la9310_m4_init_complete(g_la9310_info.pxDcr);
 
-    /* Start FreeRTOS scheduler */
+    // /* Start FreeRTOS scheduler */
     vTaskStartScheduler();
+
+    // ServiceCommands();
 
 out:
     log_err( "main() failed %d\n", irc);

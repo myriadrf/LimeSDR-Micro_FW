@@ -13,13 +13,15 @@ extern void PendSV_Handler(void);
 extern void SysTick_Handler(void);
 extern void PCIE_IRQHandler(void);
 extern void La9310eDMA_IRQHandler(void);
-extern void La9310MSG_1_IRQHandler(void);
-extern void La9310MSG_2_IRQHandler(void);
-extern void La9310MSG_3_IRQHandler(void);
 extern void La9310WDOG_IRQHandler(void);
 extern void La9310VSPA_IRQHandler(void);
 extern void vPhyTimerPPSINHandler(void);
 extern void vPhyTimerPPSOUTHandler(void);
+
+extern void la9310_msg1_irq_handler(void);
+extern void la9310_msg2_irq_handler(void);
+extern void la9310_msg3_irq_handler(void);
+extern void la9310_axiq_irq_handler(void);
 
 extern void _start(void);
 
@@ -64,14 +66,14 @@ __attribute__((aligned(0x100), section(".isr_vector"))) struct la9310_cm4_isrvec
     .ip2 = &DefaultISR,
     .ip3 = &DefaultISR,
     .edma = &La9310eDMA_IRQHandler,
-    .msg1 = &La9310MSG_1_IRQHandler,
-    .msg2 = &DefaultISR,
-    .msg3 = &La9310MSG_3_IRQHandler,
+    .msg1 = &la9310_msg1_irq_handler,
+    .msg2 = &la9310_msg2_irq_handler,
+    .msg3 = &la9310_msg3_irq_handler,
     .watchdog = &La9310WDOG_IRQHandler,
     .uart = &DefaultISR,
     .aem = &DefaultISR,
     .mbee = &DefaultISR,
-    .axiq = &DefaultISR,
+    .axiq = &la9310_axiq_irq_handler,
     .adc_dac = &DefaultISR,
     .vspa = &La9310VSPA_IRQHandler,
     .thermal_alarm = &DefaultISR,
@@ -209,11 +211,6 @@ void m4_reset_handler(void)
         :
         :);
 
-    // relocate interrupt vector table
-    SCB->VTOR = (uint32_t)&isrvector;
-    isb();
-    dmb();
-
     // Set Priviledged Mode
     asm("mrs    r0, control\n"
         "bic    r0, 0x1\n"
@@ -223,8 +220,17 @@ void m4_reset_handler(void)
         :);
 
     SYST->STCSR = (SYST->STCSR & ~(0x1)); // disable systick
-    NVIC->ICER[0] = 0xFFFFFFFF; // disable external interrupts
-    NVIC->ICPR[0] = 0xFFFFFFFF; // clear pending interrupt flags
+#pragma GCC unroll 8
+    for (int i = 0; i < 8; ++i)
+    {
+        NVIC->ICER[i] = 0xFFFFFFFF; // disable external interrupts
+        NVIC->ICPR[i] = 0xFFFFFFFF; // clear pending interrupt flags
+    }
+
+    // relocate interrupt vector table
+    SCB->VTOR = (uint32_t)&isrvector;
+    isb();
+    dmb();
 
     /* Jump to IBR Main Code */
     enable_irq();

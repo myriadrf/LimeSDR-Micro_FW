@@ -5,16 +5,11 @@
 #include <phytimer.h>
 #include <stdbool.h>
 
-#include "io.h"
-#include "immap.h"
-
-#include "drivers/avi/la9310_avi_ds.h"
-
 static void printf64_t(uint64_t value)
 {
-    uint32_t *words = (uint32_t *)&value;
-    for (int i = 0; i < 2; ++i)
-        log_info("%08X", words[1 - i]);
+    const uint32_t *words = (uint32_t *)&value;
+    log_info("%08X", words[1]);
+    log_info("%08X", words[0]);
 }
 
 static const uint8_t running_phytimer_id = 10;

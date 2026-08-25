@@ -55,6 +55,7 @@ __attribute__((noreturn)) static void fw_boot_from_host_memory(void)
     LED_GPIO_set_value(LED1_PIN, 1); // off
 
     void (*jump_to_fw_entry)(void) = (void *)(boot_header->bl_entry | M4_THUMB_BIT);
+    dsb();
     jump_to_fw_entry();
 
     // Control should never reach here
@@ -97,13 +98,17 @@ __attribute__((noreturn)) void bootloader_reset_handler(void)
         :);
 
     SYST->STCSR = (SYST->STCSR & ~(0x1)); // disable systick
-    NVIC->ICER[0] = 0xFFFFFFFF; // disable external interrupts
-    NVIC->ICPR[0] = 0xFFFFFFFF; // clear pending interrupt flags
+#pragma GCC unroll 8
+    for (int i = 0; i < 8; ++i)
+    {
+        NVIC->ICER[i] = 0xFFFFFFFF; // disable external interrupts
+        NVIC->ICPR[i] = 0xFFFFFFFF; // clear pending interrupt flags
+    }
 
     // switch back to ROM ISR vectors
     SCB->VTOR = 0;
     SCB->ICSR = (1 << 30) | (1 << 27) | (1 << 25); // Clear pending systick, nmi, pendsv interrupts
-    dmb();
+    dsb();
     isb();
 
     // clear DCFG scratch registers, they were used to indicate FW startup status

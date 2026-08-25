@@ -43,8 +43,7 @@ int32_t iGpioSetData( uint8_t pin,
 
     if( iIsPinSupported( pin ) )
     {
-        // log_err( "iGpioSetData - GPIO PIN (%d)\
-		// 		is not supported \n\n\r", pin );
+        // log_err( "iGpioSetData - GPIO PIN (%d) is not supported \n\n\r", pin );
         return -GPIO_PIN_NOT_SUPPORTED;
     }
 
@@ -82,8 +81,7 @@ int32_t iGpioGetData( uint8_t pin )
 
     if( iIsPinSupported( pin ) )
     {
-        // log_err( "iGpioGetData-GPIO PIN (%d) is\
-		// 			not supported\n\n\r", pin );
+        // log_err( "iGpioGetData-GPIO PIN (%d) is not supported\n\n\r", pin );
         return -GPIO_PIN_NOT_SUPPORTED;
     }
 
@@ -142,8 +140,7 @@ int32_t iGpioSetBit( uint8_t pin,
 {
     if( iIsPinSupported( pin ) )
     {
-        // log_err( "iGpioSetBit - GPIO PIN (%d)\
-		// 		is not supported \n\n\r", pin );
+        // log_err( "iGpioSetBit - GPIO PIN (%d) is not supported \n\n\r", pin );
         return FAILURE;
     }
 

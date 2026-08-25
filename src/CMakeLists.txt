@@ -16,9 +16,11 @@ target_compile_options(limesdr-micro-m4 PUBLIC
     -ffreestanding
     -fno-builtin
     -Os
-
     -fdata-sections
     -ffunction-sections
+
+    -g
+    -ggdb # debug info
 )
 
 set(LA9310_LINKER_SCRIPT ${CMAKE_CURRENT_LIST_DIR}/platform/ARM_CM4/la9310.ld)
@@ -29,8 +31,8 @@ target_link_options(limesdr-micro-m4 PUBLIC
     -z muldefs
     -Wl,-gc-sections
     -Wl,-print-memory-usage
-    -Wl,--strip-all
-    -Wl,--strip-discarded
+    # -Wl,--strip-all
+    # -Wl,--strip-discarded
     -Wl,--discard-all
     -Wl,--discard-locals
     -T${LA9310_LINKER_SCRIPT}
@@ -68,6 +70,7 @@ endif()
 if(LMS7002M_CLOCK)
     add_subdirectory(limesdr_micro)
 endif()
+add_subdirectory(iqstream)
 
 if(LA9310_COMMAND_LINE)
     target_compile_definitions(limesdr-micro-m4 PUBLIC "-DLA9310_ENABLE_COMMAND_LINE")
@@ -94,6 +97,9 @@ target_include_directories(limesdr-micro-m4 PRIVATE
 )
 
 target_sources(limesdr-micro-m4 PRIVATE
+    # l1-trace.c
+    m4_memorymap.c
+    la9310_sirq.c
     queue.c
     platform/ARM_CM4/startup.c
     log.c
@@ -107,7 +113,6 @@ target_sources(limesdr-micro-m4 PRIVATE
     "platform/ARM_CM4/soc.c"
     "platform/ARM_CM4/exceptions.c"
     "platform/boards/la9310/hardware_init.c"
-    "la9310_irq.c"
     "drivers/avi/la9310_avi.c"
     "drivers/misc/la9310_gpio.c"
     "drivers/misc/la9310_pinmux.c"
@@ -127,13 +132,15 @@ TARGET_LINK_LIBRARIES(limesdr-micro-m4 PRIVATE m c gcc nosys)
 TARGET_LINK_LIBRARIES(limesdr-micro-m4 PRIVATE -Wl,--end-group)
 
 # MAP FILE
-set(MEMORY_MAP_FILENAME "${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/limesdr-micro-m4")
+set(MEMORY_MAP_FILENAME "${PROJECT_BINARY_DIR}/Release/limesdr-micro-m4")
 SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}  -Xlinker -Map=${MEMORY_MAP_FILENAME}.map")
 set_target_properties(limesdr-micro-m4 PROPERTIES ADDITIONAL_CLEAN_FILES "${MEMORY_MAP_FILENAME}.map")
 
 # BIN AND HEX
-SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE})
-SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE})
+# SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE})
+# SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE})
+SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/Release)
+SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/Release)
 
 add_custom_target(limesdr-micro-m4-bin ALL
     COMMAND ${CMAKE_OBJCOPY} -Obinary "$<TARGET_FILE:limesdr-micro-m4>" "${MEMORY_MAP_FILENAME}.bin"

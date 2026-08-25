@@ -11,6 +11,7 @@
 #include "io.h"
 #include "core_cm4.h"
 #include "drivers/serial/serial_ns16550.h"
+#include "drivers/avi/la9310_avi_ds.h"
 
 #include "log.h"
 #include "immap.h"
@@ -23,13 +24,17 @@
 #include "lms7002m/spi.h"
 #include "limesdr_micro.h"
 #include "m4_commands.h"
+#include "iqstream/vspa_dma_hif.h"
 
 #include "eeprom.h"
 #include "timer64.h"
-#include "scheduled_commands.h"
-#include "tx_control.h"
+#include "la9310_sirq.h"
+#include "iqstream/iqstream.h"
+#include "iqstream/receiver.h"
 
 static uint16_t xo_dac_value = 0;
+
+struct vspa_regs *vspa_csr = (struct vspa_regs *)VSPA_BASE_ADDR;
 
 extern struct LA931xDspiInstance *lmsspihandle;
 extern int32_t spi_lms7002m_read( struct LA931xDspiInstance * pDspiHandle, uint16_t addr, uint16_t *value );
@@ -37,6 +42,8 @@ extern int32_t spi_lms7002m_write( struct LA931xDspiInstance * pDspiHandle, uint
 extern void UseExternalReferenceClock(bool external);
 extern int IsExternalRefClkUsed();
 extern void bootloader_reset_handler(void);
+
+extern void *GetFeaturesMap(void);
 
 extern struct lms7002m_context* rfsoc;
 extern struct la9310_info g_la9310_info;
@@ -453,10 +460,11 @@ static void LoadBootloader(void)
     log_info("bl_dest: 0x%08x\n", dst);
     log_info("bl_size: 0x%08x\n", size);
     memcpy(dst, src, size);
-    dmb();
+    dsb();
 }
 
-static void HandleCommand(struct la9310_sw_cmd_desc *desc)
+extern uint32_t vspairqcnt;
+static void HandleCommand(volatile struct la9310_sw_cmd_desc *desc)
 {
     desc->status = LA9310_SW_CMD_STATUS_IN_PROGRESS;
     uint32_t status = 0;
@@ -495,6 +503,8 @@ static void HandleCommand(struct la9310_sw_cmd_desc *desc)
     }
     case LIME_M4_BOOTLOADER: {
         log_info("LoadBootloader\r\n");
+        OUT_32(&vspa_csr->vspa_irqen, 0x0);
+        disable_irq();
         LoadBootloader();
         log_info("jump to %8x\r\n", &bootloader_reset_handler);
         desc->data[0] = 0;
@@ -511,18 +521,9 @@ static void HandleCommand(struct la9310_sw_cmd_desc *desc)
         log_info("Alive Pattern - changed 0x%08x to 0x%08x\n", pattern, ~pattern);
         break;
     }
-    case LIME_M4_SCHEDULE_CMD: {
-        const struct scheduled_cmd *in_cmd = (struct scheduled_cmd *)&desc->data[0];
-        uint32_t *cmd_payload = &in_cmd->data[0];
-        desc->data[0] = scheduled_commands_enqueue(in_cmd->timepoint, in_cmd->cmd, cmd_payload, 6);
-        status = LA9310_SW_CMD_STATUS_DONE;
-        break;
-    }
     case LIME_M4_HARDWARE_COUNTER_RESET: {
         desc->status = LA9310_SW_CMD_STATUS_IN_PROGRESS;
         // ClearEvents();
-        scheduled_commands_clear();
-        tx_control_init();
         timer64_reset();
         desc->data[0] = 0;
         status = LA9310_SW_CMD_STATUS_DONE;
@@ -540,8 +541,23 @@ static void HandleCommand(struct la9310_sw_cmd_desc *desc)
         status = LA9310_SW_CMD_STATUS_DONE;
         break;
     }
-    case LIME_M4_TX_CONTROL: {
-        desc->data[0] = TxControlCommand(desc->data);
+    case LIME_M4_GET_FEATURES: {
+        desc->data[0] = (uint32_t)GetFeaturesMap();
+        status = LA9310_SW_CMD_STATUS_DONE;
+        break;
+    }
+    case LIME_M4_DMA: {
+        log_info("cmd:DMA" LOG_EOL);
+
+        status = LA9310_SW_CMD_STATUS_DONE;
+        break;
+    }
+    case LIME_M4_IQSTREAM_CTRL: {
+        struct iqstream_control_payload *payload = (struct iqstream_control_payload *)desc->data;
+        if (payload->enable)
+            desc->data[0] = iqstream_enable(payload->rxmask, payload->txmask);
+        else
+            desc->data[0] = iqstream_disable(payload->rxmask, payload->txmask);
         status = LA9310_SW_CMD_STATUS_DONE;
         break;
     }
@@ -553,6 +569,13 @@ static void HandleCommand(struct la9310_sw_cmd_desc *desc)
     desc->status = status;
 }
 
+static volatile bool pending_cmd = false;
+void HostSentCommand(void)
+{
+    log_info("host signal" LOG_EOL);
+    pending_cmd = true;
+}
+
 static void vSwCmdTask( void * pvParameters )
 {
     timer64_reset();
@@ -561,14 +584,33 @@ static void vSwCmdTask( void * pvParameters )
 
     while( runEngine )
     {
-        process_tx_schedule();
-        scheduled_commands_update();
+        iqstream_service();
 
         if (pxCmdDesc->status != LA9310_SW_CMD_STATUS_POSTED)
             continue;
 
         HandleCommand(pxCmdDesc);
-        dmb();
+        dsb();
+        la9310_sirq_raise_events(&g_la9310_info.softirq, BITMASK(HOST_COMMAND_DONE));
+    }
+}
+
+void ServiceCommands()
+{
+    timer64_reset();
+    struct la9310_hif *pxHif = g_la9310_info.pHif;
+    volatile struct la9310_sw_cmd_desc *pxCmdDesc = &(pxHif->sw_cmd_desc);
+
+    while (runEngine)
+    {
+        iqstream_service();
+
+        if (pxCmdDesc->status != LA9310_SW_CMD_STATUS_POSTED)
+            continue;
+
+        HandleCommand(pxCmdDesc);
+        dsb();
+        la9310_sirq_raise_events(&g_la9310_info.softirq, BITMASK(HOST_COMMAND_DONE));
     }
 }
 

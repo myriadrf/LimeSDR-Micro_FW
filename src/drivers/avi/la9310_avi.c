@@ -38,19 +38,19 @@ void vVSPAMboxMonitorMaskSet(uint32_t mask)
 void vVSPAMboxInit()
 {
     OUT_32( PHY_TIMER, 0x1 );
-    OUT_32( TRIGGER_1, 0x84 );
-    OUT_32( TRIGGER_1, 0x8 );
-    OUT_32( TRIGGER_2, 0x84 );
-    OUT_32( TRIGGER_2, 0x8 );
-    OUT_32( TRIGGER_3, 0x84 );
-    OUT_32( TRIGGER_3, 0x8 );
-    OUT_32( TRIGGER_4, 0x84 );
-    OUT_32( TRIGGER_4, 0x8 );
-    OUT_32( TRIGGER_11, 0x8 );
-    #ifdef AXIQ_LOOPBACK_ENABLE
-        /* AXIQ loopback on RX1 */
-        OUT_32( DBGGNCR, 0x0000005e );
-    #endif
+// OUT_32( TRIGGER_1, 0x84 );
+// OUT_32( TRIGGER_1, 0x8 );
+// OUT_32( TRIGGER_2, 0x84 );
+// OUT_32( TRIGGER_2, 0x8 );
+// OUT_32( TRIGGER_3, 0x84 );
+// OUT_32( TRIGGER_3, 0x8 );
+// OUT_32( TRIGGER_4, 0x84 );
+// OUT_32( TRIGGER_4, 0x8 );
+// OUT_32( TRIGGER_11, 0x8 );
+#ifdef AXIQ_LOOPBACK_ENABLE
+    /* AXIQ loopback on RX1 */
+    OUT_32(DBGGNCR, 0x0000005e);
+#endif
     return;
 }
 
@@ -363,15 +363,36 @@ void La9310VSPA_IRQRelayHandler( void )
     log_isr( "ISR:%s: Out\n\r", __func__ );
 }
 
+extern void iqstream_handle_vspa_dma_irq(uint32_t dma_irq_stat);
+extern void iqstream_handle_vspa_flags_irq(uint32_t dma_irq_stat);
+
 void La9310VSPA_IRQDirectHandler( void )
 {
     struct vspa_regs *pVspaRegs = (struct vspa_regs *)VSPA_BASE_ADDR;
-    OUT_32( &pVspaRegs->dma_irq_stat, IN_32( &pVspaRegs->dma_irq_stat ));
-    NVIC_ClearPendingIRQ( IRQ_VSPA );
+    const uint32_t dma_irq_stat = IN_32(&pVspaRegs->dma_irq_stat);
+    // log_info( "VSPA_");
+    if (dma_irq_stat)
+    {
+        OUT_32(&pVspaRegs->dma_irq_stat, dma_irq_stat);
+        // log_info( "_DMA, %x", dma_irq_stat);
+        iqstream_handle_vspa_dma_irq(dma_irq_stat);
+        // la9310_sirq_raise_events(&pLa9310Info->softirq, (1 << VSPA_DDR_WRITE_DONE) );
+    }
 
-    struct la9310_msi_info *pMsiInfo = &pLa9310Info->msi_info[LA9310_IRQ_MUX_MSI];
-    OUT_32( pMsiInfo->addr, pMsiInfo->data );
-    dmb();
+    const uint32_t signal_flags = IN_32(&pVspaRegs->vcpu_host_flags0);
+    if (signal_flags)
+    {
+        OUT_32(&pVspaRegs->vcpu_host_flags0, signal_flags);
+        // log_info("_sig, %x", signal_flags);
+        iqstream_handle_vspa_flags_irq(signal_flags);
+    }
+    // log_info(LOG_EOL);
+    NVIC_ClearPendingIRQ( IRQ_VSPA );
+    // vspa_dma_mark_events();
+
+#if ARM_ERRATUM_838869
+    dsb();
+#endif
 }
 
 void La9310VSPA_IRQHandler( void )
@@ -520,13 +541,16 @@ int iLa9310AviDirectConfig( void )
 
     IntHndlr = La9310VSPA_IRQDirectHandler;
 
-    NVIC_SetPriority( IRQ_VSPA, VSPA_IRQ_PRIORITY );
-    NVIC_ClearPendingIRQ(IRQ_VSPA);
-    NVIC_EnableIRQ( IRQ_VSPA );
+    NVIC_SetPriority(IRQ_VSPA, VSPA_IRQ_PRIORITY);
 
     pVspaRegs = ((struct avi_hndlr *)pAviHndlr)->pVspaRegs;
-    OUT_32( &pVspaRegs->vspa_irqen,
-            ( IN_32( &pVspaRegs->vspa_irqen ) | uDmaCmpMask ) );
+    OUT_32(&pVspaRegs->dma_irq_stat, IN_32(&pVspaRegs->dma_irq_stat));
+    const uint32_t irqen_flags = IN_32(&pVspaRegs->vspa_irqen) | uDmaCmpMask // VSPA DMA
+                                 | (1 << 2); // VCPU_HOST_FLAGS0
+    OUT_32(&pVspaRegs->vspa_irqen, irqen_flags);
+
+    NVIC_ClearPendingIRQ(IRQ_VSPA);
+    NVIC_EnableIRQ(IRQ_VSPA);
 
     return 0;
 }

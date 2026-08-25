@@ -3,9 +3,13 @@
  * Copyright 2017, 2021-2024 NXP
  */
 
+#ifndef LA9310_AVI_DS_H
+#define LA9310_AVI_DS_H
+
 #include "FreeRTOS.h"
 #include "queue.h"
 #include "semphr.h"
+#include "la9310_avi.h"
 
 #define AVI_DEMO
 
@@ -197,3 +201,5 @@ unsigned int iLa9310AviVspaSwVer( void );
 void iLa9310VspaInit( void );
 void iLa9310AviClose( void );
 void vVSPAMboxMonitorMaskSet( uint32_t );
+
+#endif // LA9310_AVI_DS_H
