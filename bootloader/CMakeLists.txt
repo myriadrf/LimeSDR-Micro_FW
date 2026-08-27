@@ -20,8 +20,9 @@ target_compile_options(bootloader PUBLIC
     -ffunction-sections
     -mlittle-endian
     -Wall
-    -Os
-    -s
+    # -Os
+    -g
+    -ggdb
     -mthumb
 )
 
@@ -29,10 +30,10 @@ target_link_options(bootloader PRIVATE
     --specs=nosys.specs
     -Wl,-gc-sections
     -Wl,-print-memory-usage
-    -Wl,--strip-all
-    -Wl,--strip-discarded
-    -Wl,--discard-all
-    -Wl,--discard-locals
+    # -Wl,--strip-all
+    # -Wl,--strip-discarded
+    # -Wl,--discard-all
+    # -Wl,--discard-locals
 )
 
 target_link_libraries(bootloader PUBLIC la9310_cm4)
@@ -58,8 +59,8 @@ target_link_options(la9310-eeprom-bootup-pcie PUBLIC
     -static
     -Wl,-gc-sections
     -Wl,-print-memory-usage
-    -Wl,--strip-all
-    -Wl,--strip-discarded
+    # -Wl,--strip-all
+    # -Wl,--strip-discarded
     -Wl,--discard-all
     -Wl,--discard-locals
 

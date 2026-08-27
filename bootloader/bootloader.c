@@ -11,6 +11,25 @@
 #define LED1_PIN 17
 #define LED2_PIN 18
 
+static inline void LED_GPIO_config_output(uint32_t pin)
+{
+    uint32_t *p_reg = (uint32_t *)GPIO_BASE_ADDR;
+    pin = 31 - pin;
+    // output, not openDrain
+    setbits_le32((uint32_t)(&p_reg[GPIO_DIR]), (1 << pin));
+    setbits_le32((uint32_t)(&p_reg[GPIO_IBE]), (1 << pin));
+}
+
+static inline void LED_GPIO_set_value(uint32_t pin, bool value)
+{
+    uint32_t *p_reg = (uint32_t *)GPIO_BASE_ADDR;
+    pin = 31 - pin;
+    if (value)
+        setbits_le32((uint32_t)(&p_reg[GPIO_DAT]), (1 << pin));
+    else
+        clrbits_le32((uint32_t)(&p_reg[GPIO_DAT]), (1 << pin));
+}
+
 // TODO: Code of Loading from host memory already exists in ROM. Should find it's address and reuse it.
 // Having this procedure run from TCML risks overwriting itself if the image is large enough.
 __attribute__((noreturn)) static void fw_boot_from_host_memory(void)
@@ -18,11 +37,11 @@ __attribute__((noreturn)) static void fw_boot_from_host_memory(void)
     disable_irq();
     volatile struct la9310_boot_header *boot_header = (struct la9310_boot_header *)TCMU_PHY_ADDR;
 
-    iGpioInit(LED1_PIN, output, false);
+    LED_GPIO_config_output(LED1_PIN);
     uint32_t cnt = 0;
     while (boot_header->preamble != PREAMBLE)
     {
-        iGpioSetData(LED1_PIN, ++cnt & 0x10000);
+        LED_GPIO_set_value(LED1_PIN, ++cnt & 0x40000);
         dmb();
     }
 
@@ -33,7 +52,7 @@ __attribute__((noreturn)) static void fw_boot_from_host_memory(void)
     for (uint32_t copied = 0; copied < size; copied += sizeof(uint32_t))
         *dst++ = *src++;
 
-    iGpioSetData(LED1_PIN, 1);
+    LED_GPIO_set_value(LED1_PIN, 1); // off
 
     void (*jump_to_fw_entry)(void) = (void *)(boot_header->bl_entry | M4_THUMB_BIT);
     jump_to_fw_entry();

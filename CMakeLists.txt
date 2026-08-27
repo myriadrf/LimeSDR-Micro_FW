@@ -11,10 +11,12 @@ ENDIF()
 message(STATUS "BUILD_TYPE: " ${CMAKE_BUILD_TYPE})
 
 add_compile_options(
-    -Os
+    # -Os
     -fdata-sections
     -ffunction-sections
     -fno-common
+    -g
+    -ggdb
 )
 
 add_subdirectory(la9310)
