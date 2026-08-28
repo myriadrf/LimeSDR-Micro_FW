@@ -11,6 +11,7 @@ typedef enum {
     M4_MMAP_IQPLAYER_RXPIPE2,
     M4_MMAP_IQPLAYER_RXPIPE3,
     M4_MMAP_IQPLAYER_TXPIPE0,
+    M4_MMAP_MEMORY_LOG,
 } e_m4_mmap;
 
 typedef struct {

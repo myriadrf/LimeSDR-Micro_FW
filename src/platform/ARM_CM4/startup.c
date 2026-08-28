@@ -22,15 +22,16 @@ extern void la9310_msg1_irq_handler(void);
 extern void la9310_msg2_irq_handler(void);
 extern void la9310_msg3_irq_handler(void);
 extern void la9310_axiq_irq_handler(void);
+extern void la9310_vspa_irq_handler(void);
 
 extern void _start(void);
 
 static void DefaultISR(void)
 {
     // Do nothing
-    // while (1)
-    // {
-    // };
+    while (1)
+    {
+    };
 }
 
 extern uint32_t __stack;
@@ -65,17 +66,17 @@ __attribute__((aligned(0x100), section(".isr_vector"))) struct la9310_cm4_isrvec
     .ip1 = &DefaultISR,
     .ip2 = &DefaultISR,
     .ip3 = &DefaultISR,
-    .edma = &La9310eDMA_IRQHandler,
+    .edma = &DefaultISR,
     .msg1 = &la9310_msg1_irq_handler,
     .msg2 = &la9310_msg2_irq_handler,
     .msg3 = &la9310_msg3_irq_handler,
-    .watchdog = &La9310WDOG_IRQHandler,
+    .watchdog = &DefaultISR,
     .uart = &DefaultISR,
     .aem = &DefaultISR,
     .mbee = &DefaultISR,
     .axiq = &la9310_axiq_irq_handler,
     .adc_dac = &DefaultISR,
-    .vspa = &La9310VSPA_IRQHandler,
+    .vspa = &la9310_vspa_irq_handler,
     .thermal_alarm = &DefaultISR,
     .thermal_critical_alarm = &DefaultISR,
     .epu = &DefaultISR,

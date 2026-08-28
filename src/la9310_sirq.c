@@ -1,6 +1,6 @@
 
 #include "la9310_host_if.h"
-#include "la9310_info.h"
+
 #include "log.h"
 #include <string.h>
 #include "core_cm4.h"
@@ -9,6 +9,7 @@
 
 #include "la9310_sirq.h"
 #include "iqstream/iqstream.h"
+#include "io.h"
 
 #define LA9310_SCRATCH_SIRQ_STATUS_REG 5
 #define LA9310_SCRATCH_SIRQ_COUNT_REG 6
@@ -74,24 +75,24 @@ void la9310_sirq_clear_events(struct la9310_sirq *sirq)
     dsb();
 }
 
-extern void HostSentCommand(void);
-
 void la9310_msg1_irq_handler(void)
 {
+    NVIC_DisableIRQ(IRQ_MSG1);
     struct la9310_sirq *sirq = g_sirq;
 
     struct la9310_msg_unit *pMsgUnit = (struct la9310_msg_unit *)MSG_UNIT_BASE_ADDR;
     uint32_t msir = IN_32(&pMsgUnit->msir);
-    log_isr("MSG1 IRQ: %08X" LOG_EOL, msir);
+    log_isr("MSG1 IRQ: %8X x%8x" LOG_EOL, msir);
 
     // IRQ MUX
     if ((msir & BITMASK(IRQ_FLAGS_CHANGED)))
         la9310_sirq_clear_events(sirq);
 
-    if ((msir & BITMASK(HOST_COMMAND_POSTED)))
-        HostSentCommand();
+    // if ((msir & BITMASK(HOST_COMMAND_POSTED)))
+    //     HostSentCommand();
 
     NVIC_ClearPendingIRQ(IRQ_MSG1);
+    NVIC_EnableIRQ(IRQ_MSG1);
     dsb();
 }
 
@@ -140,11 +141,23 @@ void la9310_sirq_raise_events(struct la9310_sirq *sirq, uint32_t events)
 
 void la9310_axiq_irq_handler(void)
 {
-    log_info("AXIQ_IRQ" LOG_EOL);
+    log_isr("AXIQ_IRQ" LOG_EOL);
 
-    iqstream_handle_axiq_irq();
+    // iqstream_handle_axiq_irq();
 
     NVIC_ClearPendingIRQ(IRQ_AXIQ);
+#if ARM_ERRATUM_838869
+    dsb();
+#endif
+}
+
+void la9310_vspa_irq_handler(void)
+{
+    log_isr("irq:VSPA" LOG_EOL);
+
+    iqstream_vspa_irq_handler();
+
+    NVIC_ClearPendingIRQ(IRQ_VSPA);
 #if ARM_ERRATUM_838869
     dsb();
 #endif

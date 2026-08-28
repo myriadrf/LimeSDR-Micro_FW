@@ -18,7 +18,6 @@
 #include <string.h>
 
 #include "la9310.h"
-#include "la9310_info.h"
 
 #include "limesuiteng/embedded/lms7002m/lms7002m.h"
 #include "lms7002m/spi.h"
@@ -32,6 +31,9 @@
 #include "iqstream/iqstream.h"
 #include "iqstream/receiver.h"
 
+extern struct la9310_hif *const s_Hif;
+
+extern struct la9310_sirq softirq;
 static uint16_t xo_dac_value = 0;
 
 struct vspa_regs *vspa_csr = (struct vspa_regs *)VSPA_BASE_ADDR;
@@ -45,8 +47,7 @@ extern void bootloader_reset_handler(void);
 
 extern void *GetFeaturesMap(void);
 
-extern struct lms7002m_context* rfsoc;
-extern struct la9310_info g_la9310_info;
+extern struct lms7002m_context *rfsoc;
 
 static SemaphoreHandle_t xSwCmdSemaphore;
 static volatile int runEngine = 1;
@@ -365,7 +366,7 @@ static int ProcessLMS64C_Command(const void* dataIn, void* dataOut)
     return 0;
 }
 
-static lime_Result SetLA9310SystemClock(struct la9310_info * pLa9310Info, uint32_t system_clk_hz)
+static lime_Result SetLA9310SystemClock(struct la9310_hif *hif, uint32_t system_clk_hz)
 {
     if (system_clk_hz == 0)
         return lime_Result_InvalidValue;
@@ -387,10 +388,7 @@ static lime_Result SetLA9310SystemClock(struct la9310_info * pLa9310Info, uint32
         spi_frequency = spi_input_clk_hz/2;
     vDspiClkSet( lmsspihandle, spi_input_clk_hz, spi_frequency );
 
-    vDcsInit(IN_32(&pLa9310Info->pHif->adc_mask),
-        IN_32(&pLa9310Info->pHif->adc_rate_mask),
-        IN_32(&pLa9310Info->pHif->dac_mask),
-        IN_32(&pLa9310Info->pHif->dac_rate_mask));
+    vDcsInit(IN_32(&hif->adc_mask), IN_32(&hif->adc_rate_mask), IN_32(&hif->dac_mask), IN_32(&hif->dac_rate_mask));
 
     // TODO: reconfigure PPS out phytimer
     timer64_reset();
@@ -481,7 +479,7 @@ static void HandleCommand(volatile struct la9310_sw_cmd_desc *desc)
         break;
     }
     case LIME_M4_SET_SYSTEM_CLOCK_FREQUENCY: {
-        desc->data[0] = SetLA9310SystemClock(&g_la9310_info, desc->data[0]);
+        desc->data[0] = SetLA9310SystemClock(s_Hif, desc->data[0]);
         status = LA9310_SW_CMD_STATUS_DONE;
         break;
     }
@@ -536,11 +534,11 @@ static void HandleCommand(volatile struct la9310_sw_cmd_desc *desc)
         status = LA9310_SW_CMD_STATUS_DONE;
         break;
     }
-    case LIME_M4_DIGITAL_LOOPBACK: {
-        vAxiqLoopbackSet(desc->data[0], SET_AXIQ_LOOPBACK_MASK_ALL);
-        status = LA9310_SW_CMD_STATUS_DONE;
-        break;
-    }
+    // case LIME_M4_DIGITAL_LOOPBACK: {
+    //     vAxiqLoopbackSet(desc->data[0], SET_AXIQ_LOOPBACK_MASK_ALL);
+    //     status = LA9310_SW_CMD_STATUS_DONE;
+    //     break;
+    // }
     case LIME_M4_GET_FEATURES: {
         desc->data[0] = (uint32_t)GetFeaturesMap();
         status = LA9310_SW_CMD_STATUS_DONE;
@@ -569,18 +567,10 @@ static void HandleCommand(volatile struct la9310_sw_cmd_desc *desc)
     desc->status = status;
 }
 
-static volatile bool pending_cmd = false;
-void HostSentCommand(void)
-{
-    log_info("host signal" LOG_EOL);
-    pending_cmd = true;
-}
-
 static void vSwCmdTask( void * pvParameters )
 {
     timer64_reset();
-    struct la9310_hif * pxHif = g_la9310_info.pHif;
-    volatile struct la9310_sw_cmd_desc * pxCmdDesc = &( pxHif->sw_cmd_desc );
+    volatile struct la9310_sw_cmd_desc *pxCmdDesc = &(s_Hif->sw_cmd_desc);
 
     while( runEngine )
     {
@@ -591,15 +581,14 @@ static void vSwCmdTask( void * pvParameters )
 
         HandleCommand(pxCmdDesc);
         dsb();
-        la9310_sirq_raise_events(&g_la9310_info.softirq, BITMASK(HOST_COMMAND_DONE));
+        la9310_sirq_raise_events(&softirq, BITMASK(HOST_COMMAND_DONE));
     }
 }
 
 void ServiceCommands()
 {
     timer64_reset();
-    struct la9310_hif *pxHif = g_la9310_info.pHif;
-    volatile struct la9310_sw_cmd_desc *pxCmdDesc = &(pxHif->sw_cmd_desc);
+    volatile struct la9310_sw_cmd_desc *pxCmdDesc = &(s_Hif->sw_cmd_desc);
 
     while (runEngine)
     {
@@ -610,7 +599,7 @@ void ServiceCommands()
 
         HandleCommand(pxCmdDesc);
         dsb();
-        la9310_sirq_raise_events(&g_la9310_info.softirq, BITMASK(HOST_COMMAND_DONE));
+        la9310_sirq_raise_events(&softirq, BITMASK(HOST_COMMAND_DONE));
     }
 }
 

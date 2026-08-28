@@ -70,33 +70,32 @@ __attribute__((noreturn)) void bootloader_reset_handler(void)
 {
     disable_irq();
     // Initialize Core Registers
-    asm("mov    r0, #0x0\n"
-        "mov    r1, r0\n"
-        "mov    r2, r0\n"
-        "mov    r3, r0\n"
-        "mov    r4, r0\n"
-        "mov    r5, r0\n"
-        "mov    r6, r0\n"
-        "mov    r7, r0\n"
-        :
-        :
-        :);
+    asm volatile("mov    r0, #0x0\n"
+                 "mov    r1, r0\n"
+                 "mov    r2, r0\n"
+                 "mov    r3, r0\n"
+                 "mov    r4, r0\n"
+                 "mov    r5, r0\n"
+                 "mov    r6, r0\n"
+                 // "mov    r7, r0\n"
+                 :
+                 :
+                 : "r0", "r1", "r2", "r3", "r4", "r5", "r6");
 
-    // Initialize stack pointer
-    asm("ldr r0, = __bootloader_stack\n"
-        "msr msp, r0\n"
-        :
-        :
-        :);
+    // Set Priviledged Mode.
+    asm volatile("mrs    r0, control\n"
+                 "bic    r0, 0x1\n"
+                 "msr    control, r0\n"
+                 :
+                 :
+                 : "r0");
 
-    // Set Priviledged Mode
-    asm("mrs    r0, control\n"
-        "bic    r0, 0x1\n"
-        "msr    control, r0\n"
-        :
-        :
-        :);
-
+    // MSP can only be set from privileged context
+    asm volatile("ldr r0, =__bootloader_stack\n"
+                 "msr msp, r0\n"
+                 :
+                 :
+                 : "r0");
     SYST->STCSR = (SYST->STCSR & ~(0x1)); // disable systick
 #pragma GCC unroll 8
     for (int i = 0; i < 8; ++i)

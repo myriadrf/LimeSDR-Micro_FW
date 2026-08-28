@@ -23,6 +23,8 @@ void iqstream_handle_axiq_irq(void);
 
 bool push_tcd_to_vspa(volatile vspa_dma_hif_t *hif, const dma_tcd_t *tcd);
 
+void iqstream_vspa_irq_handler(void);
+
 extern uint64_t stream_phytime_origin;
 extern uint64_t stream_phytime_origin_rx;
 

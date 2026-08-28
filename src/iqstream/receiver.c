@@ -7,7 +7,6 @@
 #include "limesdr_micro/timer64.h"
 #include "vspa_memorymap.h"
 
-// #include "axiq.h"
 #include "core_cm4.h"
 #include "immap.h"
 #include "io.h"
@@ -15,7 +14,6 @@
 #include "iqstream_signals.h"
 #include "iqstream.h"
 
-#include "la9310_info.h"
 #include "la9310_sirq.h"
 
 #define TCD_PREFIL_LIMIT 32
@@ -26,11 +24,11 @@
     #define dbg_info(...)
 #endif
 
+extern struct la9310_sirq softirq;
+
 rx_lane_t rx_pipe[RX_MAX_PIPELINES_COUNT] __attribute__((section(".hif")));
 
 const uint8_t adc_clock_divisor_disabled = 0; // when clock divisor disabled, 1 phytimer == 2 samples step
-
-static struct vspa_regs *vspa_csr = (struct vspa_regs *)VSPA_BASE_ADDR;
 
 void receiver_init(void)
 {
@@ -102,7 +100,7 @@ static bool rx_schedule_next_host_tcd(rx_lane_t *pipe)
         // }
         if (!trigger_active && !trigger_scheduled)
         {
-            const uint32_t now = timer64_get_counter();
+            // const uint32_t now = timer64_get_counter();
             const uint32_t start_delay_samples =
                 2048; // 16*1024;// 8*1024; // gives some time to schedule other channels, so they could start working from the 0 timestamp
             const uint64_t on_phytime =
@@ -117,6 +115,13 @@ static bool rx_schedule_next_host_tcd(rx_lane_t *pipe)
     if (dma->loop_mode)
         queue_push(&dma->tcd_fifo, next_tcd);
     return true;
+}
+
+static inline void rx_fill_up_vspa_tcds(rx_lane_t *pipe)
+{
+    int i = 0;
+    for (; rx_schedule_next_host_tcd(pipe) && i < TCD_PREFIL_LIMIT; ++i)
+        ;
 }
 
 int receiver_lane_enable(uint16_t lane, bool enabled)
@@ -137,11 +142,7 @@ int receiver_lane_enable(uint16_t lane, bool enabled)
         signal_to_vspa(HTV_SIGNAL_RXLANE0_PRIME); // get vspa adc ready, it'll wait for phytimer trigger
 
         // timer will be configured by DMA TCD
-
-        // Fill VSPA with available TCDs
-        int i = 0;
-        for (; rx_schedule_next_host_tcd(&rx_pipe[lane]) && i < TCD_PREFIL_LIMIT; ++i)
-            ;
+        rx_fill_up_vspa_tcds(&rx_pipe[lane]);
         // log_info("RxPrefil:%i" LOG_EOL, i);
     }
     else
@@ -172,20 +173,15 @@ static void rx_tcd_input(rx_lane_t *pipe)
 
     if (!host_dma_accept_tcd_input(dma))
         return;
-    // refill VSPA TCDs
-    int i = 0;
-    for (; rx_schedule_next_host_tcd(pipe) && i < TCD_PREFIL_LIMIT; ++i)
-        ;
+    rx_fill_up_vspa_tcds(pipe);
 }
 
 void receiver_process_host_tcd_input(void)
 {
-    for (int i = 0; i < RX_MAX_PIPELINES_COUNT; ++i)
+    for (int lane = 0; lane < RX_MAX_PIPELINES_COUNT; ++lane)
     {
-        rx_tcd_input(&rx_pipe[i]);
-        int i = 0;
-        for (; rx_schedule_next_host_tcd(&rx_pipe[i]) && i < TCD_PREFIL_LIMIT; ++i)
-            ;
+        rx_tcd_input(&rx_pipe[lane]);
+        rx_fill_up_vspa_tcds(&rx_pipe[lane]);
     }
 }
 
@@ -198,11 +194,9 @@ void receiver_handle_vspa_flags_irq(uint32_t flags)
         {
             raise_irq |= true;
             ++rx_pipe[lane].host_dma.hif.tcd_complete_counter;
-            int i = 0;
-            for (; rx_schedule_next_host_tcd(&rx_pipe[lane]) && i < TCD_PREFIL_LIMIT; ++i)
-                ;
+            rx_fill_up_vspa_tcds(&rx_pipe[lane]);
         }
     }
     if (raise_irq)
-        la9310_sirq_raise_events(&g_la9310_info.softirq, (1 << VSPA_DDR_WRITE_DONE));
+        la9310_sirq_raise_events(&softirq, (1 << VSPA_DDR_WRITE_DONE));
 }

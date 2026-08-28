@@ -10,19 +10,24 @@ OUTPUT_ARCH(arm)
 /* Entry Point */
 ENTRY(m4_reset_handler)
 
-STACK_SIZE = 0x1000;
-HEAP_SIZE = 0x200;
-PROVIDE_HIDDEN(__bootloader_stack = 0x2000FF00);
+STACK_SIZE = 4K;
+HEAP_SIZE = 1K;
 
 /* Specify the memory areas */
 MEMORY
 {
   /* TCML is 32bit accessible */
-  m_tcml    (RWX) : ORIGIN = 0x1F800000, LENGTH = 120K
-  m_tcml_bootloader     (RWX) : ORIGIN = 0x1F800000 + 120K, LENGTH = 8K
+  m_tcml    (RWX) : ORIGIN = 0x1F800000, LENGTH = 128K
 
   /* TCMU is 64bit accessible */
   m_dtcm    (RW)  : ORIGIN = 0x20000000, LENGTH = 64K
+
+  /*
+  Code for reloading next firmware will be stored/executed here.
+  Placed in data section, so that bootloader would not overwrite itself while loading.
+  */
+  m_temp_bootloader (RWX) : ORIGIN = 0x20000000 + 32K, LENGTH = 8K
+
   br_data   (R)   : ORIGIN = 0x2000F000, LENGTH = 0x00001000
 }
 
@@ -37,13 +42,15 @@ SECTIONS
   } > m_tcml
   PROVIDE(__firmware_bin_src_offset = __firmware_bin_start - ORIGIN(m_tcml));
 
+
   .bootloader_lib :
   {
     *bootloader.c.obj (SORT_BY_ALIGNMENT(*))
-  } > m_tcml_bootloader AT > m_tcml
+  } > m_temp_bootloader AT > m_tcml
   PROVIDE_HIDDEN (__bootloader_src = LOADADDR(.bootloader_lib));
   PROVIDE_HIDDEN (__bootloader_dest = ADDR(.bootloader_lib));
   PROVIDE_HIDDEN (__bootloader_size =  SIZEOF(.bootloader_lib));
+  PROVIDE_HIDDEN (__bootloader_stack = 0x20000000 + 63K);
 
   .text :
   {
@@ -208,8 +215,6 @@ SECTIONS
   PROVIDE_HIDDEN(__firmware_dest = ADDR(.romboot_header));
   PROVIDE_HIDDEN(__firmware_entry = m4_reset_handler);
 
-  ASSERT(__firmware_bin_size <= 0x20000, "Firmware size too big")
-  ASSERT(__firmware_bin_src_offset <= 0x40000000, "Firmware src offset too big")
   ASSERT((__firmware_dest >= 0x1F800000 && __firmware_dest <= 0x1F830000) , "Fw out of range")
   ASSERT((__firmware_entry >= 0x1F800000 && __firmware_entry <= 0x1F830000) , "Fw entry out of range")
 }

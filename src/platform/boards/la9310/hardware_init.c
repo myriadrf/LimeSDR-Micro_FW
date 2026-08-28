@@ -6,7 +6,7 @@
 
 #include "immap.h"
 #include "io.h"
-#include "la9310_info.h"
+
 #include "la9310_host_if.h"
 #include "debug_console.h"
 #include "la9310_pci.h"
@@ -19,7 +19,6 @@
 
 #define CLOCK_CONFIG_BY_HOST 0
 
-extern struct la9310_info g_la9310_info;
 extern void vSocResetHandshake(void);
 extern void vSocInit();
 

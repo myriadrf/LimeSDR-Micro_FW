@@ -15,8 +15,8 @@ add_compile_options(
     -fdata-sections
     -ffunction-sections
     -fno-common
-    -g
-    -ggdb
+    # -g
+    # -ggdb
 )
 
 add_subdirectory(la9310)

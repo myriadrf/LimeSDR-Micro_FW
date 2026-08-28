@@ -8,7 +8,6 @@
 #include "drivers/avi/la9310_avi_ds.h"
 #include "immap.h"
 #include "io.h"
-#include "axiq.h"
 #include "log.h"
 
 #include "iqstream_signals.h"
@@ -94,29 +93,53 @@ bool push_tcd_to_vspa(volatile vspa_dma_hif_t *hif, const dma_tcd_t *tcd)
     return true;
 }
 
-void iqstream_handle_axiq_irq(void)
+// Once AXIQ problems start, they can result in interrupt storm
+// void iqstream_handle_axiq_irq(void)
+// {
+//     uint32_t vspa_gpin0 = iord(GPI(0)); // rx axiq status
+//     uint32_t vspa_gpin1 = iord(GPI(1)); // tx axiq status
+//     // log_info("in0:%x in1:%x" LOG_EOL, vspa_gpin0, vspa_gpin1);
+
+//     const uint32_t rx_overrun = vspa_gpin0 & 0xCCCC;
+//     const uint32_t tx_underrun = vspa_gpin1 & (0x3 << 18);
+
+//     if (rx_overrun)
+//     {
+//         uint32_t gpo4 = iord(GPO(4));
+//         gpo4 |= 0x10101010;
+//         // log_info("wr4:%x" LOG_EOL,gpo4);
+//         iowr(GPO(4), gpo4);
+//     }
+//     if (tx_underrun)
+//     {
+//         uint32_t gpo7 = iord(GPO(7));
+//         gpo7 |= 0x10;
+//         log_info("wr7:%x" LOG_EOL, gpo7);
+//         iowr(GPO(7), gpo7);
+//         iowr(GPO(7), gpo7 & ~0x10);
+//         signal_to_vspa(HTV_SIGNAL_TXLANE0_UNBRICK); // get vspa adc ready, it'll wait for phytimer trigger
+//     }
+// }
+
+void iqstream_vspa_irq_handler(void)
 {
-    uint32_t vspa_gpin0 = iord(GPI(0)); // rx axiq status
-    uint32_t vspa_gpin1 = iord(GPI(1)); // tx axiq status
-    // log_info("in0:%x in1:%x" LOG_EOL, vspa_gpin0, vspa_gpin1);
-
-    const uint32_t rx_overrun = vspa_gpin0 & 0xCCCC;
-    const uint32_t tx_underrun = vspa_gpin1 & (0x3 << 18);
-
-    if (rx_overrun)
+    struct vspa_regs *pVspaRegs = (struct vspa_regs *)VSPA_BASE_ADDR;
+    const uint32_t dma_irq_stat = IN_32(&pVspaRegs->dma_irq_stat);
+    // log_info( "VSPA_");
+    if (dma_irq_stat)
     {
-        uint32_t gpo4 = iord(GPO(4));
-        gpo4 |= 0x10101010;
-        // log_info("wr4:%x" LOG_EOL,gpo4);
-        iowr(GPO(4), gpo4);
+        OUT_32(&pVspaRegs->dma_irq_stat, dma_irq_stat);
+        // log_info( "_DMA, %x", dma_irq_stat);
+        iqstream_handle_vspa_dma_irq(dma_irq_stat);
+        // la9310_sirq_raise_events(&pLa9310Info->softirq, (1 << VSPA_DDR_WRITE_DONE) );
     }
-    if (tx_underrun)
+
+    const uint32_t signal_flags = IN_32(&pVspaRegs->vcpu_host_flags0);
+    if (signal_flags)
     {
-        uint32_t gpo7 = iord(GPO(7));
-        gpo7 |= 0x10;
-        log_info("wr7:%x" LOG_EOL, gpo7);
-        iowr(GPO(7), gpo7);
-        iowr(GPO(7), gpo7 & ~0x10);
-        signal_to_vspa(HTV_SIGNAL_TXLANE0_UNBRICK); // get vspa adc ready, it'll wait for phytimer trigger
+        OUT_32(&pVspaRegs->vcpu_host_flags0, signal_flags);
+        // log_info("_sig, %x", signal_flags);
+        iqstream_handle_vspa_flags_irq(signal_flags);
     }
+    // log_info(LOG_EOL);
 }

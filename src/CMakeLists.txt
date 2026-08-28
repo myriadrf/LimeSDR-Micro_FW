@@ -6,27 +6,24 @@ add_link_options(--specs=nano.specs)
 add_compile_options(-Wall)
 add_executable(limesdr-micro-m4 "main.c")
 
-target_compile_options(limesdr-micro-m4 PUBLIC
+target_compile_options(limesdr-micro-m4 PRIVATE
     -mthumb -mcpu=cortex-m4 -mfloat-abi=soft
     -fno-strict-aliasing
     -Wno-unused-function
     -mno-sched-prolog
-    -Wno-packed-bitfield-compat
-    -Wno-address-of-packed-member
+    # -Wno-packed-bitfield-compat
+    # -Wno-address-of-packed-member
     -ffreestanding
     -fno-builtin
-    -Os
+
     -fdata-sections
     -ffunction-sections
-
-    -g
-    -ggdb # debug info
 )
 
 set(LA9310_LINKER_SCRIPT ${CMAKE_CURRENT_LIST_DIR}/platform/ARM_CM4/la9310.ld)
 set_target_properties(limesdr-micro-m4 PROPERTIES LINK_DEPENDS ${LA9310_LINKER_SCRIPT}) # relinks if script is modified
 
-target_link_options(limesdr-micro-m4 PUBLIC
+target_link_options(limesdr-micro-m4 PRIVATE
     --specs=nano.specs
     -z muldefs
     -Wl,-gc-sections
@@ -108,12 +105,12 @@ target_sources(limesdr-micro-m4 PRIVATE
     # "drivers/serial/debug_console.c"
     "drivers/serial/print_scan.c"
     "drivers/serial/serial_ns16550.c"
-    "drivers/edma/la9310_edma.c"
-    "drivers/watchdog/la9310_watchdog.c"
+    # "drivers/edma/la9310_edma.c"
+    # "drivers/watchdog/la9310_watchdog.c"
     "platform/ARM_CM4/soc.c"
     "platform/ARM_CM4/exceptions.c"
     "platform/boards/la9310/hardware_init.c"
-    "drivers/avi/la9310_avi.c"
+    # "drivers/avi/la9310_avi.c"
     "drivers/misc/la9310_gpio.c"
     "drivers/misc/la9310_pinmux.c"
     "drivers/i2c/la9310_i2c.c"

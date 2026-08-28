@@ -15,7 +15,6 @@
 #include "iqstream_signals.h"
 #include "iqstream.h"
 
-#include "la9310_info.h"
 #include "la9310_sirq.h"
 
 #if 0
@@ -29,7 +28,7 @@
     #define dbg_info(...)
 #endif
 
-static struct vspa_regs *vspa_csr = (struct vspa_regs *)VSPA_BASE_ADDR;
+extern struct la9310_sirq softirq;
 
 tx_lane_t tx_pipe[TX_MAX_PIPELINES_COUNT] __attribute__((section(".hif")));
 
@@ -177,6 +176,12 @@ static inline void tx_pipe_reset(tx_lane_t *pipe)
     pipe->expected_trigger = 0;
 }
 
+static inline void tx_fill_up_vspa_tcds(tx_lane_t *pipe)
+{
+    for (int i = 0; tx_schedule_next_host_tcd(pipe) && i < 10; ++i)
+        ;
+}
+
 int transmitter_lane_enable(uint16_t lane, bool enabled)
 {
     log_info("TX[%i]_lane_enable:%i, trig:%x" LOG_EOL, lane, enabled, ulPhyTimerComparatorGetStatus(11));
@@ -203,8 +208,7 @@ int transmitter_lane_enable(uint16_t lane, bool enabled)
         // timer will be triggered by DMA TCD
 
         // prefill VSPA if TCD are already available
-        for (int i = 0; tx_schedule_next_host_tcd(&tx_pipe[lane]) && i < 10; ++i)
-            ;
+        tx_fill_up_vspa_tcds(&tx_pipe[lane]);
     }
     else
     {
@@ -239,8 +243,7 @@ static void tx_tcd_input(tx_lane_t *pipe)
     if (!host_dma_accept_tcd_input(dma))
         return;
 
-    for (int i = 0; tx_schedule_next_host_tcd(pipe) && i < 10; ++i)
-        ;
+    tx_fill_up_vspa_tcds(pipe);
 }
 
 void transmitter_process_host_tcd_input(void)
@@ -257,18 +260,17 @@ void transmitter_handle_vspa_flags_irq(uint32_t flags)
         raise_irq = true;
         ++tx_pipe[0].host_dma.hif.tcd_complete_counter;
         // log_info("[%8x]TCD_DONE, t:%x" LOG_EOL, ulPhyTimerComparatorRead(10), ulPhyTimerComparatorGetStatus(11));
-        // for (int i=0; tx_schedule_next_host_tcd(&tx_pipe[0]) && i<10; ++i);
+        // tx_fill_up_vspa_tcds(&tx_pipe[lane]);
     }
     if (raise_irq)
-        la9310_sirq_raise_events(&g_la9310_info.softirq, (1 << VSPA_DDR_READ_DONE));
+        la9310_sirq_raise_events(&softirq, (1 << VSPA_DDR_READ_DONE));
 }
 
 void transmitter_service(void)
 {
-    for (int i = 0; i < TX_MAX_PIPELINES_COUNT; ++i)
+    for (int lane = 0; lane < TX_MAX_PIPELINES_COUNT; ++lane)
     {
-        for (int i = 0; tx_schedule_next_host_tcd(&tx_pipe[0]) && i < 10; ++i)
-            ;
+        tx_fill_up_vspa_tcds(&tx_pipe[lane]);
         // const uint32_t trigger_status = ulPhyTimerComparatorGetStatus(pipe->phytimer_id);
         // const bool trigger_scheduled = trigger_status & PHY_TIMER_COMPARATOR_STATUS_ENABLED;
         // const bool trigger_active = trigger_status & PHY_TIMER_COMPARATOR_STATUS_OUT_HIGH;

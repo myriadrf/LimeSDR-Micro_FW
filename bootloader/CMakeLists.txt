@@ -8,7 +8,7 @@ target_sources(bootloader PUBLIC
     ../src/drivers/misc/la9310_gpio.c
 )
 
-target_compile_options(bootloader PUBLIC
+target_compile_options(bootloader PRIVATE
     -nostartfiles
     -nolibc
     -nostdlib
@@ -20,15 +20,15 @@ target_compile_options(bootloader PUBLIC
     -ffunction-sections
     -mlittle-endian
     -Wall
-    # -Os
-    -g
-    -ggdb
+    # -g
+    # -ggdb
     -mthumb
+    -Os
 )
 
 target_link_options(bootloader PRIVATE
     --specs=nosys.specs
-    -Wl,-gc-sections
+    #-Wl,-gc-sections
     -Wl,-print-memory-usage
     # -Wl,--strip-all
     # -Wl,--strip-discarded
@@ -54,7 +54,7 @@ target_include_directories(la9310-eeprom-bootup-pcie PUBLIC
 set(EEPROM_LINKER_SCRIPT "${CMAKE_CURRENT_LIST_DIR}/eeprom.ld")
 set_target_properties(la9310-eeprom-bootup-pcie PROPERTIES LINK_DEPENDS ${EEPROM_LINKER_SCRIPT})
 set_target_properties(la9310-eeprom-bootup-pcie PROPERTIES ADDITIONAL_CLEAN_FILES $<TARGET_FILE:la9310-eeprom-bootup-pcie>.map)
-target_link_options(la9310-eeprom-bootup-pcie PUBLIC
+target_link_options(la9310-eeprom-bootup-pcie PRIVATE
     --specs=nano.specs
     -static
     -Wl,-gc-sections

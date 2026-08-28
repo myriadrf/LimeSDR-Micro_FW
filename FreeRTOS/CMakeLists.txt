@@ -1,5 +1,13 @@
 include(FetchContent)
 
+# compile options for subdirectories
+add_compile_options(
+    -fdata-sections
+    -ffunction-sections
+    -fno-common
+    -Os
+)
+
 ### ARM_CM4 port ###
 add_library(freertos_kernel_port STATIC)
 target_sources(freertos_kernel_port

@@ -10,7 +10,7 @@
 #include "la9310_error_codes.h"
 #include "debug_console.h"
 #include "la9310_irq.h"
-#include "la9310_info.h"
+
 #include "la9310_host_if.h"
 #include "semphr.h"
 
@@ -18,8 +18,6 @@
 #include "io.h"
 #include "core_cm4.h"
 
-extern struct la9310_info g_la9310_info;
-struct la9310_info *pLa9310Info = &g_la9310_info;
 extern int iLa9310RegisterEvt( struct la9310_info * pla9310Info, la9310_irq_evt_bits_t evt_bit, struct la9310_evt_hdlr * pLa9310EvtHdlr );
 
 struct avi_hndlr * pAviHndlr = NULL;

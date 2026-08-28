@@ -9,6 +9,16 @@
 #define LA9310_LOG_LEVEL_ISR    4
 #define LA9310_LOG_LEVEL_ALL    5
 
+struct MemoryLog {
+    char *buffer_addr;
+    uint32_t buffer_size;
+    uint32_t produced;
+    uint32_t host_consumed;
+    uint32_t log_level;
+};
+
+void memlog_clear();
+
 #define LOG_EOL "\r\n"
 
 #if 1 // LOGGING_ENABLED
@@ -36,9 +46,5 @@
     do { \
         log_format_output(LA9310_LOG_LEVEL_ISR, __VA_ARGS__ ); \
     } while( 0 )
-
-    struct debug_log_regs;
-
-    void log_initialize(struct debug_log_regs *log);
 
 #endif // LA9310_LOGING_H

@@ -28,8 +28,6 @@ struct la9310_sirq {
     uint32_t counter;
 };
 
-extern struct la9310_info g_la9310_info;
-
 void la9310_sirq_initialize(struct la9310_sirq *sirq, uint32_t *scratch_regs);
 void la9310_sirq_raise_events(struct la9310_sirq *sirq, uint32_t event_bits);
 
