@@ -16,6 +16,18 @@
 
 #include "la9310_sirq.h"
 
+struct DebugStats {
+    uint32_t adc_enq;
+    uint32_t adc_compl;
+    uint32_t ddr_enq;
+    uint32_t ddr_compl;
+    uint32_t ddr_ovr;
+    uint32_t adc_err;
+    uint32_t ddr_err;
+};
+
+struct DebugStats *rxstats = NULL;
+
 #define TCD_PREFIL_LIMIT 32
 
 #if 0
@@ -122,6 +134,10 @@ static inline void rx_fill_up_vspa_tcds(rx_lane_t *pipe)
     int i = 0;
     for (; rx_schedule_next_host_tcd(pipe) && i < TCD_PREFIL_LIMIT; ++i)
         ;
+    if (i > 0)
+    {
+        dbg_info("rxfill_%i:%i, o:%i/%i" LOG_EOL, i, pipe->vspa_dma->tcd_done_counter, rxstats->ddr_ovr, rxstats->ddr_err);
+    }
 }
 
 int receiver_lane_enable(uint16_t lane, bool enabled)
@@ -138,15 +154,23 @@ int receiver_lane_enable(uint16_t lane, bool enabled)
             return -1;
         }
 
-        vPhyTimerComparatorForce(pipe->phytimer_id, ePhyTimerComparatorOut0); // set trigger to known state
+        rxstats = vspa_memorymap_find(VSPA_MMAP_STATS);
+
+        // vPhyTimerComparatorForce(pipe->phytimer_id, ePhyTimerComparatorOut1); // not required. set trigger to 1 for proper AXIQ FIFO reset
         signal_to_vspa(HTV_SIGNAL_RXLANE0_PRIME); // get vspa adc ready, it'll wait for phytimer trigger
+        while (vspa_signal_status() & HTV_SIGNAL_RXLANE0_PRIME)
+        {
+        }
+        vPhyTimerComparatorForce(pipe->phytimer_id, ePhyTimerComparatorOut0); // set trigger to known state 0
+        stream_phytime_origin_rx = stream_phytime_origin;
 
         // timer will be configured by DMA TCD
         rx_fill_up_vspa_tcds(&rx_pipe[lane]);
-        // log_info("RxPrefil:%i" LOG_EOL, i);
+        // log_info("RxPrefil" LOG_EOL);
     }
     else
     {
+        vPhyTimerComparatorForce(pipe->phytimer_id, ePhyTimerComparatorOut1); // set trigger to 1 for proper AXIQ FIFO reset
         signal_to_vspa(HTV_SIGNAL_RXLANE0_ABORT);
         while (vspa_signal_status() & HTV_SIGNAL_RXLANE0_ABORT)
         {
@@ -171,8 +195,8 @@ static void rx_tcd_input(rx_lane_t *pipe)
 {
     host_dma_channel_t *dma = &pipe->host_dma;
 
-    if (!host_dma_accept_tcd_input(dma))
-        return;
+    host_dma_accept_tcd_input(dma);
+
     rx_fill_up_vspa_tcds(pipe);
 }
 
@@ -181,7 +205,6 @@ void receiver_process_host_tcd_input(void)
     for (int lane = 0; lane < RX_MAX_PIPELINES_COUNT; ++lane)
     {
         rx_tcd_input(&rx_pipe[lane]);
-        rx_fill_up_vspa_tcds(&rx_pipe[lane]);
     }
 }
 
@@ -194,9 +217,17 @@ void receiver_handle_vspa_flags_irq(uint32_t flags)
         {
             raise_irq |= true;
             ++rx_pipe[lane].host_dma.hif.tcd_complete_counter;
-            rx_fill_up_vspa_tcds(&rx_pipe[lane]);
+            // rx_fill_up_vspa_tcds(&rx_pipe[lane]);
         }
     }
     if (raise_irq)
         la9310_sirq_raise_events(&softirq, (1 << VSPA_DDR_WRITE_DONE));
+}
+
+void receiver_service(void)
+{
+    for (int lane = 0; lane < RX_MAX_PIPELINES_COUNT; ++lane)
+    {
+        rx_fill_up_vspa_tcds(&rx_pipe[lane]);
+    }
 }

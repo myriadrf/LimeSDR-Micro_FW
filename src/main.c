@@ -54,6 +54,16 @@ void _getpid(void) {};
 void _isatty_r(void) {};
 void _kill_r(void) {};
 
+static void axiq_loopback(bool bLoopbackEnable, uint32_t rx_mask)
+{
+    if (bLoopbackEnable)
+        OUT_32(DBGGNCR, ((SET_AXIQ_LOOPBACK_MASK | rx_mask) | IN_32(DBGGNCR)));
+    else
+        OUT_32(DBGGNCR, (REMOVE_AXIQ_LOOPBACK_MASK & IN_32(DBGGNCR)));
+
+    log_dbg("%s: IN_32( DBGGNCR ) = %#x\r\n", __func__, IN_32(DBGGNCR));
+}
+
 void v_main_Hif_Init(struct la9310_hif *pxHif)
 {
     pxHif->adc_mask = 0xf;
@@ -258,6 +268,8 @@ int main( void )
     // It appears the default UART baudrate of GPS module is not always 9600 as per data sheet.
     // TODO: detect GPS module UART baudrate
     // gps_module_stop();
+
+    axiq_loopback(false, 0xF);
 
     iqstream_init();
     la9310_m4_init_complete(s_Dcr);

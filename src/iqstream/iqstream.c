@@ -57,6 +57,7 @@ int iqstream_disable(uint32_t rx_mask, uint32_t tx_mask)
 void iqstream_service(void)
 {
     receiver_process_host_tcd_input();
+    receiver_service();
     transmitter_process_host_tcd_input();
     transmitter_service();
 }

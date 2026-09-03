@@ -22,6 +22,7 @@ int receiver_lane_set_channel(uint16_t lane, uint16_t channel);
 
 void receiver_process_host_tcd_input(void);
 void receiver_handle_vspa_flags_irq(uint32_t flags);
+void receiver_service(void);
 
 // int rx_tcd_input(rx_lane_t* pipe);
 

@@ -30,6 +30,8 @@
 
 extern struct la9310_sirq softirq;
 
+const uint8_t dac_clock_divisor_disabled = 0; // when clock divisor disabled, 1 phytimer tick == 2 samples step
+
 tx_lane_t tx_pipe[TX_MAX_PIPELINES_COUNT] __attribute__((section(".hif")));
 
 void transmitter_init(void)
@@ -85,9 +87,9 @@ static bool tx_schedule_next_host_tcd(tx_lane_t *pipe)
     dma_tcd_t *next_tcd = (dma_tcd_t *)(queue_front(&dma->tcd_fifo));
     validate_tcd(next_tcd);
 
+    next_tcd->flags |= PKT_IRQ;
     if (next_tcd->flags & PKT_HAS_TIMESTAMP)
     {
-        next_tcd->flags |= PKT_IRQ;
         if ((next_tcd->flags & PKT_START) && (next_tcd->flags & PKT_END))
         {
             log_err("NotsupportedSTART/END" LOG_EOL);
@@ -142,13 +144,15 @@ static bool tx_schedule_next_host_tcd(tx_lane_t *pipe)
         if (next_tcd->flags & PKT_END)
         {
             const uint64_t off_phytime =
-                stream_phytime_origin_rx + ((next_tcd->timestamp + next_tcd->size / 4) << pipe->oversample_pow2);
+                stream_phytime_origin_rx +
+                (((next_tcd->timestamp + next_tcd->size / 4) << pipe->oversample_pow2) >> dac_clock_divisor_disabled);
             vPhyTimerComparatorConfig(pipe->phytimer_id, PHY_TIMER_COMPARATOR_CLEAR_INT, ePhyTimerComparatorOut0, off_phytime);
             dbg_info("tx_schedoff %08X" LOG_EOL, (uint32_t)off_phytime);
         }
         else if (next_tcd->flags & PKT_START)
         {
-            const uint64_t on_phytime = stream_phytime_origin_rx + (next_tcd->timestamp << pipe->oversample_pow2);
+            const uint64_t on_phytime =
+                stream_phytime_origin_rx + ((next_tcd->timestamp << pipe->oversample_pow2) >> dac_clock_divisor_disabled);
             vPhyTimerComparatorConfig(pipe->phytimer_id, PHY_TIMER_COMPARATOR_CLEAR_INT, ePhyTimerComparatorOut1, on_phytime);
             dbg_info("tx_schedon %8x" LOG_EOL, (uint32_t)on_phytime);
         }
@@ -195,16 +199,14 @@ int transmitter_lane_enable(uint16_t lane, bool enabled)
             log_err("VSPA:lane DMA hif not found" LOG_EOL);
             return -1;
         }
-        // vPhyTimerComparatorForce(tx_pipe[lane].phytimer_id, ePhyTimerComparatorOut0); // make sure tx_dma_allowed is in known state at start
 
-        // vPhyTimerComparatorForce(tx_pipe[lane].phytimer_id, ePhyTimerComparatorOut1); // must have tx_dma_allowed during abort, to properly do dma fifo_ptr_rst
-        // signal_to_vspa(HTV_SIGNAL_TXLANE0_ABORT);
-        // while(vspa_signal_status() & HTV_SIGNAL_TXLANE0_ABORT)
-        // {
-        // }
+        // must have tx_dma_allowed enabled, to properly do dma fifo_ptr_rst
+        vPhyTimerComparatorForce(tx_pipe[lane].phytimer_id, ePhyTimerComparatorOut1);
+        signal_to_vspa(HTV_SIGNAL_TXLANE0_PRIME); // prepare pipeline, RF transmission will be started by phytimer trigger
+        while (vspa_signal_status() & HTV_SIGNAL_TXLANE0_PRIME) // wait for priming to complete, so trigger could be disabled
+        {
+        }
         vPhyTimerComparatorForce(tx_pipe[lane].phytimer_id, ePhyTimerComparatorOut0);
-
-        signal_to_vspa(HTV_SIGNAL_TXLANE0_PRIME); // get vspa adc ready, it'll wait for phytimer trigger
         // timer will be triggered by DMA TCD
 
         // prefill VSPA if TCD are already available
@@ -213,8 +215,9 @@ int transmitter_lane_enable(uint16_t lane, bool enabled)
     else
     {
         tx_pipe_reset(&tx_pipe[lane]);
-        vPhyTimerComparatorForce(tx_pipe[lane].phytimer_id,
-            ePhyTimerComparatorOut1); // must have tx_dma_allowed during abort, to properly do dma fifo_ptr_rst
+
+        // must have tx_dma_allowed during abort, to properly do dma fifo_ptr_rst
+        vPhyTimerComparatorForce(tx_pipe[lane].phytimer_id, ePhyTimerComparatorOut1);
         signal_to_vspa(HTV_SIGNAL_TXLANE0_ABORT);
         while (vspa_signal_status() & HTV_SIGNAL_TXLANE0_ABORT)
         {
@@ -240,8 +243,9 @@ static void tx_tcd_input(tx_lane_t *pipe)
 {
     host_dma_channel_t *dma = &pipe->host_dma;
 
-    if (!host_dma_accept_tcd_input(dma))
-        return;
+    // if (!host_dma_accept_tcd_input(dma))
+    //     return;
+    host_dma_accept_tcd_input(dma);
 
     tx_fill_up_vspa_tcds(pipe);
 }
