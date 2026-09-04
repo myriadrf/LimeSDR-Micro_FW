@@ -25,6 +25,11 @@ void iqstream_init(void)
 
 int iqstream_enable(uint32_t rx_mask, uint32_t tx_mask)
 {
+    OUT_32(&vspa_csr->vspa_irqen, IN_32(&vspa_csr->vspa_irqen)
+        | (1 << 4) // irqen_dma_cmp
+        | (1 << 2) // irqen_flags0
+    ); // VSPA_IRQ_EN
+
     for (int lane = 0; lane < RX_MAX_PIPELINES_COUNT; ++lane)
     {
         if (rx_mask & (1 << lane))
@@ -35,7 +40,6 @@ int iqstream_enable(uint32_t rx_mask, uint32_t tx_mask)
         if (tx_mask & (1 << lane))
             transmitter_lane_enable(lane, true);
     }
-    OUT_32(&vspa_csr->vspa_irqen, (IN_32(&vspa_csr->vspa_irqen) | (1 << 4))); // VSPA_IRQ_EN
     return 0;
 }
 
