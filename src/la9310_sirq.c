@@ -123,11 +123,11 @@ void la9310_sirq_raise_events(struct la9310_sirq *sirq, uint32_t events)
 
     uint32_t status = IN_32(sirq->status);
     dmb();
-    if (status & events) // already signalled, host not processed yet
-    {
-        log_isr("IRQ skip %x" LOG_EOL, status);
-        return;
-    }
+    // if (status & events) // already signalled, host not processed yet
+    // {
+    //     log_isr("IRQ skip %x" LOG_EOL, status);
+    //     return;
+    // }
 
     disable_irq();
 
