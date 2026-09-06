@@ -21,7 +21,7 @@ void iqstream_handle_vspa_dma_irq(uint32_t dma_irq_stat);
 void iqstream_handle_vspa_flags_irq(uint32_t flags);
 void iqstream_handle_axiq_irq(void);
 
-bool push_tcd_to_vspa(volatile vspa_dma_hif_t *hif, const dma_tcd_t *tcd);
+bool push_tcd_to_vspa(vspa_dma_hif_t *hif, const dma_tcd_t *tcd);
 
 void iqstream_vspa_irq_handler(void);
 

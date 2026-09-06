@@ -42,7 +42,7 @@ void transmitter_init(void)
         init_host_dma_channel(&tx_pipe[i].host_dma);
 }
 
-static void validate_tcd(dma_tcd_t *tcd)
+static inline void validate_tcd(dma_tcd_t *tcd)
 {
     // xfer size should be multiple of DMA FIFO threashold
     const uint32_t dma_bytes_threshold = IQSTREAM_AFE_PAYLOAD_SIZE;
@@ -58,36 +58,34 @@ static void validate_tcd(dma_tcd_t *tcd)
 
 static bool tx_schedule_next_host_tcd(tx_lane_t *pipe)
 {
-    host_dma_channel_t *dma = &pipe->host_dma;
+    host_dma_channel_t *const dma = &pipe->host_dma;
     if (!dma->enabled)
         return false;
 
-    if (queue_isempty(&dma->tcd_fifo))
+    if (tcd_fifo_isempty(&dma->hif.tcd_fifo))
+    {
         return false;
+    }
 
     if (!pipe->vspa_dma)
     {
-        log_err("tx_vspa_dma_null" LOG_EOL);
         return false;
     }
 
     const uint32_t trigger_status = ulPhyTimerComparatorGetStatus(pipe->phytimer_id);
     const bool trigger_scheduled = trigger_status & PHY_TIMER_COMPARATOR_STATUS_ENABLED;
     const bool trigger_active = trigger_status & PHY_TIMER_COMPARATOR_STATUS_OUT_HIGH;
-
     if (pipe->wait_trigger_change)
     {
         if (pipe->expected_trigger != trigger_active)
             return false;
 
         pipe->wait_trigger_change = false;
-        dbg_info("got %x" LOG_EOL, trigger_status);
     }
 
-    dma_tcd_t *next_tcd = (dma_tcd_t *)(queue_front(&dma->tcd_fifo));
+    dma_tcd_t *next_tcd = tcd_fifo_front(&dma->hif.tcd_fifo);
     validate_tcd(next_tcd);
 
-    next_tcd->flags |= PKT_IRQ;
     if (next_tcd->flags & PKT_HAS_TIMESTAMP)
     {
         if ((next_tcd->flags & PKT_START) && (next_tcd->flags & PKT_END))
@@ -99,17 +97,11 @@ static bool tx_schedule_next_host_tcd(tx_lane_t *pipe)
         {
             if (trigger_active | trigger_scheduled)
             {
-                // if (!pipe->next_burst_pending)
-                // dbg_info("TxDefer %8x" LOG_EOL, trigger_status);
                 pipe->wait_trigger_change = true;
                 pipe->expected_trigger = 0;
-                dbg_info("startWT:%i" LOG_EOL, pipe->expected_trigger);
-
-                // pipe->next_burst_pending = true;
+                dbg_info("Tx start wait trig:%i" LOG_EOL, pipe->expected_trigger);
                 return false; // can't yet schedule next burst start
             }
-            // else
-            //     dbg_info("PKT_START %x" LOG_EOL, (uint32_t)next_tcd->timestamp);
         }
         if (next_tcd->flags & PKT_END)
         {
@@ -117,42 +109,43 @@ static bool tx_schedule_next_host_tcd(tx_lane_t *pipe)
             {
                 pipe->wait_trigger_change = true;
                 pipe->expected_trigger = 1;
-                dbg_info("endWT:%i" LOG_EOL, pipe->expected_trigger);
-                // if (!pipe->next_burst_pending)
-                // log_info("[%8x]TxDeferEnd after start%x" LOG_EOL, ulPhyTimerComparatorRead(10), trigger_status);
-                // pipe->next_burst_pending = true;
+                dbg_info("Tx stop wait trig:%i" LOG_EOL, pipe->expected_trigger);
                 return false; // can't yet schedule next burst start
             }
-            // else
-            //     dbg_info("PKT_END %x" LOG_EOL, (uint32_t)next_tcd->timestamp);
         }
         // TODO: check if late
     }
 
     if (!push_tcd_to_vspa(pipe->vspa_dma, next_tcd))
     {
-        // log_info("tcd_vspa_push_fail" LOG_EOL);
         return false;
     }
-    // log_info("tx_tcd_vspa_push %x, f:%x" LOG_EOL, next_tcd->la9310_mem_address, next_tcd->flags);
-    // log_info("[%8x]tcdpush, f:%x" LOG_EOL, ulPhyTimerComparatorRead(10), next_tcd->flags);
 
+    pipe->host_dma.hif.tcd_fifo.done = pipe->vspa_dma->tcd_fifo.done;
     if (next_tcd->flags & PKT_HAS_TIMESTAMP)
     {
         if (next_tcd->flags & PKT_END && next_tcd->flags & PKT_START)
             log_err("BAD, start/stop in same batch" LOG_EOL);
         if (next_tcd->flags & PKT_END)
         {
+            if (!trigger_active)
+                log_err("TxTriggerShouldBeON" LOG_EOL);
+            uint64_t ts = next_tcd->timestamp_msb;
+            ts <<= 32;
+            ts |= next_tcd->timestamp_lsb;
             const uint64_t off_phytime =
-                stream_phytime_origin_rx +
-                (((next_tcd->timestamp + next_tcd->size / 4) << pipe->oversample_pow2) >> dac_clock_divisor_disabled);
+                stream_phytime_origin_rx + (((ts + next_tcd->size / 4) << pipe->oversample_pow2) >> dac_clock_divisor_disabled);
             vPhyTimerComparatorConfig(pipe->phytimer_id, PHY_TIMER_COMPARATOR_CLEAR_INT, ePhyTimerComparatorOut0, off_phytime);
             dbg_info("tx_schedoff %08X" LOG_EOL, (uint32_t)off_phytime);
         }
         else if (next_tcd->flags & PKT_START)
         {
-            const uint64_t on_phytime =
-                stream_phytime_origin_rx + ((next_tcd->timestamp << pipe->oversample_pow2) >> dac_clock_divisor_disabled);
+            if (trigger_active)
+                log_err("TxTriggerShouldBeOFF" LOG_EOL);
+            uint64_t ts = next_tcd->timestamp_msb;
+            ts <<= 32;
+            ts |= next_tcd->timestamp_lsb;
+            const uint64_t on_phytime = stream_phytime_origin_rx + ((ts << pipe->oversample_pow2) >> dac_clock_divisor_disabled);
             vPhyTimerComparatorConfig(pipe->phytimer_id, PHY_TIMER_COMPARATOR_CLEAR_INT, ePhyTimerComparatorOut1, on_phytime);
             dbg_info("tx_schedon %8x" LOG_EOL, (uint32_t)on_phytime);
         }
@@ -167,28 +160,33 @@ static bool tx_schedule_next_host_tcd(tx_lane_t *pipe)
         }
     }
 
-    queue_pop(&dma->tcd_fifo);
-    if (dma->loop_mode)
-        queue_push(&dma->tcd_fifo, next_tcd);
+    if (pipe->host_dma.loop_mode)
+    {
+        dma_tcd_t *dest = tcd_fifo_back(&pipe->host_dma.hif.tcd_fifo);
+        *dest = *next_tcd;
+        tcd_fifo_push(&pipe->host_dma.hif.tcd_fifo);
+    }
+    tcd_fifo_pop(&pipe->host_dma.hif.tcd_fifo);
+
     return true;
 }
 
 static inline void tx_pipe_reset(tx_lane_t *pipe)
 {
-    pipe->next_burst_pending = false;
     pipe->wait_trigger_change = false;
     pipe->expected_trigger = 0;
 }
 
 static inline void tx_fill_up_vspa_tcds(tx_lane_t *pipe)
 {
-    for (int i = 0; tx_schedule_next_host_tcd(pipe) && i < 10; ++i)
+    int i = 0;
+    for (; tx_schedule_next_host_tcd(pipe) && i < 10; ++i)
         ;
 }
 
 int transmitter_lane_enable(uint16_t lane, bool enabled)
 {
-    log_info("TX[%i]_lane_enable:%i, trig:%x" LOG_EOL, lane, enabled, ulPhyTimerComparatorGetStatus(11));
+    log_info("TX[%i]_lane_enable:%i" LOG_EOL, lane, enabled);
     if (enabled)
     {
         tx_pipe_reset(&tx_pipe[lane]);
@@ -207,15 +205,11 @@ int transmitter_lane_enable(uint16_t lane, bool enabled)
         {
         }
         vPhyTimerComparatorForce(tx_pipe[lane].phytimer_id, ePhyTimerComparatorOut0);
-        // timer will be triggered by DMA TCD
-
         // prefill VSPA if TCD are already available
         tx_fill_up_vspa_tcds(&tx_pipe[lane]);
     }
     else
     {
-        tx_pipe_reset(&tx_pipe[lane]);
-
         // must have tx_dma_allowed during abort, to properly do dma fifo_ptr_rst
         vPhyTimerComparatorForce(tx_pipe[lane].phytimer_id, ePhyTimerComparatorOut1);
         signal_to_vspa(HTV_SIGNAL_TXLANE0_ABORT);
@@ -238,33 +232,14 @@ int transmitter_lane_select_channel(uint16_t lane, uint16_t channel)
     return 0;
 }
 
-// Insert host dma request into DMA table
-static void tx_tcd_input(tx_lane_t *pipe)
-{
-    host_dma_channel_t *dma = &pipe->host_dma;
-
-    // if (!host_dma_accept_tcd_input(dma))
-    //     return;
-    host_dma_accept_tcd_input(dma);
-
-    tx_fill_up_vspa_tcds(pipe);
-}
-
-void transmitter_process_host_tcd_input(void)
-{
-    for (int i = 0; i < TX_MAX_PIPELINES_COUNT; ++i)
-        tx_tcd_input(&tx_pipe[i]);
-}
-
 void transmitter_handle_vspa_flags_irq(uint32_t flags)
 {
     bool raise_irq = false;
     if (flags & VTH_SIGNAL_TXLANE0_TCD_DONE)
     {
+        // dbg_info("TCD_DONE" LOG_EOL);
         raise_irq = true;
-        ++tx_pipe[0].host_dma.hif.tcd_complete_counter;
-        // log_info("[%8x]TCD_DONE, t:%x" LOG_EOL, ulPhyTimerComparatorRead(10), ulPhyTimerComparatorGetStatus(11));
-        // tx_fill_up_vspa_tcds(&tx_pipe[lane]);
+        tx_pipe[0].host_dma.hif.tcd_fifo.done = tx_pipe[0].vspa_dma->tcd_fifo.done;
     }
     if (raise_irq)
         la9310_sirq_raise_events(&softirq, (1 << VSPA_DDR_READ_DONE));
@@ -274,14 +249,7 @@ void transmitter_service(void)
 {
     for (int lane = 0; lane < TX_MAX_PIPELINES_COUNT; ++lane)
     {
+        host_dma_update_state(&tx_pipe[lane].host_dma);
         tx_fill_up_vspa_tcds(&tx_pipe[lane]);
-        // const uint32_t trigger_status = ulPhyTimerComparatorGetStatus(pipe->phytimer_id);
-        // const bool trigger_scheduled = trigger_status & PHY_TIMER_COMPARATOR_STATUS_ENABLED;
-        // const bool trigger_active = trigger_status & PHY_TIMER_COMPARATOR_STATUS_OUT_HIGH;
-
-        // if (tx_pipe[i].next_burst_pending && !(ulPhyTimerComparatorGetStatus(11)))
-        // {
-        //     tx_pipe[i].next_burst_pending = false;
-        // }
     }
 }

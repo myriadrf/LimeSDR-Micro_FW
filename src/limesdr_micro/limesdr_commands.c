@@ -581,7 +581,7 @@ static void vSwCmdTask( void * pvParameters )
 
         HandleCommand(pxCmdDesc);
         dsb();
-        la9310_sirq_raise_events(&softirq, BITMASK(HOST_COMMAND_DONE));
+        // la9310_sirq_raise_events(&softirq, BITMASK(HOST_COMMAND_DONE));
     }
 }
 
@@ -599,7 +599,7 @@ void ServiceCommands()
 
         HandleCommand(pxCmdDesc);
         dsb();
-        la9310_sirq_raise_events(&softirq, BITMASK(HOST_COMMAND_DONE));
+        // la9310_sirq_raise_events(&softirq, BITMASK(HOST_COMMAND_DONE));
     }
 }
 

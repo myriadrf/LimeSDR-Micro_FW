@@ -16,22 +16,15 @@
 
 #include "la9310_sirq.h"
 
-struct DebugStats {
-    uint32_t adc_enq;
-    uint32_t adc_compl;
-    uint32_t ddr_enq;
-    uint32_t ddr_compl;
-    uint32_t ddr_ovr;
-    uint32_t adc_err;
-    uint32_t ddr_err;
-};
-
-struct DebugStats *rxstats = NULL;
-
-#define TCD_PREFIL_LIMIT 32
+#define TCD_PREFIL_LIMIT 16
 
 #if 0
-    #define dbg_info(...) log_info(__VA_ARGS__)
+    #define dbg_info(...) \
+        { \
+            log_info("[%8x]", ulPhyTimerComparatorRead(10)); \
+            log_info(__VA_ARGS__); \
+        }
+
 #else
     #define dbg_info(...)
 #endif
@@ -52,20 +45,20 @@ void receiver_init(void)
 
 static bool rx_schedule_next_host_tcd(rx_lane_t *pipe)
 {
-    host_dma_channel_t *dma = &pipe->host_dma;
-    if (!dma->enabled)
+    if (!pipe->host_dma.enabled)
         return false;
 
     if (!pipe->vspa_dma)
         return false;
 
-    if (queue_isempty(&dma->tcd_fifo))
+    host_dma_hif_t *hdma = &pipe->host_dma.hif;
+    if (tcd_fifo_isempty(&hdma->tcd_fifo))
         return false;
 
-    dma_tcd_t *next_tcd = (dma_tcd_t *)(queue_front(&dma->tcd_fifo));
-    if (!push_tcd_to_vspa(pipe->vspa_dma, next_tcd))
+    dma_tcd_t *next_tcd = tcd_fifo_front(&hdma->tcd_fifo);
+    vspa_dma_hif_t *vdma = pipe->vspa_dma;
+    if (!push_tcd_to_vspa(vdma, next_tcd))
         return false;
-    // log_info("rx_tcd_vspa_push %x, sz:%i f:%x" LOG_EOL, next_tcd->la9310_mem_address, next_tcd->size, next_tcd->flags);
 
     const uint32_t trigger_status = ulPhyTimerComparatorGetStatus(pipe->phytimer_id);
     const bool trigger_scheduled = trigger_status & PHY_TIMER_COMPARATOR_STATUS_ENABLED;
@@ -87,45 +80,46 @@ static bool rx_schedule_next_host_tcd(rx_lane_t *pipe)
         // TODO: check if not late
         if (next_tcd->flags & PKT_START)
         {
-            const uint64_t on_phytime =
-                stream_phytime_origin + ((next_tcd->timestamp << pipe->oversample_pow2) >> adc_clock_divisor_disabled);
+            uint64_t ts = next_tcd->timestamp_msb;
+            ts <<= 32;
+            ts |= next_tcd->timestamp_lsb;
+
+            const uint64_t on_phytime = stream_phytime_origin + ((ts << pipe->oversample_pow2) >> adc_clock_divisor_disabled);
             vPhyTimerComparatorConfig(pipe->phytimer_id, PHY_TIMER_COMPARATOR_CLEAR_INT, ePhyTimerComparatorOut1, on_phytime);
             dbg_info("-RX-schedon %08X" LOG_EOL, (uint32_t)on_phytime);
         }
         else if (next_tcd->flags & PKT_END)
         {
+            uint64_t ts = next_tcd->timestamp_msb;
+            ts <<= 32;
+            ts |= next_tcd->timestamp_lsb;
             const uint64_t off_phytime =
-                stream_phytime_origin +
-                (((next_tcd->timestamp + next_tcd->size / 4) << pipe->oversample_pow2) >> adc_clock_divisor_disabled);
+                stream_phytime_origin + (((ts + next_tcd->size / 4) << pipe->oversample_pow2) >> adc_clock_divisor_disabled);
             dbg_info("-RX-schedoff %08X" LOG_EOL, (uint32_t)off_phytime);
             vPhyTimerComparatorConfig(pipe->phytimer_id, PHY_TIMER_COMPARATOR_CLEAR_INT, ePhyTimerComparatorOut0, off_phytime);
         }
     }
     else
     {
-        // if (next_tcd->flags & PKT_END)
-        // {
-        //     const uint32_t now = timer64_get_counter();
-        //     const uint64_t off_timestamp = now + next_tcd->size/4;
-        //     vPhyTimerComparatorConfig(pipe->phytimer_id, PHY_TIMER_COMPARATOR_CLEAR_INT, ePhyTimerComparatorOut0, off_timestamp);
-        //     log_info("-RX-schedoff %08X" LOG_EOL, (uint32_t)next_tcd->timestamp);
-        // }
         if (!trigger_active && !trigger_scheduled)
         {
-            // const uint32_t now = timer64_get_counter();
             const uint32_t start_delay_samples =
-                2048; // 16*1024;// 8*1024; // gives some time to schedule other channels, so they could start working from the 0 timestamp
+                8 * 2048; // gives some time to schedule other channels, so they could start working from the 0 timestamp
             const uint64_t on_phytime =
                 stream_phytime_origin + ((start_delay_samples << pipe->oversample_pow2) >> adc_clock_divisor_disabled);
             stream_phytime_origin_rx = on_phytime;
             vPhyTimerComparatorConfig(pipe->phytimer_id, PHY_TIMER_COMPARATOR_CLEAR_INT, ePhyTimerComparatorOut1, on_phytime);
-            dbg_info("-RX-schedon %08X, orig: %8X" LOG_EOL, (uint32_t)on_phytime, (uint32_t)stream_phytime_origin);
+            dbg_info("-RX-schedon %08X, orig: %8X" LOG_EOL, (uint32_t)on_phytime, (uint32_t)now);
         }
     }
 
-    queue_pop(&dma->tcd_fifo);
-    if (dma->loop_mode)
-        queue_push(&dma->tcd_fifo, next_tcd);
+    tcd_fifo_pop(&hdma->tcd_fifo);
+    if (pipe->host_dma.loop_mode)
+    {
+        dma_tcd_t *dest = tcd_fifo_back(&hdma->tcd_fifo);
+        *dest = *next_tcd;
+        tcd_fifo_push(&hdma->tcd_fifo);
+    }
     return true;
 }
 
@@ -134,10 +128,6 @@ static inline void rx_fill_up_vspa_tcds(rx_lane_t *pipe)
     int i = 0;
     for (; rx_schedule_next_host_tcd(pipe) && i < TCD_PREFIL_LIMIT; ++i)
         ;
-    if (i > 0)
-    {
-        dbg_info("rxfill_%i:%i, o:%i/%i" LOG_EOL, i, pipe->vspa_dma->tcd_done_counter, rxstats->ddr_ovr, rxstats->ddr_err);
-    }
 }
 
 int receiver_lane_enable(uint16_t lane, bool enabled)
@@ -154,19 +144,15 @@ int receiver_lane_enable(uint16_t lane, bool enabled)
             return -1;
         }
 
-        rxstats = vspa_memorymap_find(VSPA_MMAP_STATS);
-
-        // vPhyTimerComparatorForce(pipe->phytimer_id, ePhyTimerComparatorOut1); // not required. set trigger to 1 for proper AXIQ FIFO reset
+        // vPhyTimerComparatorForce(pipe->phytimer_id, ePhyTimerComparatorOut1); // not required. Rx AXIQ FIFO reset don't need trigger
         signal_to_vspa(HTV_SIGNAL_RXLANE0_PRIME); // get vspa adc ready, it'll wait for phytimer trigger
         while (vspa_signal_status() & HTV_SIGNAL_RXLANE0_PRIME)
         {
         }
         vPhyTimerComparatorForce(pipe->phytimer_id, ePhyTimerComparatorOut0); // set trigger to known state 0
-        stream_phytime_origin_rx = stream_phytime_origin;
 
         // timer will be configured by DMA TCD
         rx_fill_up_vspa_tcds(&rx_pipe[lane]);
-        // log_info("RxPrefil" LOG_EOL);
     }
     else
     {
@@ -190,24 +176,6 @@ int receiver_lane_set_channel(uint16_t lane, uint16_t channel)
     return 0;
 }
 
-// Insert host dma request into DMA table
-static void rx_tcd_input(rx_lane_t *pipe)
-{
-    host_dma_channel_t *dma = &pipe->host_dma;
-
-    host_dma_accept_tcd_input(dma);
-
-    rx_fill_up_vspa_tcds(pipe);
-}
-
-void receiver_process_host_tcd_input(void)
-{
-    for (int lane = 0; lane < RX_MAX_PIPELINES_COUNT; ++lane)
-    {
-        rx_tcd_input(&rx_pipe[lane]);
-    }
-}
-
 void receiver_handle_vspa_flags_irq(uint32_t flags)
 {
     bool raise_irq = false;
@@ -216,8 +184,7 @@ void receiver_handle_vspa_flags_irq(uint32_t flags)
         if (flags & (VTH_SIGNAL_RXLANE0_TCD_DONE << lane))
         {
             raise_irq |= true;
-            ++rx_pipe[lane].host_dma.hif.tcd_complete_counter;
-            // rx_fill_up_vspa_tcds(&rx_pipe[lane]);
+            rx_pipe[lane].host_dma.hif.tcd_fifo.done = rx_pipe[lane].vspa_dma->tcd_fifo.done;
         }
     }
     if (raise_irq)
@@ -228,6 +195,7 @@ void receiver_service(void)
 {
     for (int lane = 0; lane < RX_MAX_PIPELINES_COUNT; ++lane)
     {
+        host_dma_update_state(&rx_pipe[lane].host_dma);
         rx_fill_up_vspa_tcds(&rx_pipe[lane]);
     }
 }

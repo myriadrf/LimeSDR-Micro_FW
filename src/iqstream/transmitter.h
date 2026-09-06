@@ -12,9 +12,8 @@ typedef struct TxLane {
     host_dma_channel_t host_dma;
     uint64_t next_completion_ts;
     uint16_t phytimer_id;
-    volatile vspa_dma_hif_t *vspa_dma;
+    vspa_dma_hif_t *vspa_dma;
     uint8_t oversample_pow2;
-    uint8_t next_burst_pending;
     uint8_t wait_trigger_change;
     uint8_t expected_trigger;
 } tx_lane_t;

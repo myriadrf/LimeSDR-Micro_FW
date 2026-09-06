@@ -9,12 +9,13 @@
 #include "immap.h"
 #include "io.h"
 #include "log.h"
+#include <phytimer.h>
 
 #include "iqstream_signals.h"
 
 struct vspa_regs *vspa_csr = (struct vspa_regs *)VSPA_BASE_ADDR;
 
-uint64_t stream_phytime_origin = 256; // phytime when stream was enabled, to have common reference for timestamping Rx/Tx streams
+uint64_t stream_phytime_origin = 0; // phytime when stream was enabled, to have common reference for timestamping Rx/Tx streams
 uint64_t stream_phytime_origin_rx = 256;
 
 void iqstream_init(void)
@@ -40,6 +41,8 @@ int iqstream_enable(uint32_t rx_mask, uint32_t tx_mask)
         if (tx_mask & (1 << lane))
             transmitter_lane_enable(lane, true);
     }
+    if (rx_mask | tx_mask)
+        stream_phytime_origin = ulPhyTimerComparatorRead(10);
     return 0;
 }
 
@@ -60,14 +63,8 @@ int iqstream_disable(uint32_t rx_mask, uint32_t tx_mask)
 
 void iqstream_service(void)
 {
-    receiver_process_host_tcd_input();
     receiver_service();
-    transmitter_process_host_tcd_input();
     transmitter_service();
-}
-
-void iqstream_handle_vspa_dma_irq(uint32_t dma_irq_stat)
-{
 }
 
 inline static void iqstream_handle_error(void)
@@ -85,15 +82,14 @@ void iqstream_handle_vspa_flags_irq(uint32_t flags)
     transmitter_handle_vspa_flags_irq(flags);
 }
 
-bool push_tcd_to_vspa(volatile vspa_dma_hif_t *hif, const dma_tcd_t *tcd)
+bool push_tcd_to_vspa(vspa_dma_hif_t *hif, const dma_tcd_t *src)
 {
-    if (vspa_signal_status() & hif->htv_tcd_pending_flag_mask)
+    if (tcd_fifo_isfull(&hif->tcd_fifo))
         return false;
-    // tcd->timestamp, timing is managed by M4, not relevant to VSPA
 
-    hif->input_tcd.address = tcd->la9310_mem_address;
-    hif->input_tcd.size = tcd->size;
-    hif->input_tcd.flags = tcd->flags;
+    dma_tcd_t *dest = tcd_fifo_back(&hif->tcd_fifo);
+    *dest = *src;
+    tcd_fifo_push(&hif->tcd_fifo);
     signal_to_vspa(hif->htv_tcd_pending_flag_mask);
     return true;
 }
@@ -128,23 +124,11 @@ bool push_tcd_to_vspa(volatile vspa_dma_hif_t *hif, const dma_tcd_t *tcd)
 
 void iqstream_vspa_irq_handler(void)
 {
-    struct vspa_regs *pVspaRegs = (struct vspa_regs *)VSPA_BASE_ADDR;
-    const uint32_t dma_irq_stat = IN_32(&pVspaRegs->dma_irq_stat);
-    // log_info( "VSPA_");
-    if (dma_irq_stat)
-    {
-        OUT_32(&pVspaRegs->dma_irq_stat, dma_irq_stat);
-        // log_info( "_DMA, %x", dma_irq_stat);
-        iqstream_handle_vspa_dma_irq(dma_irq_stat);
-        // la9310_sirq_raise_events(&pLa9310Info->softirq, (1 << VSPA_DDR_WRITE_DONE) );
-    }
-
+    struct vspa_regs *const pVspaRegs = (struct vspa_regs *)VSPA_BASE_ADDR;
     const uint32_t signal_flags = IN_32(&pVspaRegs->vcpu_host_flags0);
     if (signal_flags)
     {
         OUT_32(&pVspaRegs->vcpu_host_flags0, signal_flags);
-        // log_info("_sig, %x", signal_flags);
         iqstream_handle_vspa_flags_irq(signal_flags);
     }
-    // log_info(LOG_EOL);
 }
