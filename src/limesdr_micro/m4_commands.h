@@ -30,7 +30,8 @@ enum M4_Command {
     LIME_M4_RX_CONTROL,
     LIME_M4_GET_FEATURES,
     LIME_M4_DMA,
-    LIME_M4_IQSTREAM_CTRL
+    LIME_M4_IQSTREAM_CTRL,
+    LIME_M4_RX_CHANNEL_SELECT
 };
 
 struct tx_band_switch_payload {
@@ -55,6 +56,16 @@ struct iqstream_control_payload {
     uint32_t enable;
     uint32_t rxmask;
     uint32_t txmask;
+};
+
+struct iqstream_channel_select {
+    uint8_t lane;
+    uint8_t channel;
+};
+
+struct iqstream_channel_config {
+    uint8_t lane;
+    uint8_t oversample_pow2;
 };
 
 #endif

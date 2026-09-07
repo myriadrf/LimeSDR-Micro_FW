@@ -14,6 +14,7 @@
 #include "drivers/avi/la9310_avi_ds.h"
 #include "iqstream_signals.h"
 #include "iqstream.h"
+#include "iqplayer_commands.h"
 
 #include "la9310_sirq.h"
 
@@ -198,6 +199,20 @@ int transmitter_lane_enable(uint16_t lane, bool enabled)
             return -1;
         }
 
+        // configure channel selection and oversampling
+        uint32_t hiword = 0; //MBOX_OPC_TX_CHAN_SELECT << 24;
+        uint32_t loword = lane & 0xFF;
+        uint64_t value = ((uint64_t)hiword << 32) | loword;
+        // if (vspa_command_sync(value))
+        //     return -1;
+
+        hiword = MBOX_OPC_TX_CONFIGURE << 24;
+        loword = lane & 0xFF;
+        loword |= ((uint32_t)tx_pipe[lane].oversample_pow2 & 0xFF) << 8;
+        value = ((uint64_t)hiword << 32) | loword;
+        if (vspa_command_sync(value))
+            return -2;
+
         // must have tx_dma_allowed enabled, to properly do dma fifo_ptr_rst
         vPhyTimerComparatorForce(tx_pipe[lane].phytimer_id, ePhyTimerComparatorOut1);
         signal_to_vspa(HTV_SIGNAL_TXLANE0_PRIME); // prepare pipeline, RF transmission will be started by phytimer trigger
@@ -228,7 +243,15 @@ int transmitter_lane_select_channel(uint16_t lane, uint16_t channel)
         return -1;
 
     tx_pipe[lane].phytimer_id = PHY_TIMER_COMP_CH5_TX_ALLOWED + channel;
-    tx_pipe[lane].oversample_pow2 = 0;
+    return 0;
+}
+
+int transmitter_lane_set_oversample(uint16_t lane, uint16_t oversample_pow2)
+{
+    if (lane >= TX_MAX_PIPELINES_COUNT || oversample_pow2 > 2)
+        return -1;
+    tx_pipe[lane].oversample_pow2 = oversample_pow2;
+    log_info("TxLane[%i] set oversample 2^%i" LOG_EOL, lane, oversample_pow2);
     return 0;
 }
 

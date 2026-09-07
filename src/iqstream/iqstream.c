@@ -26,6 +26,7 @@ void iqstream_init(void)
 
 int iqstream_enable(uint32_t rx_mask, uint32_t tx_mask)
 {
+    int ret = 0;
     OUT_32(&vspa_csr->vspa_irqen, IN_32(&vspa_csr->vspa_irqen)
         | (1 << 4) // irqen_dma_cmp
         | (1 << 2) // irqen_flags0
@@ -34,7 +35,9 @@ int iqstream_enable(uint32_t rx_mask, uint32_t tx_mask)
     for (int lane = 0; lane < RX_MAX_PIPELINES_COUNT; ++lane)
     {
         if (rx_mask & (1 << lane))
-            receiver_lane_enable(lane, true);
+            ret = receiver_lane_enable(lane, true);
+        if (ret)
+            return ret;
     }
     for (int lane = 0; lane < TX_MAX_PIPELINES_COUNT; ++lane)
     {
@@ -43,7 +46,7 @@ int iqstream_enable(uint32_t rx_mask, uint32_t tx_mask)
     }
     if (rx_mask | tx_mask)
         stream_phytime_origin = ulPhyTimerComparatorRead(10);
-    return 0;
+    return ret;
 }
 
 int iqstream_disable(uint32_t rx_mask, uint32_t tx_mask)
@@ -131,4 +134,27 @@ void iqstream_vspa_irq_handler(void)
         OUT_32(&pVspaRegs->vcpu_host_flags0, signal_flags);
         iqstream_handle_vspa_flags_irq(signal_flags);
     }
+}
+
+int vspa_command_sync(uint64_t vspa_msg64)
+{
+    const int mbox_index = 0;
+    if (IN_32(&vspa_csr->host_mbox_status) & (1 << mbox_index))
+        return -1;
+
+    uint32_t loword = vspa_msg64 & 0xFFFFFFFFu;
+    uint32_t hiword = (vspa_msg64 >> 32);
+    log_info("VSPA_CMD, %08x_%08x" LOG_EOL, hiword, loword);
+    OUT_32(&vspa_csr->host_out_1_msb, hiword);
+    dmb();
+    OUT_32(&vspa_csr->host_out_1_lsb, loword);
+
+    // wait for response
+    if (IN_32(&vspa_csr->vspa_status) & VSPA_MBOX0_STATUS)
+    {
+        uint32_t msb = IN_32(&vspa_csr->host_in_0_msb);
+        uint32_t lsb = IN_32(&vspa_csr->host_in_0_lsb);
+        OUT_32(&vspa_csr->vspa_status, VSPA_MBOX0_STATUS);
+    }
+    return 0;
 }

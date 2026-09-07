@@ -30,6 +30,7 @@
 #include "la9310_sirq.h"
 #include "iqstream/iqstream.h"
 #include "iqstream/receiver.h"
+#include "iqstream/transmitter.h"
 
 extern struct la9310_hif *const s_Hif;
 
@@ -556,6 +557,24 @@ static void HandleCommand(volatile struct la9310_sw_cmd_desc *desc)
             desc->data[0] = iqstream_enable(payload->rxmask, payload->txmask);
         else
             desc->data[0] = iqstream_disable(payload->rxmask, payload->txmask);
+        status = LA9310_SW_CMD_STATUS_DONE;
+        break;
+    }
+    case LIME_M4_RX_CHANNEL_SELECT: {
+        struct iqstream_channel_select *payload = (struct iqstream_channel_select *)desc->data;
+        desc->data[0] = receiver_lane_set_channel(payload->lane, payload->channel);
+        status = LA9310_SW_CMD_STATUS_DONE;
+        break;
+    }
+    case LIME_M4_RX_CONTROL: {
+        struct iqstream_channel_config *payload = (struct iqstream_channel_config *)desc->data;
+        desc->data[0] = receiver_lane_set_oversample(payload->lane, payload->oversample_pow2);
+        status = LA9310_SW_CMD_STATUS_DONE;
+        break;
+    }
+    case LIME_M4_TX_CONTROL: {
+        struct iqstream_channel_config *payload = (struct iqstream_channel_config *)desc->data;
+        desc->data[0] = transmitter_lane_set_oversample(payload->lane, payload->oversample_pow2);
         status = LA9310_SW_CMD_STATUS_DONE;
         break;
     }

@@ -13,6 +13,7 @@
 #include "drivers/avi/la9310_avi_ds.h"
 #include "iqstream_signals.h"
 #include "iqstream.h"
+#include "iqplayer_commands.h"
 
 #include "la9310_sirq.h"
 
@@ -144,6 +145,21 @@ int receiver_lane_enable(uint16_t lane, bool enabled)
             return -1;
         }
 
+        // configure channel selection and oversampling
+        uint32_t hiword = MBOX_OPC_RX_CHAN_SELECT << 24;
+        uint32_t loword = lane & 0xFF;
+        loword |= (pipe->channel & 0xFF) << 8;
+        uint64_t value = ((uint64_t)hiword << 32) | loword;
+        if (vspa_command_sync(value))
+            return -1;
+
+        hiword = MBOX_OPC_RX_CONFIGURE << 24;
+        loword = lane & 0xFF;
+        loword |= ((uint32_t)pipe->oversample_pow2 & 0xFF) << 8;
+        value = ((uint64_t)hiword << 32) | loword;
+        if (vspa_command_sync(value))
+            return -2;
+
         // vPhyTimerComparatorForce(pipe->phytimer_id, ePhyTimerComparatorOut1); // not required. Rx AXIQ FIFO reset don't need trigger
         signal_to_vspa(HTV_SIGNAL_RXLANE0_PRIME); // get vspa adc ready, it'll wait for phytimer trigger
         while (vspa_signal_status() & HTV_SIGNAL_RXLANE0_PRIME)
@@ -172,7 +188,17 @@ int receiver_lane_set_channel(uint16_t lane, uint16_t channel)
     if (lane >= RX_MAX_PIPELINES_COUNT || channel >= 4)
         return -1;
     rx_pipe[lane].phytimer_id = PHY_TIMER_COMP_CH1_RX_ALLOWED + channel;
-    rx_pipe[lane].oversample_pow2 = 0;
+    rx_pipe[lane].channel = channel;
+    log_info("RxLane[%i] set channel %i" LOG_EOL, lane, channel);
+    return 0;
+}
+
+int receiver_lane_set_oversample(uint16_t lane, uint16_t oversample_pow2)
+{
+    if (lane >= RX_MAX_PIPELINES_COUNT || oversample_pow2 > 2)
+        return -1;
+    rx_pipe[lane].oversample_pow2 = oversample_pow2;
+    log_info("RxLane[%i] set oversample 2^%i" LOG_EOL, lane, oversample_pow2);
     return 0;
 }
 
