@@ -165,13 +165,12 @@ int receiver_lane_enable(uint16_t lane, bool enabled)
         if (vspa_command_sync(value))
             return -2;
 
-        // vPhyTimerComparatorForce(pipe->phytimer_id, ePhyTimerComparatorOut1); // not required. Rx AXIQ FIFO reset don't need trigger
+        vPhyTimerComparatorForce(pipe->phytimer_id, ePhyTimerComparatorOut0); // set trigger to known state 0
         const uint32_t prime_flag = HTV_SIGNAL_RXLANE0_PRIME << lane;
         signal_to_vspa(prime_flag); // get vspa adc ready, it'll wait for phytimer trigger
         while (vspa_signal_status() & prime_flag)
         {
         }
-        vPhyTimerComparatorForce(pipe->phytimer_id, ePhyTimerComparatorOut0); // set trigger to known state 0
 
         // timer will be configured by DMA TCD
         rx_fill_up_vspa_tcds(&rx_pipe[lane]);
