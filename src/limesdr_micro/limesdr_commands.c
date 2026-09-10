@@ -568,7 +568,7 @@ static void HandleCommand(volatile struct la9310_sw_cmd_desc *desc)
     }
     case LIME_M4_RX_CONTROL: {
         struct iqstream_channel_config *payload = (struct iqstream_channel_config *)desc->data;
-        desc->data[0] = receiver_lane_set_oversample(payload->lane, payload->oversample_pow2);
+        desc->data[0] = receiver_set_oversample(payload->lane, payload->oversample_pow2);
         status = LA9310_SW_CMD_STATUS_DONE;
         break;
     }

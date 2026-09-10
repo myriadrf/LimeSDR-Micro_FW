@@ -34,6 +34,8 @@ extern struct la9310_sirq softirq;
 
 rx_lane_t rx_pipe[RX_MAX_PIPELINES_COUNT] __attribute__((section(".hif")));
 
+static rx_config_t rx_settings[4];
+
 const uint8_t adc_clock_divisor_disabled = 0; // when clock divisor disabled, 1 phytimer == 2 samples step
 
 void receiver_init(void)
@@ -85,7 +87,8 @@ static bool rx_schedule_next_host_tcd(rx_lane_t *pipe)
             ts <<= 32;
             ts |= next_tcd->timestamp_lsb;
 
-            const uint64_t on_phytime = stream_phytime_origin + ((ts << pipe->oversample_pow2) >> adc_clock_divisor_disabled);
+            const uint64_t on_phytime =
+                stream_phytime_origin + ((ts << rx_settings[pipe->channel].oversample_pow2) >> adc_clock_divisor_disabled);
             vPhyTimerComparatorConfig(pipe->phytimer_id, PHY_TIMER_COMPARATOR_CLEAR_INT, ePhyTimerComparatorOut1, on_phytime);
             dbg_info("-RX-schedon %08X" LOG_EOL, (uint32_t)on_phytime);
         }
@@ -95,7 +98,8 @@ static bool rx_schedule_next_host_tcd(rx_lane_t *pipe)
             ts <<= 32;
             ts |= next_tcd->timestamp_lsb;
             const uint64_t off_phytime =
-                stream_phytime_origin + (((ts + next_tcd->size / 4) << pipe->oversample_pow2) >> adc_clock_divisor_disabled);
+                stream_phytime_origin +
+                (((ts + next_tcd->size / 4) << rx_settings[pipe->channel].oversample_pow2) >> adc_clock_divisor_disabled);
             dbg_info("-RX-schedoff %08X" LOG_EOL, (uint32_t)off_phytime);
             vPhyTimerComparatorConfig(pipe->phytimer_id, PHY_TIMER_COMPARATOR_CLEAR_INT, ePhyTimerComparatorOut0, off_phytime);
         }
@@ -107,7 +111,8 @@ static bool rx_schedule_next_host_tcd(rx_lane_t *pipe)
             const uint32_t start_delay_samples =
                 8 * 2048; // gives some time to schedule other channels, so they could start working from the 0 timestamp
             const uint64_t on_phytime =
-                stream_phytime_origin + ((start_delay_samples << pipe->oversample_pow2) >> adc_clock_divisor_disabled);
+                stream_phytime_origin +
+                ((start_delay_samples << rx_settings[pipe->channel].oversample_pow2) >> adc_clock_divisor_disabled);
             stream_phytime_origin_rx = on_phytime;
             vPhyTimerComparatorConfig(pipe->phytimer_id, PHY_TIMER_COMPARATOR_CLEAR_INT, ePhyTimerComparatorOut1, on_phytime);
             dbg_info("-RX-schedon %08X, orig: %8X" LOG_EOL, (uint32_t)on_phytime, (uint32_t)now);
@@ -141,7 +146,7 @@ int receiver_lane_enable(uint16_t lane, bool enabled)
         pipe->vspa_dma = vspa_memorymap_find(VSPA_MMAP_RXDMA_LANE0 + lane);
         if (!pipe->vspa_dma)
         {
-            log_err("VSPA:lane DMA hif not found" LOG_EOL);
+            log_err("VSPA:lane[%i] DMA hif not found" LOG_EOL, lane);
             return -1;
         }
 
@@ -155,14 +160,15 @@ int receiver_lane_enable(uint16_t lane, bool enabled)
 
         hiword = MBOX_OPC_RX_CONFIGURE << 24;
         loword = lane & 0xFF;
-        loword |= ((uint32_t)pipe->oversample_pow2 & 0xFF) << 8;
+        loword |= ((uint32_t)rx_settings[pipe->channel].oversample_pow2 & 0xFF) << 8;
         value = ((uint64_t)hiword << 32) | loword;
         if (vspa_command_sync(value))
             return -2;
 
         // vPhyTimerComparatorForce(pipe->phytimer_id, ePhyTimerComparatorOut1); // not required. Rx AXIQ FIFO reset don't need trigger
-        signal_to_vspa(HTV_SIGNAL_RXLANE0_PRIME); // get vspa adc ready, it'll wait for phytimer trigger
-        while (vspa_signal_status() & HTV_SIGNAL_RXLANE0_PRIME)
+        const uint32_t prime_flag = HTV_SIGNAL_RXLANE0_PRIME << lane;
+        signal_to_vspa(prime_flag); // get vspa adc ready, it'll wait for phytimer trigger
+        while (vspa_signal_status() & prime_flag)
         {
         }
         vPhyTimerComparatorForce(pipe->phytimer_id, ePhyTimerComparatorOut0); // set trigger to known state 0
@@ -173,8 +179,9 @@ int receiver_lane_enable(uint16_t lane, bool enabled)
     else
     {
         vPhyTimerComparatorForce(pipe->phytimer_id, ePhyTimerComparatorOut1); // set trigger to 1 for proper AXIQ FIFO reset
-        signal_to_vspa(HTV_SIGNAL_RXLANE0_ABORT);
-        while (vspa_signal_status() & HTV_SIGNAL_RXLANE0_ABORT)
+        const uint32_t abort_flag = HTV_SIGNAL_RXLANE0_ABORT << lane;
+        signal_to_vspa(abort_flag);
+        while (vspa_signal_status() & abort_flag)
         {
         }
         vPhyTimerComparatorForce(pipe->phytimer_id, ePhyTimerComparatorOut0);
@@ -193,12 +200,12 @@ int receiver_lane_set_channel(uint16_t lane, uint16_t channel)
     return 0;
 }
 
-int receiver_lane_set_oversample(uint16_t lane, uint16_t oversample_pow2)
+int receiver_set_oversample(uint16_t channel, uint16_t oversample_pow2)
 {
-    if (lane >= RX_MAX_PIPELINES_COUNT || oversample_pow2 > 2)
+    if (channel >= 4 || oversample_pow2 > 2)
         return -1;
-    rx_pipe[lane].oversample_pow2 = oversample_pow2;
-    log_info("RxLane[%i] set oversample 2^%i" LOG_EOL, lane, oversample_pow2);
+    rx_settings[channel].oversample_pow2 = oversample_pow2;
+    log_info("RxChannel[%i] set oversample 2^%i" LOG_EOL, channel, oversample_pow2);
     return 0;
 }
 

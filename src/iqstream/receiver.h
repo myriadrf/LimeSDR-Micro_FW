@@ -6,20 +6,23 @@
 
 #include <stdint.h>
 
-#define RX_MAX_PIPELINES_COUNT 1
+#define RX_MAX_PIPELINES_COUNT 2
 
 typedef struct RxLane {
     host_dma_channel_t host_dma;
     uint16_t phytimer_id;
     vspa_dma_hif_t *vspa_dma;
-    uint8_t oversample_pow2;
     uint8_t channel;
 } rx_lane_t;
+
+typedef struct RxChannelConfig {
+    uint8_t oversample_pow2;
+} rx_config_t;
 
 void receiver_init(void);
 int receiver_lane_enable(uint16_t lane, bool enabled);
 int receiver_lane_set_channel(uint16_t lane, uint16_t channel);
-int receiver_lane_set_oversample(uint16_t lane, uint16_t oversample_pow2);
+int receiver_set_oversample(uint16_t channel, uint16_t oversample_pow2);
 
 void receiver_handle_vspa_flags_irq(uint32_t flags);
 void receiver_service(void);

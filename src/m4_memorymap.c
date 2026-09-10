@@ -11,7 +11,15 @@ extern tx_lane_t tx_pipe[];
 static const m4_memory_map_t features_map[] = {
     { M4_MMAP_COMMAND_HIF, (uint32_t) & ((struct la9310_hif *)(TCML_PHY_ADDR + LA9310_EP_HIF_OFFSET))->sw_cmd_desc },
     { M4_MMAP_IQPLAYER_RXPIPE0, (uint32_t)&rx_pipe[0].host_dma.hif },
-    // { M4_MMAP_IQPLAYER_RXPIPE1, (uint32_t)&rx_pipe[1].host_dma.hif },
+#if RX_MAX_PIPELINES_COUNT > 1
+    { M4_MMAP_IQPLAYER_RXPIPE1, (uint32_t)&rx_pipe[1].host_dma.hif },
+#endif
+#if RX_MAX_PIPELINES_COUNT > 2
+    { M4_MMAP_IQPLAYER_RXPIPE2, (uint32_t)&rx_pipe[2].host_dma.hif },
+#endif
+#if RX_MAX_PIPELINES_COUNT > 3
+    { M4_MMAP_IQPLAYER_RXPIPE3, (uint32_t)&rx_pipe[3].host_dma.hif },
+#endif
     { M4_MMAP_IQPLAYER_TXPIPE0, (uint32_t)&tx_pipe[0].host_dma.hif },
     { M4_MMAP_NONE, 0 }
 };
