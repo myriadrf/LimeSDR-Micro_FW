@@ -54,7 +54,7 @@ void _getpid(void) {};
 void _isatty_r(void) {};
 void _kill_r(void) {};
 
-static void axiq_loopback(bool bLoopbackEnable, uint32_t rx_mask)
+void axiq_loopback(bool bLoopbackEnable, uint32_t rx_mask)
 {
     if (bLoopbackEnable)
         OUT_32(DBGGNCR, ((SET_AXIQ_LOOPBACK_MASK | rx_mask) | IN_32(DBGGNCR)));

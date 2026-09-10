@@ -45,6 +45,7 @@ extern int32_t spi_lms7002m_write( struct LA931xDspiInstance * pDspiHandle, uint
 extern void UseExternalReferenceClock(bool external);
 extern int IsExternalRefClkUsed();
 extern void bootloader_reset_handler(void);
+extern void axiq_loopback(bool bLoopbackEnable, uint32_t rx_mask);
 
 extern void *GetFeaturesMap(void);
 
@@ -535,11 +536,11 @@ static void HandleCommand(volatile struct la9310_sw_cmd_desc *desc)
         status = LA9310_SW_CMD_STATUS_DONE;
         break;
     }
-    // case LIME_M4_DIGITAL_LOOPBACK: {
-    //     vAxiqLoopbackSet(desc->data[0], SET_AXIQ_LOOPBACK_MASK_ALL);
-    //     status = LA9310_SW_CMD_STATUS_DONE;
-    //     break;
-    // }
+    case LIME_M4_DIGITAL_LOOPBACK: {
+        axiq_loopback(desc->data[0], SET_AXIQ_LOOPBACK_MASK_ALL);
+        status = LA9310_SW_CMD_STATUS_DONE;
+        break;
+    }
     case LIME_M4_GET_FEATURES: {
         desc->data[0] = (uint32_t)GetFeaturesMap();
         status = LA9310_SW_CMD_STATUS_DONE;
