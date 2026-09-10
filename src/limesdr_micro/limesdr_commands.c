@@ -373,6 +373,11 @@ static lime_Result SetLA9310SystemClock(struct la9310_hif *hif, uint32_t system_
     if (system_clk_hz == 0)
         return lime_Result_InvalidValue;
 
+    // No clear limits is known, but going lower introduces a chance that VSPA DMA might
+    // get stuck, with no recovery except power cycle.
+    if (system_clk_hz < 30e6)
+        return lime_Result_OutOfRange;
+
     lime_Result result = lms7002m_set_frequency_cgen(rfsoc, 4 * system_clk_hz);
     if (result != lime_Result_Success)
         return result;
