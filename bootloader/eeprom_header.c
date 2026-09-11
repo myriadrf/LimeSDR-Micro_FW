@@ -9,16 +9,16 @@ extern uint32_t __bootloader_plugin_offset;
 extern void bootloader_reset_handler(void);
 
 // empty function just to remove linker warnings of them not implemented in arm lib
-void _close(void)
+static void _close(void)
 {
 }
-void _lseek(void)
+static void _lseek(void)
 {
 }
-void _write(void)
+static void _write(void)
 {
 }
-void _read(void)
+static void _read(void)
 {
 }
 

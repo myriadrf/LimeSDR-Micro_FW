@@ -5,7 +5,6 @@ include(FeatureSummary)
 add_library(bootloader STATIC)
 target_sources(bootloader PUBLIC
     bootloader.c
-    ../src/drivers/misc/la9310_gpio.c
 )
 
 target_compile_options(bootloader PRIVATE
@@ -20,20 +19,18 @@ target_compile_options(bootloader PRIVATE
     -ffunction-sections
     -mlittle-endian
     -Wall
-    # -g
-    # -ggdb
     -mthumb
     -Os
 )
 
 target_link_options(bootloader PRIVATE
     --specs=nosys.specs
-    #-Wl,-gc-sections
+    -Wl,-gc-sections
     -Wl,-print-memory-usage
-    # -Wl,--strip-all
-    # -Wl,--strip-discarded
-    # -Wl,--discard-all
-    # -Wl,--discard-locals
+    -Wl,--strip-all
+    -Wl,--strip-discarded
+    -Wl,--discard-all
+    -Wl,--discard-locals
 )
 
 target_link_libraries(bootloader PUBLIC la9310_cm4)
@@ -43,6 +40,24 @@ target_link_libraries(bootloader PUBLIC la9310_cm4)
 add_executable(la9310-eeprom-bootup-pcie
     eeprom_header.c
     pcie_init.c
+)
+
+target_compile_options(la9310-eeprom-bootup-pcie PRIVATE
+    -g
+    -ggdb
+    -nostartfiles
+    -nolibc
+    -nostdlib
+    -fno-builtin
+    -fno-common
+    -ffreestanding
+    -fno-zero-initialized-in-bss
+    -fdata-sections
+    -ffunction-sections
+    -mlittle-endian
+    -Wall
+    -mthumb
+    -Os
 )
 
 # TODO: restructure non changing la9310 headers into linkable target
