@@ -238,35 +238,34 @@ void vWaitForPCIeLinkStability()
     }
 #endif /* if NXP_ERRATUM_A_009410 */
 
-void PCIE_IRQHandler( void )
+uint8_t g_pcie_linkdown_event_count = 0;
+void PCIE_IRQHandler(void)
 {
-    #if NXP_ERRATUM_A_009410
-        uint32_t * pulPEX_PF0_PME_MES_DR;
-        uint32_t ulIntDetectRegValue;
-        uint32_t ulLDorHRMask;
-        uint32_t ulLUMask;
-        static uint8_t ucLDOrHRWasDetected = 0;
+#if NXP_ERRATUM_A_009410
+    static uint8_t atu_needs_reconfigure = 0;
 
-        pulPEX_PF0_PME_MES_DR = ( uint32_t * ) ( PCIE_PF0_PME_MES_DR_REG );
-        ulIntDetectRegValue = IN_32( pulPEX_PF0_PME_MES_DR );
-        ulLDorHRMask = PCIE_LDDD | PCIE_HRDD;
-        ulLUMask = PCIE_LUDD;
+    const uint32_t pme_message_detect = IN_32(PCIE_PF0_PME_MES_DR_REG);
 
-        /*Detect Link up after Link down or Hot reset*/
-        if( ( ulIntDetectRegValue & ulLUMask ) && ucLDOrHRWasDetected )
-        {
-            prvSetupPcieAtu();
-            ucLDOrHRWasDetected = 0;
-            return;
-        }
+    // Detect Link down or Hot reset
+    const uint32_t linkdown_hotreset_mask = PCIE_LDDD | PCIE_HRDD;
+    if (pme_message_detect & linkdown_hotreset_mask)
+    {
+        atu_needs_reconfigure = 1;
+        ++g_pcie_linkdown_event_count;
+        OUT_32(PCIE_PF0_PME_MES_DR_REG, linkdown_hotreset_mask); // clear bit
+    }
 
-        /*Detect Link down or Hot reset*/
-        if( ulIntDetectRegValue & ulLDorHRMask )
-        {
-            ucLDOrHRWasDetected = 1;
-        }
-    #endif /* if NXP_ERRATUM_A_009410 */
-    #if ARM_ERRATUM_838869
-        dsb();
-    #endif
+    // Detect Link up after Link down or Hot reset
+    if ((pme_message_detect & PCIE_LUDD) && atu_needs_reconfigure)
+    {
+        prvSetupPcieAtu();
+        atu_needs_reconfigure = 0;
+        OUT_32(PCIE_PF0_PME_MES_DR_REG, PCIE_LUDD); // clear bit
+
+        // TODO: also need to restore iATU outbound windows config. Cache it in firmware, or signal host to reconfigure.
+    }
+#endif /* if NXP_ERRATUM_A_009410 */
+#if ARM_ERRATUM_838869
+    dsb();
+#endif
 }
