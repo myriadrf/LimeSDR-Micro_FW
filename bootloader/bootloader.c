@@ -114,6 +114,9 @@ __attribute__((noreturn)) void bootloader_reset_handler(void)
     // and indicate for software that M4 has active firmware loaded
     for (uint32_t addr = 0x41E00200; addr <= 0x41E00220; addr += 4)
         OUT_32(addr, 0);
+    // SCRATCHRW32: VSPA debug proxy pointer (src/vspa_debug.h), must not
+    // outlive the firmware that published it
+    OUT_32(0x41E0027C, 0);
 
     volatile struct la9310_boot_header *boot_header = (struct la9310_boot_header *)TCMU_PHY_ADDR;
     boot_header->preamble = 0;

@@ -97,6 +97,7 @@ target_sources(limesdr-micro-m4 PRIVATE
     # l1-trace.c
     m4_memorymap.c
     la9310_sirq.c
+    vspa_debug.c
     queue.c
     platform/ARM_CM4/startup.c
     log.c

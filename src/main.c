@@ -24,6 +24,7 @@
 #include "iqstream/iqstream.h"
 
 #include "vspa/vspa_regs.h"
+#include "vspa_debug.h"
 
 #if NXP_ERRATUM_A_009410
     #include "la9310_pci.h"
@@ -164,6 +165,7 @@ static int iInitHandler()
     dmb();
 
     OUT_32(&s_Dcr->ulScratchrw[9], (uint32_t)&memlog);
+    VspaDebugProxyInit(s_Dcr->ulScratchrw);
 
     /* XXX:NOTE - Do all initialization that is required by Host driver to
      * function like IRQ MUX, IPC, DMA in iLa9310HostPreInit().
