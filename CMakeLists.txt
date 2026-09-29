@@ -15,8 +15,12 @@ add_compile_options(
     -fdata-sections
     -ffunction-sections
     -fno-common
-    # -g
+    -ggdb3
     # -ggdb
+    # debug info names files relative to a fixed LimeSDR-Micro_FW/ root,
+    # independent of where the tree is checked out and built
+    -fdebug-prefix-map=${CMAKE_SOURCE_DIR}/=LimeSDR-Micro_FW/
+    -fdebug-prefix-map=${CMAKE_BINARY_DIR}/=LimeSDR-Micro_FW/build/
 )
 
 add_subdirectory(la9310)
