@@ -14,8 +14,6 @@ void iqstream_init(void);
 int iqstream_enable(uint32_t rx_mask, uint32_t tx_mask);
 int iqstream_disable(uint32_t rx_mask, uint32_t tx_mask);
 
-void iqstream_service(void);
-
 void iqstream_handle_vspa_flags_irq(uint32_t flags);
 
 bool push_tcd_to_vspa(vspa_dma_hif_t *hif, const dma_tcd_t *tcd);

@@ -64,12 +64,6 @@ int iqstream_disable(uint32_t rx_mask, uint32_t tx_mask)
     return 0;
 }
 
-void iqstream_service(void)
-{
-    receiver_service();
-    transmitter_service();
-}
-
 inline static void iqstream_handle_error(void)
 {
     // TODO: get errno code

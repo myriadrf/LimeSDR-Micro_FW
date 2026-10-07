@@ -8,15 +8,9 @@
 
 #define TX_MAX_PIPELINES_COUNT 1
 
-typedef struct TxLane {
-    host_dma_channel_t host_dma;
-    uint64_t next_completion_ts;
-    uint16_t phytimer_id;
-    vspa_dma_hif_t *vspa_dma;
+typedef struct TxChannelConfig {
     uint8_t oversample_pow2;
-    uint8_t wait_trigger_change;
-    uint8_t expected_trigger;
-} tx_lane_t;
+} tx_config_t;
 
 void transmitter_init(void);
 int transmitter_lane_enable(uint16_t lane, bool enabled);
