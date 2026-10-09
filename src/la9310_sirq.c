@@ -10,6 +10,7 @@
 #include "la9310_sirq.h"
 #include "iqstream/iqstream.h"
 #include "io.h"
+#include "vspa_debug.h"
 
 #define LA9310_SCRATCH_SIRQ_STATUS_REG 5
 #define LA9310_SCRATCH_SIRQ_COUNT_REG 6
@@ -107,7 +108,9 @@ void la9310_msg2_irq_handler(void)
 
 void la9310_msg3_irq_handler(void)
 {
-    log_isr("MSG3 IRQ" LOG_EOL);
+    struct la9310_msg_unit *pMsgUnit = (struct la9310_msg_unit *)MSG_UNIT_BASE_ADDR;
+    (void)IN_32(&pMsgUnit[2].msir); // clear on read
+    VspaDebugProxy();
     NVIC_ClearPendingIRQ(IRQ_MSG3);
 #if ARM_ERRATUM_838869
     dsb();

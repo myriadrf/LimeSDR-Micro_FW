@@ -45,7 +45,9 @@ SECTIONS
 
   .bootloader_lib :
   {
-    *bootloader.c.obj (SORT_BY_ALIGNMENT(*))
+    /* code and data only: a wildcard would also pull in .comment,
+     * .ARM.attributes and, with -g, the .debug_* sections */
+    *bootloader.c.obj (SORT_BY_ALIGNMENT(.text*) SORT_BY_ALIGNMENT(.rodata*) SORT_BY_ALIGNMENT(.data*))
   } > m_temp_bootloader AT > m_tcml
   PROVIDE_HIDDEN (__bootloader_src = LOADADDR(.bootloader_lib));
   PROVIDE_HIDDEN (__bootloader_dest = ADDR(.bootloader_lib));
