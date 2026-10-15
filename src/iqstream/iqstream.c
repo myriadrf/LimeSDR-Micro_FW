@@ -79,46 +79,6 @@ void iqstream_handle_vspa_flags_irq(uint32_t flags)
     transmitter_handle_vspa_flags_irq(flags);
 }
 
-bool push_tcd_to_vspa(vspa_dma_hif_t *hif, const dma_tcd_t *src)
-{
-    if (tcd_fifo_isfull(&hif->tcd_fifo))
-        return false;
-
-    dma_tcd_t *dest = tcd_fifo_back(&hif->tcd_fifo);
-    *dest = *src;
-    tcd_fifo_push(&hif->tcd_fifo);
-    signal_to_vspa(hif->htv_tcd_pending_flag_mask);
-    return true;
-}
-
-// Once AXIQ problems start, they can result in interrupt storm
-// void iqstream_handle_axiq_irq(void)
-// {
-//     uint32_t vspa_gpin0 = iord(GPI(0)); // rx axiq status
-//     uint32_t vspa_gpin1 = iord(GPI(1)); // tx axiq status
-//     // log_info("in0:%x in1:%x" LOG_EOL, vspa_gpin0, vspa_gpin1);
-
-//     const uint32_t rx_overrun = vspa_gpin0 & 0xCCCC;
-//     const uint32_t tx_underrun = vspa_gpin1 & (0x3 << 18);
-
-//     if (rx_overrun)
-//     {
-//         uint32_t gpo4 = iord(GPO(4));
-//         gpo4 |= 0x10101010;
-//         // log_info("wr4:%x" LOG_EOL,gpo4);
-//         iowr(GPO(4), gpo4);
-//     }
-//     if (tx_underrun)
-//     {
-//         uint32_t gpo7 = iord(GPO(7));
-//         gpo7 |= 0x10;
-//         log_info("wr7:%x" LOG_EOL, gpo7);
-//         iowr(GPO(7), gpo7);
-//         iowr(GPO(7), gpo7 & ~0x10);
-//         signal_to_vspa(HTV_SIGNAL_TXLANE0_UNBRICK); // get vspa adc ready, it'll wait for phytimer trigger
-//     }
-// }
-
 void iqstream_vspa_irq_handler(void)
 {
     struct vspa_regs *const pVspaRegs = (struct vspa_regs *)VSPA_BASE_ADDR;
@@ -148,6 +108,7 @@ int vspa_command_sync(uint64_t vspa_msg64)
     {
         uint32_t msb = IN_32(&vspa_csr->host_in_0_msb);
         uint32_t lsb = IN_32(&vspa_csr->host_in_0_lsb);
+        log_info("VSPA_CMD_RET, %08x_%08x" LOG_EOL, msb, lsb);
         OUT_32(&vspa_csr->vspa_status, VSPA_MBOX0_STATUS);
     }
     return 0;

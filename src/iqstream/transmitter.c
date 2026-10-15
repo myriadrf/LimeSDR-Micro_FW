@@ -6,7 +6,6 @@
 #include <phytimer.h>
 #include "limesdr_micro/timer64.h"
 #include "vspa_memorymap.h"
-#include "host_dma_hif.h"
 
 #include "core_cm4.h"
 #include "immap.h"
@@ -88,6 +87,13 @@ int transmitter_lane_set_oversample(uint16_t lane, uint16_t oversample_pow2)
     tx_settings.oversample_pow2 = oversample_pow2;
     log_info("TxLane[%i] set oversample 2^%i" LOG_EOL, lane, oversample_pow2);
     return 0;
+}
+
+int transmitter_lane_get_oversample(uint16_t lane)
+{
+    if (lane >= TX_MAX_PIPELINES_COUNT)
+        return -1;
+    return tx_settings.oversample_pow2;
 }
 
 void transmitter_handle_vspa_flags_irq(uint32_t flags)

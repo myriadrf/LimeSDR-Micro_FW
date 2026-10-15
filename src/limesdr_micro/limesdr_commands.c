@@ -23,7 +23,6 @@
 #include "lms7002m/spi.h"
 #include "limesdr_micro.h"
 #include "m4_commands.h"
-#include "iqstream/vspa_dma_hif.h"
 
 #include "eeprom.h"
 #include "timer64.h"

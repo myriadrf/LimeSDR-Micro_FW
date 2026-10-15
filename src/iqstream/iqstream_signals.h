@@ -1,6 +1,8 @@
 #ifndef LIME_IQSTREAM_SIGNALS_H
 #define LIME_IQSTREAM_SIGNALS_H
 
+#include <stdint.h>
+
 // Host to VSPA flags
 enum HTV_Signal {
     HTV_SIGNAL_NONE = 0,
@@ -31,5 +33,8 @@ enum VTH_Signal {
     VTH_SIGNAL_TXLANE0_TCD_DONE = (1 << 14),
     VTH_SIGNAL_ERROR = (1 << 31),
 };
+
+void signal_to_vspa(uint32_t flags);
+uint32_t vspa_signal_status();
 
 #endif // LIME_IQSTREAM_SIGNALS_H

@@ -1,10 +1,8 @@
 #ifndef LIME_M4_IQPLAYER_RECEIVER_H
 #define LIME_M4_IQPLAYER_RECEIVER_H
 
-#include "host_dma.h"
-#include "vspa_dma_hif.h"
-
 #include <stdint.h>
+#include <stdbool.h>
 
 #define RX_MAX_PIPELINES_COUNT 2
 
