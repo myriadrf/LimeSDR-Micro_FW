@@ -99,6 +99,13 @@ int receiver_set_oversample(uint16_t channel, uint16_t oversample_pow2)
     return 0;
 }
 
+int receiver_get_oversample(uint16_t channel)
+{
+    if (channel >= 4)
+        return -1;
+    return rx_settings[channel].oversample_pow2;
+}
+
 void receiver_handle_vspa_flags_irq(uint32_t flags)
 {
     bool raise_irq = false;

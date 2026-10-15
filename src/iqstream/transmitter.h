@@ -13,8 +13,8 @@ typedef struct TxChannelConfig {
 void transmitter_init(void);
 int transmitter_lane_enable(uint16_t lane, bool enabled);
 int transmitter_lane_select_channel(uint16_t lane, uint16_t channel);
-int transmitter_lane_set_oversample(uint16_t lane, uint16_t oversample_pow2);
-int transmitter_lane_get_oversample(uint16_t lane);
+int transmitter_set_oversample(uint16_t lane, uint16_t oversample_pow2);
+int transmitter_get_oversample(uint16_t lane);
 
 void transmitter_process_host_tcd_input(void);
 void transmitter_handle_vspa_flags_irq(uint32_t flags);

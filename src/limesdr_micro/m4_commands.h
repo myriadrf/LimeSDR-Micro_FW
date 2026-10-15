@@ -26,30 +26,14 @@ enum M4_Command {
     LIME_M4_HARDWARE_COUNTER_RESET,
     LIME_M4_DIGITAL_LOOPBACK,
 
-    LIME_M4_TX_CONTROL, //20
-    LIME_M4_RX_CONTROL,
+    LIME_M4_TX_SET_OVERSAMPLE, //20
+    LIME_M4_RX_SET_OVERSAMPLE,
     LIME_M4_GET_FEATURES,
     LIME_M4_DMA,
     LIME_M4_IQSTREAM_CTRL,
-    LIME_M4_RX_CHANNEL_SELECT
-};
-
-struct tx_band_switch_payload {
-    uint32_t tx_rf_switch_control;
-};
-
-enum tx_control_flags {
-    TX_CONTROL_START = (1 << 0),
-    TX_CONTROL_STOP = (1 << 1),
-    TX_CONTROL_HAS_TIME = (1 << 2),
-    TX_CONTROL_HAS_LENGTH = (1 << 3),
-};
-
-struct tx_control_payload {
-    int64_t timepoint;
-    uint32_t data_src_offset;
-    uint32_t data_length;
-    uint8_t flags;
+    LIME_M4_RX_CHANNEL_SELECT,
+    LIME_M4_RX_GET_OVERSAMPLE,
+    LIME_M4_TX_GET_OVERSAMPLE
 };
 
 struct iqstream_control_payload {
@@ -64,7 +48,7 @@ struct iqstream_channel_select {
 };
 
 struct iqstream_channel_config {
-    uint8_t lane;
+    uint8_t channel;
     uint8_t oversample_pow2;
 };
 

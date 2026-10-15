@@ -571,15 +571,29 @@ static void HandleCommand(volatile struct la9310_sw_cmd_desc *desc)
         status = LA9310_SW_CMD_STATUS_DONE;
         break;
     }
-    case LIME_M4_RX_CONTROL: {
+    case LIME_M4_RX_SET_OVERSAMPLE: {
         struct iqstream_channel_config *payload = (struct iqstream_channel_config *)desc->data;
-        desc->data[0] = receiver_set_oversample(payload->lane, payload->oversample_pow2);
+        desc->data[0] = receiver_set_oversample(payload->channel, payload->oversample_pow2);
         status = LA9310_SW_CMD_STATUS_DONE;
         break;
     }
-    case LIME_M4_TX_CONTROL: {
+    case LIME_M4_TX_SET_OVERSAMPLE: {
         struct iqstream_channel_config *payload = (struct iqstream_channel_config *)desc->data;
-        desc->data[0] = transmitter_lane_set_oversample(payload->lane, payload->oversample_pow2);
+        desc->data[0] = transmitter_set_oversample(payload->channel, payload->oversample_pow2);
+        status = LA9310_SW_CMD_STATUS_DONE;
+        break;
+    }
+    case LIME_M4_RX_GET_OVERSAMPLE:
+    case LIME_M4_TX_GET_OVERSAMPLE: {
+        struct iqstream_channel_config *payload = (struct iqstream_channel_config *)desc->data;
+        int oversample_pow2 = desc->cmd == LIME_M4_RX_GET_OVERSAMPLE ? receiver_get_oversample(payload->channel)
+                                                                     : transmitter_get_oversample(payload->channel);
+        if (oversample_pow2 < 0)
+        {
+            status = LA9310_SW_CMD_STATUS_ERROR;
+            break;
+        }
+        desc->data[0] = oversample_pow2;
         status = LA9310_SW_CMD_STATUS_DONE;
         break;
     }

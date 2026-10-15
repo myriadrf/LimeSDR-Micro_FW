@@ -80,18 +80,18 @@ int transmitter_lane_select_channel(uint16_t lane, uint16_t channel)
     return 0;
 }
 
-int transmitter_lane_set_oversample(uint16_t lane, uint16_t oversample_pow2)
+int transmitter_set_oversample(uint16_t channel, uint16_t oversample_pow2)
 {
-    if (lane >= TX_MAX_PIPELINES_COUNT || oversample_pow2 > 2)
+    if (channel >= TX_MAX_PIPELINES_COUNT || oversample_pow2 > 2)
         return -1;
     tx_settings.oversample_pow2 = oversample_pow2;
-    log_info("TxLane[%i] set oversample 2^%i" LOG_EOL, lane, oversample_pow2);
+    log_info("TxLane[%i] set oversample 2^%i" LOG_EOL, channel, oversample_pow2);
     return 0;
 }
 
-int transmitter_lane_get_oversample(uint16_t lane)
+int transmitter_get_oversample(uint16_t channel)
 {
-    if (lane >= TX_MAX_PIPELINES_COUNT)
+    if (channel >= TX_MAX_PIPELINES_COUNT)
         return -1;
     return tx_settings.oversample_pow2;
 }
