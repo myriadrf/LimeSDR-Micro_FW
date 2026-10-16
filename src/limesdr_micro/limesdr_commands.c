@@ -30,8 +30,10 @@
 #include "iqstream/iqstream.h"
 #include "iqstream/receiver.h"
 #include "iqstream/transmitter.h"
+#include "ppsdo/ppsdo.h"
 
 extern struct la9310_hif *const s_Hif;
+extern ppsdo_context_t ppsdo;
 
 extern struct la9310_sirq softirq;
 static uint16_t xo_dac_value = 0;
@@ -146,6 +148,11 @@ void SetXODAC(uint16_t value)
         xo_dac_value = value;
         log_info("XO_DAC set to (%d)\n", value);
     }
+}
+
+uint16_t GetXODAC(void)
+{
+    return xo_dac_value;
 }
 
 void LMS64C_CustomParameterWrite(const struct LMS64CPacket* packet, struct LMS64CPacket* responsePacket)
@@ -382,6 +389,7 @@ static lime_Result SetLA9310SystemClock(struct la9310_hif *hif, uint32_t system_
         return result;
 
     const uint32_t platform_clock = system_clk_hz * 4;
+    ppsdo_set_clock_frequency(&ppsdo, platform_clock / 8);
 
     vSerialInit((void *)UART_BASEADDR, UART_BAUDRATE, platform_clock);
 
@@ -397,7 +405,7 @@ static lime_Result SetLA9310SystemClock(struct la9310_hif *hif, uint32_t system_
     vDcsInit(IN_32(&hif->adc_mask), IN_32(&hif->adc_rate_mask), IN_32(&hif->dac_mask), IN_32(&hif->dac_rate_mask));
 
     // TODO: reconfigure PPS out phytimer
-    timer64_reset();
+    // timer64_reset();
 
     return result;
 }
@@ -415,6 +423,8 @@ static lime_Result ConfigureReferenceClock(uint32_t clk_hz, bool external)
     {
         // just flip the switch
         UseExternalReferenceClock(external);
+        if (external)
+            ppsdo_enable(&ppsdo, false); // XO no longer drives the clock, nothing to discipline
         return lime_Result_Success;
     }
     bool isExtClkUsed = IsExternalRefClkUsed();
@@ -436,6 +446,8 @@ static lime_Result ConfigureReferenceClock(uint32_t clk_hz, bool external)
 
     // flip clock source switch
     UseExternalReferenceClock(external);
+    if (external)
+        ppsdo_enable(&ppsdo, false); // XO no longer drives the clock, nothing to discipline
     lms7002m_set_reference_clock(rfsoc, clk_hz);
 
     // retune with new reference clock values
@@ -597,6 +609,21 @@ static void HandleCommand(volatile struct la9310_sw_cmd_desc *desc)
         status = LA9310_SW_CMD_STATUS_DONE;
         break;
     }
+    case LIME_M4_PPSDO_CTRL: {
+        struct ppsdo_control_payload *payload = (struct ppsdo_control_payload *)desc->data;
+        lime_Result result = lime_Result_Success;
+        if (payload->enable && IsExternalRefClkUsed())
+            result = lime_Result_NotSupported; // PPSDO tunes the on-board XO, which is not in use
+        else if (!ppsdo_enable(&ppsdo, payload->enable != 0))
+            result = lime_Result_Error;
+        struct ppsdo_status_payload *response = (struct ppsdo_status_payload *)desc->data;
+        response->result = (uint32_t)result;
+        response->enabled = ppsdo.enabled;
+        response->tune_state = ppsdo.tune_state;
+        response->xo_dac_value = ppsdo.vctcxo_trim_dac_value;
+        status = LA9310_SW_CMD_STATUS_DONE;
+        break;
+    }
     default:
         log_err("sw cmd not implemented: %d\r\n", desc->cmd);
         status = LA9310_SW_CMD_STATUS_ERROR;
@@ -612,6 +639,8 @@ static void vSwCmdTask( void * pvParameters )
 
     while( runEngine )
     {
+        // PPSDO tuning runs here so its I2C accesses don't interleave with the commands'.
+        ppsdo_process(&ppsdo);
         if (pxCmdDesc->status != LA9310_SW_CMD_STATUS_POSTED)
             continue;
 
@@ -628,6 +657,7 @@ void ServiceCommands()
 
     while (runEngine)
     {
+        ppsdo_process(&ppsdo);
         if (pxCmdDesc->status != LA9310_SW_CMD_STATUS_POSTED)
             continue;
 

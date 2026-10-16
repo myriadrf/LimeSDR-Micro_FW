@@ -33,7 +33,8 @@ enum M4_Command {
     LIME_M4_IQSTREAM_CTRL,
     LIME_M4_RX_CHANNEL_SELECT,
     LIME_M4_RX_GET_OVERSAMPLE,
-    LIME_M4_TX_GET_OVERSAMPLE
+    LIME_M4_TX_GET_OVERSAMPLE,
+    LIME_M4_PPSDO_CTRL
 };
 
 struct iqstream_control_payload {
@@ -50,6 +51,17 @@ struct iqstream_channel_select {
 struct iqstream_channel_config {
     uint8_t channel;
     uint8_t oversample_pow2;
+};
+
+struct ppsdo_control_payload {
+    uint32_t enable;
+};
+
+struct ppsdo_status_payload {
+    uint32_t result; // lime_Result
+    uint32_t enabled;
+    uint32_t tune_state; // ppsdo_tune_state_t
+    uint32_t xo_dac_value;
 };
 
 #endif

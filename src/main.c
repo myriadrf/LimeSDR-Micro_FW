@@ -26,6 +26,8 @@
 #include "vspa/vspa_regs.h"
 #include "vspa_debug.h"
 
+#include "ppsdo/ppsdo.h"
+
 #if NXP_ERRATUM_A_009410
     #include "la9310_pci.h"
 #endif
@@ -38,6 +40,9 @@ static struct vspa_regs *const s_VspaRegs = (struct vspa_regs *)VSPA_BASE_ADDR;
 static struct ccsr_dcr *const s_Dcr = (void *)DCR_BASE_ADDR;
 struct la9310_hif *const s_Hif = (struct la9310_hif *)((uint32_t)TCML_PHY_ADDR + LA9310_EP_HIF_OFFSET);
 struct la9310_sirq softirq;
+extern ppsdo_context_t ppsdo;
+extern void SetXODAC(uint16_t value);
+extern uint16_t GetXODAC(void);
 
 extern int InitBlinkLEDs();
 extern void vLa9310_do_handshake(struct ccsr_dcr *pxDcr);
@@ -266,6 +271,11 @@ int main( void )
         log_err("LMS64C_protocol_init failed\r\n");
         goto out;
     }
+#endif
+#ifdef LMS7002M_CLOCK
+    ppsdo_initialize(&ppsdo, SetXODAC, GetXODAC);
+#else
+    ppsdo_initialize(&ppsdo, NULL, NULL);
 #endif
     // It appears the default UART baudrate of GPS module is not always 9600 as per data sheet.
     // TODO: detect GPS module UART baudrate

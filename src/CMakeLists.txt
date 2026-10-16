@@ -68,6 +68,7 @@ if(LMS7002M_CLOCK)
     add_subdirectory(limesdr_micro)
 endif()
 add_subdirectory(iqstream)
+add_subdirectory(ppsdo)
 
 if(LA9310_COMMAND_LINE)
     target_compile_definitions(limesdr-micro-m4 PUBLIC "-DLA9310_ENABLE_COMMAND_LINE")
