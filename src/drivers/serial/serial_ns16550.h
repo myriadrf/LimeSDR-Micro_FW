@@ -53,6 +53,7 @@ typedef struct NS16550 * NS16550_t;
 #define SERIAL_LCR_8N1        0x03
 #define SERIAL_LSR_TEMT       0x40  /* Xmitter empty */
 
+void vSerialWaitTxEmpty(NS16550_t base, uint32_t ulSrcClockHz);
 
 void vSerialInit( NS16550_t base,
                   uint32_t ulBaudRate,

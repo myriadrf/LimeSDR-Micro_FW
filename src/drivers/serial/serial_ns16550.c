@@ -18,19 +18,25 @@
 
 extern uint32_t BootSource;
 
-void vSerialInit( NS16550_t base,
-                  uint32_t ulBaudRate,
-                  uint32_t ulSrcClockHz )
+void vSerialWaitTxEmpty(NS16550_t base, uint32_t ulSrcClockHz)
 {
-    int lBaudDivisor;
-    log_info("SerialInit: baud:%u, clk:%u wait for TEMT...", ulBaudRate, ulSrcClockHz);
     uint32_t retries = ulSrcClockHz / 1000;
     while (!(IN_8(&base->lsr) & SERIAL_LSR_TEMT) && retries)
     {
         --retries;
     }
+    if (retries == 0)
+        log_err("Serial TX drain timeout" LOG_EOL);
+}
 
-    lBaudDivisor = ulSrcClockHz / ( 16 * ulBaudRate );
+void vSerialInit(NS16550_t base, uint32_t ulBaudRate, uint32_t ulSrcClockHz)
+{
+    int lBaudDivisor;
+    log_info("SerialInit: baud:%u, clk:%u wait for TEMT...", ulBaudRate, ulSrcClockHz);
+    vSerialWaitTxEmpty(base, ulSrcClockHz);
+
+    /* round to nearest divisor */
+    lBaudDivisor = (ulSrcClockHz + 8 * ulBaudRate) / (16 * ulBaudRate);
 
     OUT_8( &base->ier, NS16550_IER );
     OUT_8( &base->fcr, SERIAL_FCRVAL );
@@ -42,8 +48,9 @@ void vSerialInit( NS16550_t base,
 
     dmb();
     OUT_8( &base->lcr, SERIAL_LCRVAL );
-    if (retries == 0)
-        log_err("timeout...");
+
+    /* clear line errors (framing/overrun) caused by a baud rate or clock change */
+    (void)IN_8(&base->lsr);
     log_info("done" LOG_EOL);
 }
 

@@ -384,14 +384,18 @@ static lime_Result SetLA9310SystemClock(struct la9310_hif *hif, uint32_t system_
     if (system_clk_hz < 20e6)
         return lime_Result_OutOfRange;
 
-    lime_Result result = lms7002m_set_frequency_cgen(rfsoc, 4 * system_clk_hz);
+    const uint32_t platform_clock = system_clk_hz * 4;
+
+    // Let pending UART TX finish at the current baud rate before the clock changes
+    vSerialWaitTxEmpty((void *)UART_BASEADDR, platform_clock);
+
+    lime_Result result = lms7002m_set_frequency_cgen(rfsoc, platform_clock);
     if (result != lime_Result_Success)
         return result;
 
-    const uint32_t platform_clock = system_clk_hz * 4;
     ppsdo_set_clock_frequency(&ppsdo, platform_clock / 8);
 
-    vSerialInit((void *)UART_BASEADDR, UART_BAUDRATE, platform_clock);
+    vSerialInit((void *)UART_BASEADDR, UART_BAUDRATE, UART_CLOCK_IN_FROM_PLATFORM(platform_clock));
 
     uint32_t i2c_input_clk_hz = platform_clock / 8;
     iLa9310_I2C_Init( LA9310_FSL_I2C1, i2c_input_clk_hz, LA9310_I2C_FREQ );

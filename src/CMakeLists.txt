@@ -47,9 +47,9 @@ if (${EXT_REF_CLK})
     message(STATUS "Use external reference clock: ${EXT_REF_CLK}")
 endif()
 
-SET(LA9310_SYS_CLK_FREQ "122880000" CACHE STRING "LA9310 post init system clock frequency")
-add_compile_definitions(LA9310_SYS_CLK_FREQ=${LA9310_SYS_CLK_FREQ})
-message(STATUS "LA9310 system clock: ${LA9310_SYS_CLK_FREQ}")
+SET(LA9310_DCS_CLK_HZ "122880000" CACHE STRING "LA9310 post init DCS_CLK frequency")
+add_compile_definitions(LA9310_DCS_CLK_HZ=${LA9310_DCS_CLK_HZ})
+message(STATUS "LA9310_DCS_CLK: ${LA9310_DCS_CLK_HZ}")
 
 target_include_directories(limesdr-micro-m4 PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 
@@ -151,7 +151,7 @@ add_custom_target(limesdr-micro-m4-bin ALL
 # feature name, status, description
 add_feature_info("LA9310_COMMAND_LINE" LA9310_COMMAND_LINE "Enable LA9310 command line interface")
 add_feature_info("EXT_REF_CLK" EXT_REF_CLK "Use external reference clock (${EXT_REF_CLK} Hz)")
-add_feature_info("LMS7002M_CLOCK" LMS7002M_CLOCK "Configure LMS7002M MCLK1 output (${LA9310_SYS_CLK_FREQ} Hz)")
+add_feature_info("LMS7002M_CLOCK" LMS7002M_CLOCK "Provide DCS_CLK from LMS7002M MCLK1 output")
 add_feature_info("BOOT_HEADER" BOOT_HEADER "Prefix firmware with a boot header")
 
 #########################################################################

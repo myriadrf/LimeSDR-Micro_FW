@@ -12,15 +12,17 @@
 #include "core_cm4.h"
 #include "phytimer.h"
 
+#define PHYTIMER_HZ PHYTIMER_CLOCK_IN_FROM_PLATFORM(PLATFORM_CLOCK_HZ)
+
 static uint32_t pps_in_count = 0;
 static uint32_t last_pps_in_phytime = 0;
-static uint32_t pps_high_duration_ticks = PLAT_FREQ / 8 / 10;
-static uint32_t pps_low_duration_ticks = PLAT_FREQ / 8 - PLAT_FREQ / 8 / 10;
+static uint32_t pps_high_duration_ticks = PHYTIMER_HZ / 10;
+static uint32_t pps_low_duration_ticks = PHYTIMER_HZ - PHYTIMER_HZ / 10;
 // PPS_IN intervals shorter than this are repeated triggers of the same pulse.
-static uint32_t pps_in_min_delta = PLAT_FREQ / 8 / 2;
+static uint32_t pps_in_min_delta = PHYTIMER_HZ / 2;
 // PPS_IN intervals further than this from the nominal clock are not valid measurements.
 static uint32_t pps_in_max_deviation = 0;
-static uint32_t ppsdo_clock_hz = PLAT_FREQ / 8;
+static uint32_t ppsdo_clock_hz = PHYTIMER_HZ;
 ppsdo_context_t ppsdo;
 
 uint8_t pps_out_stage = 0;

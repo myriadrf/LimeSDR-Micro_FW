@@ -79,7 +79,7 @@ enum ePhyTimerComparatorTrigger
 
 #define PHY_TIMER_COMP_R01                      PHY_TIMER_COMP_CH2_RX_ALLOWED
 
-#define PHY_TIMER_CLOCK                         (PLAT_FREQ / 8) /* 61.44 MHz */
+#define PHY_TIMER_CLOCK PHYTIMER_CLOCK_IN_FROM_PLATFORM(PLATFORM_CLOCK_HZ)
 #define MSECONDS_TO_PHY_TIMER_COUNT( msec )   ( ( PHY_TIMER_CLOCK / 1000 ) * msec )
 
 #define PHY_TIMER_PPS_OUT_PULSE_DELAY           500 /* ms */

@@ -7,7 +7,7 @@ cd LimeSDR-Micro_FW
 
 Project compilation requires Arm toolchain, it will be downloaded during cmake configuration step
 
-Initial ADC/DAC sampling rates are determined by LA9310_SYS_CLK_FREQ
+Initial ADC/DAC sampling rates are determined by LA9310_DCS_CLK_HZ
 
 * Build steps:
 ```

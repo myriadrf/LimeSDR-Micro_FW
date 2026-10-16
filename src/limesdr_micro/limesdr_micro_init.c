@@ -220,7 +220,7 @@ int initialize_lms7002m_clock_generator()
     OUT_32(TRIGGER_19, 0x8); // PHYTimer 19, controls LMS_TXEN pin
 
     // Initialize DSPI Handler
-    lmsspihandle = pxDspiInit( ( ( 1 << DSPI_CS0 ) ), PRE_SYS_FREQ * 4 / 2, 4000000 );
+    lmsspihandle = pxDspiInit(((1 << DSPI_CS0)), SPI_CLOCK_IN_FROM_PLATFORM(PRE_BOOT_PLATFORM_CLK_HZ), 4000000);
     if (lmsspihandle == NULL)
     {
         *(int*)0x41E00200=0xDEADBEEF;
@@ -240,7 +240,7 @@ int initialize_lms7002m_clock_generator()
 #else
     UseExternalReferenceClock(false);
 #endif
-    lime_Result result = lms7002m_set_frequency_cgen(rfsoc, 4 * LA9310_SYS_CLK_FREQ );
+    lime_Result result = lms7002m_set_frequency_cgen(rfsoc, 4 * LA9310_DCS_CLK_HZ);
     lms7002m_spi_modify_csr(rfsoc, LMS7002M_EN_ADCCLKH_CLKGN, 0x0); // FCLKH to ADC
     lms7002m_spi_modify_csr(rfsoc, LMS7002M_CLKH_OV_CLKL_CGEN, 0x2); // divide clock by 4
     lms7002m_spi_modify_csr(rfsoc, LMS7002M_MCLK1SRC, 0x3); // switch MCLK1 clock source to RxTSPCLKA
