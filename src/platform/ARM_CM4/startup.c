@@ -241,6 +241,13 @@ void m4_reset_handler(void)
         :
         :);
 
+    // clear interrupt masking
+    asm("mov r0, #0x0\n"
+        "msr basepri, r0\n"
+        :
+        :
+        :);
+
     SYST->STCSR = (SYST->STCSR & ~(0x1)); // disable systick
 #pragma GCC unroll 8
     for (int i = 0; i < 8; ++i)
