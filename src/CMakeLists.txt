@@ -1,13 +1,10 @@
 CMAKE_MINIMUM_REQUIRED (VERSION 3.18)
 include(FeatureSummary)
 
-add_link_options(--specs=nano.specs)
-
 add_compile_options(-Wall)
 add_executable(limesdr-micro-m4 "main.c")
 
 target_compile_options(limesdr-micro-m4 PRIVATE
-    -mthumb -mcpu=cortex-m4 -mfloat-abi=soft
     -fno-strict-aliasing
     -Wno-unused-function
     -mno-sched-prolog
@@ -24,7 +21,6 @@ set(LA9310_LINKER_SCRIPT ${CMAKE_CURRENT_LIST_DIR}/platform/ARM_CM4/la9310.ld)
 set_target_properties(limesdr-micro-m4 PROPERTIES LINK_DEPENDS ${LA9310_LINKER_SCRIPT}) # relinks if script is modified
 
 target_link_options(limesdr-micro-m4 PRIVATE
-    --specs=nano.specs
     -z muldefs
     -Wl,-gc-sections
     -Wl,-print-memory-usage

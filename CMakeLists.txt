@@ -23,6 +23,8 @@ add_compile_options(
     -fdebug-prefix-map=${CMAKE_BINARY_DIR}/=LimeSDR-Micro_FW/build/
 )
 
+add_link_options(--specs=nano.specs)
+
 add_subdirectory(la9310)
 add_subdirectory(bootloader)
 # currently not utilizing FreeRTOS
