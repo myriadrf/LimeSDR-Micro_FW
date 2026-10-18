@@ -4,8 +4,8 @@
  * Copyright 2017-2024 NXP
  */
 
-#include "FreeRTOS.h"
-#include "queue.h"
+// #include "FreeRTOS.h"
+// #include "queue.h" // vTaskStartScheduler
 
 #include "config.h"
 #include "la9310_gpio.h"
@@ -299,8 +299,9 @@ int main( void )
     la9310_m4_init_complete(s_Dcr);
 
     // /* Start FreeRTOS scheduler */
-    vTaskStartScheduler();
-    // ServiceCommands();
+    // vTaskStartScheduler();
+    enable_irq();
+    ServiceCommands();
 
 out:
     log_err( "main() failed %d\n", irc);

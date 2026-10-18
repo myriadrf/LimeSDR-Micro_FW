@@ -1,6 +1,3 @@
-#include "FreeRTOS.h"
-#include <semphr.h>
-
 #include "config.h"
 #include "fsl_dspi.h"
 #include "la9310_avi.h"
@@ -635,24 +632,6 @@ static void HandleCommand(volatile struct la9310_sw_cmd_desc *desc)
     desc->status = status;
 }
 
-static void vSwCmdTask( void * pvParameters )
-{
-    timer64_reset();
-    volatile struct la9310_sw_cmd_desc *pxCmdDesc = &(s_Hif->sw_cmd_desc);
-
-    while( runEngine )
-    {
-        // PPSDO tuning runs here so its I2C accesses don't interleave with the commands'.
-        ppsdo_process(&ppsdo);
-        if (pxCmdDesc->status != LA9310_SW_CMD_STATUS_POSTED)
-            continue;
-
-        HandleCommand(pxCmdDesc);
-        dsb();
-        // la9310_sirq_raise_events(&softirq, BITMASK(HOST_COMMAND_DONE));
-    }
-}
-
 void ServiceCommands()
 {
     timer64_reset();
@@ -672,13 +651,6 @@ void ServiceCommands()
 
 static int lSwCmdEngineInit()
 {
-    BaseType_t xRet;
-    xRet = xTaskCreate( vSwCmdTask, "", 512, NULL, tskIDLE_PRIORITY + 1, NULL );
-    if( xRet != pdPASS )
-    {
-        return -1;
-    }
-
     NVIC_SetPriority( IRQ_MSG2, 3 );
     NVIC_EnableIRQ( IRQ_MSG2 );
 

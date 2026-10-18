@@ -25,7 +25,8 @@ add_compile_options(
 
 add_subdirectory(la9310)
 add_subdirectory(bootloader)
-add_subdirectory(FreeRTOS)
+# currently not utilizing FreeRTOS
+# add_subdirectory(FreeRTOS)
 include_directories(include)
 add_subdirectory(src)
 add_subdirectory(limesuiteng/embedded)

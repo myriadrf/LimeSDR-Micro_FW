@@ -36,7 +36,7 @@ target_link_options(limesdr-micro-m4 PRIVATE
 )
 target_link_libraries(limesdr-micro-m4 PUBLIC
     la9310_cm4
-    freertos_kernel
+    # freertos_kernel # not used
     bootloader
 )
 

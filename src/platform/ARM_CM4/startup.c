@@ -7,10 +7,7 @@ extern void vHardFaultHandler(void);
 extern void MemManage_Handler(void);
 extern void BusFault_Handler(void);
 extern void UsageFault_Handler(void);
-extern void SVC_Handler(void);
 extern void DebugMon_Handler(void);
-extern void PendSV_Handler(void);
-extern void SysTick_Handler(void);
 extern void PCIE_IRQHandler(void);
 extern void La9310eDMA_IRQHandler(void);
 extern void La9310WDOG_IRQHandler(void);
@@ -29,6 +26,30 @@ extern void _start(void);
 static void DefaultISR(void)
 {
     // Do nothing
+    while (1)
+    {
+    };
+}
+
+// Would be replaced by FreeRTOS
+__attribute__((weak)) void SVC_Handler(void)
+{
+    while (1)
+    {
+    };
+}
+
+// Would be replaced by FreeRTOS
+__attribute__((weak)) void PendSV_Handler(void)
+{
+    while (1)
+    {
+    };
+}
+
+// Would be replaced by FreeRTOS
+__attribute__((weak)) void SysTick_Handler(void)
+{
     while (1)
     {
     };
@@ -234,7 +255,6 @@ void m4_reset_handler(void)
     dmb();
 
     /* Jump to IBR Main Code */
-    enable_irq();
     _start();
 
     // Never returns from here
