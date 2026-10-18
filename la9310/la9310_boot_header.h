@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+// @brief Firmware header expected by LA9310 ROM bootloader
 struct la9310_boot_header {
     uint32_t preamble;
     uint32_t plugin_size;

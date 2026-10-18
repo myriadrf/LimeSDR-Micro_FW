@@ -7,6 +7,7 @@
 #include "immap.h"
 #include "config.h"
 
+#include "la9310_irq.h"
 #include "la9310_sirq.h"
 #include "iqstream/iqstream.h"
 #include "io.h"
@@ -16,6 +17,8 @@
 #define LA9310_SCRATCH_SIRQ_COUNT_REG 6
 #define LA9310_SCRATCH_SIRQ_ENABLE_REG 7
 #define LA9310_SCRATCH_SIRQ_CLEAR_REG 8
+
+#define BITMASK(n) (1 << n)
 
 static struct la9310_sirq *g_sirq = NULL;
 
@@ -32,7 +35,7 @@ void la9310_sirq_initialize(struct la9310_sirq *sirq, uint32_t *scratch_regs)
     {
         sirq->host_msi_addr = (uint32_t *)(LA9310_EP_TOHOST_MSI_PHY_ADDR | uMSIAddrVal);
         sirq->host_msi_data = (IN_32(pMsiDataAddr) + i);
-        log_isr("MSI addr 0x%x, data 0x%x\n\r", sirq->host_msi_addr, sirq->host_msi_data);
+        log_isr("MSI addr 0x%x, data 0x%x" LOG_EOL, sirq->host_msi_addr, sirq->host_msi_data);
     }
 
     sirq->counter_addr = &scratch_regs[LA9310_SCRATCH_SIRQ_COUNT_REG];

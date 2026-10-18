@@ -1,6 +1,6 @@
 #include "iqstream_signals.h"
 
-#include "drivers/avi/la9310_avi_ds.h"
+#include "la9310_avi_ds.h"
 #include "log.h"
 
 #include "immap.h"

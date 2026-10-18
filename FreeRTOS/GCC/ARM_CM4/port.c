@@ -218,39 +218,36 @@ static void prvTaskExitError( void )
 
 void vPortSVCHandler( void )
 {
-    __asm volatile (
-        "	ldr	r3, pxCurrentTCBConst2		\n"/* Restore the context. */
-        "	ldr r1, [r3]					\n"/* Use pxCurrentTCBConst to get the pxCurrentTCB address. */
-        "	ldr r0, [r1]					\n"/* The first item in pxCurrentTCB is the task top of stack. */
-        "	ldmia r0!, {r4-r11}				\n"/* Pop the registers that are not automatically saved on exception entry and the critical nesting count. */
-        "	msr psp, r0						\n"/* Restore the task stack pointer. */
-        "	isb								\n"
-        "	mov r0, #0 						\n"
-        "	msr	basepri, r0					\n"
-        "	orr r14, #0xd					\n"
-        "	bx r14							\n"
-        "									\n"
-        "	.align 4						\n"
-        "pxCurrentTCBConst2: .word pxCurrentTCB				\n"
-        );
+    __asm volatile(
+        "ldr    r3, pxCurrentTCBConst2        \n" /* Restore the context. */
+        "ldr r1, [r3]\n" /* Use pxCurrentTCBConst to get the pxCurrentTCB address. */
+        "ldr r0, [r1]\n" /* The first item in pxCurrentTCB is the task top of stack. */
+        "ldmia r0!, {r4-r11}\n" /* Pop the registers that are not automatically saved on exception entry and the critical nesting count. */
+        "msr psp, r0\n" /* Restore the task stack pointer. */
+        "isb\n"
+        "mov r0, #0\n"
+        "msr    basepri, r0\n"
+        "orr r14, #0xd\n"
+        "bx r14\n"
+        "\n"
+        ".align 4\n"
+        "pxCurrentTCBConst2: .word pxCurrentTCB\n");
 }
 /*-----------------------------------------------------------*/
 
 static void prvPortStartFirstTask( void )
 {
-    __asm volatile (
-        " ldr r0, =0xE000ED08 	\n"/* Use the NVIC offset register to locate the stack. */
-        " ldr r0, [r0] 			\n"
-        " ldr r0, [r0] 			\n"
-        " msr msp, r0			\n"/* Set the msp back to the start of the stack. */
-        " cpsie i				\n"/* Globally enable interrupts. */
-        " cpsie f				\n"
-        " dsb					\n"
-        " isb					\n"
-        " svc 0					\n"/* System call to start first task. */
-        " nop					\n"
-        " .ltorg				\n"
-        );
+    __asm volatile("ldr r0, =0xE000ED08\n" /* Use the NVIC offset register to locate the stack. */
+                   "ldr r0, [r0]\n"
+                   "ldr r0, [r0]\n"
+                   "msr msp, r0\n" /* Set the msp back to the start of the stack. */
+                   "cpsie i\n" /* Globally enable interrupts. */
+                   "cpsie f\n"
+                   "dsb\n"
+                   "isb\n"
+                   "svc 0\n" /* System call to start first task. */
+                   "nop\n"
+                   ".ltorg\n");
 }
 /*-----------------------------------------------------------*/
 
@@ -416,38 +413,34 @@ void xPortPendSVHandler( void )
 {
     /* This is a naked function. */
 
-    __asm volatile
-    (
-        "	mrs r0, psp							\n"
-        "	isb									\n"
-        "										\n"
-        "	ldr	r3, pxCurrentTCBConst			\n"/* Get the location of the current TCB. */
-        "	ldr	r2, [r3]						\n"
-        "										\n"
-        "	stmdb r0!, {r4-r11}					\n"/* Save the remaining registers. */
-        "	str r0, [r2]						\n"/* Save the new top of stack into the first member of the TCB. */
-        "										\n"
-        "	stmdb sp!, {r3, r14}				\n"
-        "	mov r0, %0							\n"
-        "	msr basepri, r0						\n"
-        "	dsb									\n"
-        "	isb									\n"
-        "	bl vTaskSwitchContext				\n"
-        "	mov r0, #0							\n"
-        "	msr basepri, r0						\n"
-        "	ldmia sp!, {r3, r14}				\n"
-        "										\n"/* Restore the context, including the critical nesting count. */
-        "	ldr r1, [r3]						\n"
-        "	ldr r0, [r1]						\n"/* The first item in pxCurrentTCB is the task top of stack. */
-        "	ldmia r0!, {r4-r11}					\n"/* Pop the registers. */
-        "	msr psp, r0							\n"
-        "	isb									\n"
-        "	bx r14								\n"
-        "										\n"
-        "	.align 4							\n"
-        "pxCurrentTCBConst: .word pxCurrentTCB	\n"
-        ::"i" ( configMAX_SYSCALL_INTERRUPT_PRIORITY )
-    );
+    __asm volatile("mrs r0, psp\n"
+                   "isb\n"
+                   "\n"
+                   "ldr    r3, pxCurrentTCBConst\n" /* Get the location of the current TCB. */
+                   "ldr    r2, [r3]\n"
+                   "\n"
+                   "stmdb r0!, {r4-r11}\n" /* Save the remaining registers. */
+                   "str r0, [r2]\n" /* Save the new top of stack into the first member of the TCB. */
+                   "\n"
+                   "stmdb sp!, {r3, r14}\n"
+                   "mov r0, %0\n"
+                   "msr basepri, r0\n"
+                   "dsb\n"
+                   "isb\n"
+                   "bl vTaskSwitchContext\n"
+                   "mov r0, #0\n"
+                   "msr basepri, r0\n"
+                   "ldmia sp!, {r3, r14}\n"
+                   "\n" /* Restore the context, including the critical nesting count. */
+                   "ldr r1, [r3]\n"
+                   "ldr r0, [r1]\n" /* The first item in pxCurrentTCB is the task top of stack. */
+                   "ldmia r0!, {r4-r11}\n" /* Pop the registers. */
+                   "msr psp, r0\n"
+                   "isb\n"
+                   "bx r14\n"
+                   "\n"
+                   ".align 4\n"
+                   "pxCurrentTCBConst: .word pxCurrentTCB\n" ::"i"(configMAX_SYSCALL_INTERRUPT_PRIORITY));
 }
 /*-----------------------------------------------------------*/
 

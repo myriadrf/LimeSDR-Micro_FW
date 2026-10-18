@@ -7,11 +7,11 @@
 #include "la9310_dcs_api.h"
 #include "la9310_host_if.h"
 #include "la9310_i2cAPI.h"
-#include "debug_console.h"
 #include "io.h"
 #include "core_cm4.h"
-#include "drivers/serial/serial_ns16550.h"
-#include "drivers/avi/la9310_avi_ds.h"
+#include "serial_ns16550.h"
+#include "la9310_avi_ds.h"
+#include "la9310_boot_header.h"
 
 #include "log.h"
 #include "immap.h"
@@ -32,6 +32,7 @@
 #include "iqstream/transmitter.h"
 #include "ppsdo/ppsdo.h"
 
+extern la9310_dspi_t g_dspi;
 extern struct la9310_hif *const s_Hif;
 extern ppsdo_context_t ppsdo;
 
@@ -40,7 +41,6 @@ static uint16_t xo_dac_value = 0;
 
 struct vspa_regs *vspa_csr = (struct vspa_regs *)VSPA_BASE_ADDR;
 
-extern struct LA931xDspiInstance *lmsspihandle;
 extern int32_t spi_lms7002m_read( struct LA931xDspiInstance * pDspiHandle, uint16_t addr, uint16_t *value );
 extern int32_t spi_lms7002m_write( struct LA931xDspiInstance * pDspiHandle, uint16_t addr, uint16_t value );
 extern void UseExternalReferenceClock(bool external);
@@ -52,7 +52,6 @@ extern void *GetFeaturesMap(void);
 
 extern struct lms7002m_context *rfsoc;
 
-static SemaphoreHandle_t xSwCmdSemaphore;
 static volatile int runEngine = 1;
 
 enum CommandStatus { cmd_status_Undefined, cmd_status_Completed, cmd_status_Unknown, cmd_status_Busy, cmd_status_TooManyBlocks, cmd_status_Error, cmd_status_WrongOrder, cmd_status_ResourceDenied, cmd_status_Count };
@@ -311,7 +310,7 @@ static int ProcessLMS64C_Command(const void* dataIn, void* dataOut)
         {
             uint16_t addr = (packet->payload[i*4] << 8) | packet->payload[i*4+1];
             uint16_t value = (packet->payload[i*4+2] << 8) | packet->payload[i*4+3];
-            spi_lms7002m_write(lmsspihandle, addr, value);
+            spi_lms7002m_write(&g_dspi, addr, value);
             outPacket->payload[i*4] = addr >> 8;
             outPacket->payload[i*4+1] = addr;
             outPacket->payload[i*4+2] = value >> 8;
@@ -327,7 +326,7 @@ static int ProcessLMS64C_Command(const void* dataIn, void* dataOut)
         {
             uint16_t addr = (packet->payload[i*2] << 8) | packet->payload[i*2+1];
             uint16_t value = 0;
-            spi_lms7002m_read(lmsspihandle, addr, &value);
+            spi_lms7002m_read(&g_dspi, addr, &value);
             outPacket->payload[i*4] = addr >> 8;
             outPacket->payload[i*4+1] = addr;
             outPacket->payload[i*4+2] = value >> 8;
@@ -404,7 +403,7 @@ static lime_Result SetLA9310SystemClock(struct la9310_hif *hif, uint32_t system_
     uint32_t spi_frequency = 4000000;
     if (spi_input_clk_hz < spi_frequency*2)
         spi_frequency = spi_input_clk_hz/2;
-    vDspiClkSet( lmsspihandle, spi_input_clk_hz, spi_frequency );
+    vDspiClkSet(&g_dspi, spi_input_clk_hz, spi_frequency);
 
     vDcsInit(IN_32(&hif->adc_mask), IN_32(&hif->adc_rate_mask), IN_32(&hif->dac_mask), IN_32(&hif->dac_rate_mask));
 
@@ -674,12 +673,6 @@ void ServiceCommands()
 static int lSwCmdEngineInit()
 {
     BaseType_t xRet;
-    xSwCmdSemaphore = xSemaphoreCreateBinary();
-    if( xSwCmdSemaphore == NULL )
-    {
-        return -1;
-    }
-    // xSemaphoreGive(xSwCmdSemaphore);
     xRet = xTaskCreate( vSwCmdTask, "", 512, NULL, tskIDLE_PRIORITY + 1, NULL );
     if( xRet != pdPASS )
     {

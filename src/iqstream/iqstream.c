@@ -5,7 +5,7 @@
 
 #include <stddef.h>
 
-#include "drivers/avi/la9310_avi_ds.h"
+#include "la9310_avi_ds.h"
 #include "immap.h"
 #include "io.h"
 #include "log.h"

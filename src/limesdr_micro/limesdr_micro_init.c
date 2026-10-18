@@ -1,10 +1,8 @@
 #include "la9310_i2cAPI.h"
 #include "fsl_dspi.h"
-#include "debug_console.h"
 
 #include "io.h"
 #include "la9310_avi.h"
-#include "utils/delay.h"
 #include "log.h"
 #include "immap.h"
 #include <string.h>
@@ -14,7 +12,6 @@
 #include "lms7002m/spi.h"
 #include "lms7002m/csr_data.h"
 
-struct LA931xDspiInstance *lmsspihandle = NULL;
 struct lms7002m_context* rfsoc = NULL;
 
 extern uint16_t ReadXODAC_EEPROM();
@@ -25,7 +22,7 @@ uint8_t hardware_version = 0;
 // ARM bare metal does not have usleep(), it's used within lms7002m procedures
 void usleep(int microSeconds)
 {
-	vUDelay(microSeconds);
+    vUDelay(microSeconds);
 }
 
 int i2c_write8(int module, uint32_t i2c_moduleAddress, uint8_t addr, uint8_t value)
@@ -138,9 +135,9 @@ void UseExternalReferenceClock(bool external)
     iLa9310_I2C_Write(LA9310_FSL_I2C1, i2c_expander_address, MCP23017_OLATA, LA9310_I2C_DEV_OFFSET_LEN_1_BYTE, &gpioa, 1);
 }
 
-int initialize_lms7002m_clock_generator()
+int initialize_lms7002m_clock_generator(la9310_dspi_t *dspi)
 {
-    log_info("lime i2c config start\n\r");
+    log_info("lime i2c config start" LOG_EOL);
 
     // I2C I/O expander (IC15, MCP23017-E/ML)
     const uint8_t i2c_expander_addr = 0x20;
@@ -214,23 +211,15 @@ int initialize_lms7002m_clock_generator()
         i2c_write8(LA9310_FSL_I2C1, dcconv_addr, 0x10, 0xFC); // BUCK3_VSET Set to 3.3V
     }
 
-    log_info("lime i2c config end\n\r");
+    log_info("lime i2c config end" LOG_EOL);
 
     // Enable transmitter
     OUT_32(TRIGGER_19, 0x8); // PHYTimer 19, controls LMS_TXEN pin
 
-    // Initialize DSPI Handler
-    lmsspihandle = pxDspiInit(((1 << DSPI_CS0)), SPI_CLOCK_IN_FROM_PLATFORM(PRE_BOOT_PLATFORM_CLK_HZ), 4000000);
-    if (lmsspihandle == NULL)
-    {
-        *(int*)0x41E00200=0xDEADBEEF;
-        while((*(int*)0x41E00200)==0xDEADBEEF){};
-    }
-
     struct lms7002m_hooks hooks;
     memset(&hooks, 0, sizeof(hooks));
 
-    hooks.spi16_userData = lmsspihandle;
+    hooks.spi16_userData = dspi;
     hooks.spi16_transact = spi16_transact;
 
     rfsoc = lms7002m_create(&hooks);

@@ -3,7 +3,7 @@
 #include "core_cm4.h"
 #include "io.h"
 
-#include "../src/drivers/misc/la9310_gpio.h"
+#include "la9310_gpio.h"
 
 #define PREAMBLE 0xaa55aa55
 #define M4_THUMB_BIT 0x1

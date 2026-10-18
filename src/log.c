@@ -4,8 +4,7 @@
 #include "la9310_host_if.h"
 #include "io.h"
 
-#include "debug_console.h"
-#include "drivers/serial/print_scan.h"
+#include "print_scan.h"
 
 #define LOG_TO_UART 0
 #define LOG_TO_EXTERNAL_MEMORY 1

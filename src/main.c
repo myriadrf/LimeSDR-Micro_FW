@@ -5,25 +5,30 @@
  */
 
 #include "FreeRTOS.h"
+#include "queue.h"
+
 #include "config.h"
 #include "la9310_gpio.h"
 #include "exceptions.h"
 #include "la9310_pinmux.h"
-#include "la9310_dcs_api.h"
 #include <phytimer.h>
 
 #include "la9310_host_if.h"
 #include "la9310_sirq.h"
 
+#include "la9310_dcs_api.h"
+#include "fsl_dspi.h"
+
 #include "log.h"
 #include "core_cm4.h"
+#include "io.h"
 
-#include "drivers/tmu.h"
-#include "drivers/serial/serial_ns16550.h"
+#include "tmu.h"
+#include "serial_ns16550.h"
 
 #include "iqstream/iqstream.h"
 
-#include "vspa/vspa_regs.h"
+#include "vspa_regs.h"
 #include "vspa_debug.h"
 
 #include "ppsdo/ppsdo.h"
@@ -35,6 +40,8 @@
 #ifdef LMS7002M_CLOCK
     #include "limesdr_micro/limesdr_micro.h"
 #endif
+
+la9310_dspi_t g_dspi;
 
 static struct vspa_regs *const s_VspaRegs = (struct vspa_regs *)VSPA_BASE_ADDR;
 static struct ccsr_dcr *const s_Dcr = (void *)DCR_BASE_ADDR;
@@ -101,7 +108,16 @@ static int iLa9310HostPreInit()
 
     // I2C already initialized in vBoardEarlyInit()
 #ifdef LMS7002M_CLOCK
-    if (initialize_lms7002m_clock_generator())
+    // Initialize DSPI Handler
+    int ret = DspiInit(&g_dspi, ((1 << DSPI_CS0)), SPI_CLOCK_IN_FROM_PLATFORM(PRE_BOOT_PLATFORM_CLK_HZ), 4000000);
+    if (ret)
+    {
+        *(int *)0x41E00200 = 0xDEADBEEF;
+        while ((*(int *)0x41E00200) == 0xDEADBEEF)
+        {
+        };
+    }
+    if (initialize_lms7002m_clock_generator(&g_dspi))
         log_err( "Failed to configure LMS7002M clock\n");
 #endif
     return irc;
@@ -123,7 +139,7 @@ static int iLa9310HostPostInit()
 
     // if( irc == 0 )
     // {
-    //     log_info( "%s: eDMA init DONE\n\r", __func__ );
+    //     log_info( "%s: eDMA init DONE" LOG_EOL, __func__ );
     // }
 
     return irc;
@@ -178,7 +194,7 @@ static int iInitHandler()
     irc = iLa9310HostPreInit();
     if( irc )
     {
-        log_err( "%s: iLa9310HostPreInit Failed, rc %d\n\r", __func__, irc );
+        log_err("%s: iLa9310HostPreInit Failed, rc %d" LOG_EOL, __func__, irc);
         return irc;
     }
 
@@ -196,7 +212,7 @@ static int iInitHandler()
 
     if( irc )
     {
-        log_err( "%s: iLa9310HostPostInit Failed, rc %d\n\r", __func__, irc );
+        log_err("%s: iLa9310HostPostInit Failed, rc %d" LOG_EOL, __func__, irc);
         goto out;
     }
 
@@ -258,10 +274,6 @@ int main( void )
     {
         goto out;
     }
-
-#ifdef LA9310_ENABLE_COMMAND_LINE
-    // vUARTCommandConsoleStart( mainUART_COMMAND_CONSOLE_STACK_SIZE, mainUART_COMMAND_CONSOLE_TASK_PRIORITY );
-#endif
 
     tmuInit((TmuRegs_t *)TMU_BASE_ADDR);
 

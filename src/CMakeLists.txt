@@ -47,16 +47,11 @@ if (${EXT_REF_CLK})
     message(STATUS "Use external reference clock: ${EXT_REF_CLK}")
 endif()
 
-SET(LA9310_DCS_CLK_HZ "122880000" CACHE STRING "LA9310 post init DCS_CLK frequency")
-add_compile_definitions(LA9310_DCS_CLK_HZ=${LA9310_DCS_CLK_HZ})
-message(STATUS "LA9310_DCS_CLK: ${LA9310_DCS_CLK_HZ}")
-
 target_include_directories(limesdr-micro-m4 PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 
 # Treat warnings as errors
 set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 
-option(LA9310_COMMAND_LINE "Enable LA9310 command line interface" OFF)
 option(LMS7002M_CLOCK "Configure LMS7002M clock generator to 153.6MHz" ON)
 option(BOOT_HEADER "Prefix firmware with a boot header" ON)
 
@@ -70,57 +65,21 @@ endif()
 add_subdirectory(iqstream)
 add_subdirectory(ppsdo)
 
-if(LA9310_COMMAND_LINE)
-    target_compile_definitions(limesdr-micro-m4 PUBLIC "-DLA9310_ENABLE_COMMAND_LINE")
-    target_include_directories(limesdr-micro-m4 PRIVATE utils/FreeRTOS-Plus-CLI)
-    target_sources(limesdr-micro-m4 PRIVATE
-        "utils/FreeRTOS-Plus-CLI/FreeRTOS_CLI.c"
-        # "utils/UARTCommandConsole.c"
-    )
-endif()
-
 target_include_directories(limesdr-micro-m4 PRIVATE
-    ${LA9310_COMMON_HEADERS}/
-    include
     platform/ARM_CM4/include/
     platform/boards/la9310/
-    drivers/misc/
-    drivers/edma/
-    drivers/watchdog/
-    drivers/i2c/
-    drivers/dspi
-    drivers/phy_timer
-    utils
-    drivers/dcs
 )
 
 target_sources(limesdr-micro-m4 PRIVATE
-    # l1-trace.c
+    print_scan.c
     m4_memorymap.c
     la9310_sirq.c
     vspa_debug.c
-    queue.c
     platform/ARM_CM4/startup.c
     log.c
-    utils/task_stats.c
-    drivers/pcie/la9310_pcie.c
-    # "drivers/serial/debug_console.c"
-    "drivers/serial/print_scan.c"
-    "drivers/serial/serial_ns16550.c"
-    # "drivers/edma/la9310_edma.c"
-    # "drivers/watchdog/la9310_watchdog.c"
-    "platform/ARM_CM4/soc.c"
-    "platform/ARM_CM4/exceptions.c"
-    "platform/boards/la9310/hardware_init.c"
-    # "drivers/avi/la9310_avi.c"
-    "drivers/misc/la9310_gpio.c"
-    "drivers/misc/la9310_pinmux.c"
-    "drivers/i2c/la9310_i2c.c"
-    "drivers/dspi/fsl_dspi.c"
-    "utils/delay.c"
-    "drivers/phy_timer/phytimer.c"
-    "drivers/dspi/dspi_test.c"
-    "drivers/dcs/la9310_dcs.c"
+    platform/ARM_CM4/soc.c
+    platform/ARM_CM4/exceptions.c
+    platform/boards/la9310/hardware_init.c
 )
 
 TARGET_LINK_LIBRARIES(limesdr-micro-m4 PRIVATE -Wl,--start-group)
@@ -149,7 +108,6 @@ add_custom_target(limesdr-micro-m4-bin ALL
 )
 
 # feature name, status, description
-add_feature_info("LA9310_COMMAND_LINE" LA9310_COMMAND_LINE "Enable LA9310 command line interface")
 add_feature_info("EXT_REF_CLK" EXT_REF_CLK "Use external reference clock (${EXT_REF_CLK} Hz)")
 add_feature_info("LMS7002M_CLOCK" LMS7002M_CLOCK "Provide DCS_CLK from LMS7002M MCLK1 output")
 add_feature_info("BOOT_HEADER" BOOT_HEADER "Prefix firmware with a boot header")

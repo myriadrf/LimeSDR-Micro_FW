@@ -10,7 +10,7 @@
 #include "core_cm4.h"
 #include "immap.h"
 #include "io.h"
-#include "drivers/avi/la9310_avi_ds.h"
+#include "la9310_avi_ds.h"
 #include "iqstream_signals.h"
 #include "iqstream.h"
 #include "iqplayer_commands.h"

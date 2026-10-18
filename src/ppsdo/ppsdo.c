@@ -1,16 +1,15 @@
+#include "ppsdo.h"
+
+#include "core_cm4.h"
+#include "phytimer.h"
+#include "la9310.h"
 #include "log.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-
 #include <stdint.h>
 #include <stdbool.h>
-
-#include "ppsdo.h"
-
-#include "core_cm4.h"
-#include "phytimer.h"
 
 #define PHYTIMER_HZ PHYTIMER_CLOCK_IN_FROM_PLATFORM(PLATFORM_CLOCK_HZ)
 

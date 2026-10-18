@@ -4,7 +4,6 @@
  */
 
 #include "config.h"
-#include "debug_console.h"
 #include "exceptions.h"
 #include "core_cm4.h"
 #include "io.h"
@@ -191,15 +190,12 @@ void vAnalyzeFault( uint32_t * pulMSP,
 
 void vHardFaultHandler( void )
 {
-    __asm volatile
-    (
-        " tst lr, #4		\n"
-        " ite eq		\n"
-        " mrseq r0, msp        \n"
-        " mrsne r0, psp	\n"
-        " ldr r1, [r0,#24]	\n"
-        " b vAnalyzeFault	\n"
-    );
+    __asm volatile(" tst lr, #4\n"
+                   " ite eq\n"
+                   " mrseq r0, msp\n"
+                   " mrsne r0, psp\n"
+                   " ldr r1, [r0,#24]\n"
+                   " b vAnalyzeFault\n");
 }
 
 void vEnableExceptions( void )

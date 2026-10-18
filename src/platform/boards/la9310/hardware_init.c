@@ -8,14 +8,13 @@
 #include "io.h"
 
 #include "la9310_host_if.h"
-#include "debug_console.h"
 #include "la9310_pci.h"
 #include "log.h"
 
 #include <la9310.h>
 #include <la9310_i2cAPI.h>
 
-#include "drivers/serial/serial_ns16550.h"
+#include "serial_ns16550.h"
 
 #define CLOCK_CONFIG_BY_HOST 0
 
