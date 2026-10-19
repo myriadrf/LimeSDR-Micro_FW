@@ -33,6 +33,7 @@
 
 #include "ppsdo/ppsdo.h"
 #include "limesdr_micro/limesdr_micro.h"
+#include "ppsdo/gps.h"
 
 #if NXP_ERRATUM_A_009410
     #include "la9310_pci.h"
@@ -273,9 +274,8 @@ int main( void )
 #else
     ppsdo_initialize(&ppsdo, NULL, NULL);
 #endif
-    // It appears the default UART baudrate of GPS module is not always 9600 as per data sheet.
-    // TODO: detect GPS module UART baudrate
-    // gps_module_stop();
+    // The GPS module's default UART baud rate differs between revisions, gps_process() detects it.
+    gps_initialize(UART_CLOCK_IN_FROM_PLATFORM(PLATFORM_CLOCK_HZ));
 
     axiq_loopback(false, 0xF);
 

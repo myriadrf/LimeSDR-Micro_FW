@@ -28,6 +28,7 @@
 #include "iqstream/receiver.h"
 #include "iqstream/transmitter.h"
 #include "ppsdo/ppsdo.h"
+#include "ppsdo/gps.h"
 
 extern la9310_dspi_t g_dspi;
 extern struct la9310_hif *const s_Hif;
@@ -440,6 +441,22 @@ static void LoadBootloader(void)
 }
 
 extern uint32_t vspairqcnt;
+_Static_assert(sizeof(struct gps_status_payload) <= sizeof(((struct la9310_sw_cmd_desc *)0)->data), "payload too big");
+_Static_assert(sizeof(struct gps_send_payload) <= sizeof(((struct la9310_sw_cmd_desc *)0)->data), "payload too big");
+_Static_assert((int)GPS_SYSTEM_COUNT_PAYLOAD >= (int)NMEA_SYSTEM_COUNT, "satellites_in_view too small");
+
+static void FillGPSStatus(struct gps_status_payload *out)
+{
+    const gps_state_t *gps = gps_get_state();
+    memset(out, 0, sizeof(*out));
+
+    out->result = lime_Result_Success;
+    out->link_state = gps->link;
+    out->baudrate = gps->baudrate;
+    out->data = gps->data;
+    out->stats = gps->stats;
+}
+
 static void HandleCommand(volatile struct la9310_sw_cmd_desc *desc)
 {
     desc->status = LA9310_SW_CMD_STATUS_IN_PROGRESS;
@@ -584,6 +601,25 @@ static void HandleCommand(volatile struct la9310_sw_cmd_desc *desc)
         status = LA9310_SW_CMD_STATUS_DONE;
         break;
     }
+    case LIME_M4_GPS_GET_STATUS: {
+        struct gps_status_payload response;
+        FillGPSStatus(&response);
+        memcpy((void *)desc->data, &response, sizeof(response));
+        status = LA9310_SW_CMD_STATUS_DONE;
+        break;
+    }
+    case LIME_M4_GPS_SEND: {
+        struct gps_send_payload request;
+        memcpy(&request, (void *)desc->data, sizeof(request));
+        lime_Result result = lime_Result_Success;
+        if (memchr(request.body, '\0', sizeof(request.body)) == NULL)
+            result = lime_Result_InvalidValue;
+        else if (!gps_send_sentence(request.body))
+            result = gps_get_state()->link == GPS_LINK_RUNNING ? lime_Result_InvalidValue : lime_Result_NotConnected;
+        desc->data[0] = (uint32_t)result;
+        status = LA9310_SW_CMD_STATUS_DONE;
+        break;
+    }
     default:
         log_err("sw cmd not implemented: %d\r\n", desc->cmd);
         status = LA9310_SW_CMD_STATUS_ERROR;
@@ -600,6 +636,7 @@ void ServiceCommands()
     while (runEngine)
     {
         ppsdo_process(&ppsdo);
+        gps_process();
         if (pxCmdDesc->status != LA9310_SW_CMD_STATUS_POSTED)
             continue;
 

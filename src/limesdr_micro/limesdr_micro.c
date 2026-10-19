@@ -8,6 +8,7 @@
 #include "serial_ns16550.h"
 #include "la9310_dcs_api.h"
 #include "ppsdo/ppsdo.h"
+#include "ppsdo/gps.h"
 #include "phytimer.h"
 #include "la9310_host_if.h"
 
@@ -224,7 +225,7 @@ lime_Result limesdr_micro_set_dcs_clk(struct la9310_hif *hif, uint32_t dcs_clk_h
     ppsdo_set_clock_frequency(&ppsdo, PHYTIMER_CLOCK_IN_FROM_PLATFORM(platform_clock));
 
     // UART bus
-    vSerialInit((void *)UART_BASEADDR, UART_BAUDRATE, UART_CLOCK_IN_FROM_PLATFORM(platform_clock));
+    gps_set_uart_clock(UART_CLOCK_IN_FROM_PLATFORM(platform_clock));
     // I2C bus
     iLa9310_I2C_Init(LA9310_FSL_I2C1, I2C_CLOCK_IN_FROM_PLATFORM(platform_clock), LA9310_I2C_FREQ);
     // SPI bus

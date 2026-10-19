@@ -20,6 +20,7 @@ extern void la9310_msg2_irq_handler(void);
 extern void la9310_msg3_irq_handler(void);
 extern void la9310_axiq_irq_handler(void);
 extern void la9310_vspa_irq_handler(void);
+extern void gps_uart_irq_handler(void);
 
 extern void _start(void);
 
@@ -92,7 +93,7 @@ __attribute__((aligned(0x100), section(".isr_vector"))) struct la9310_cm4_isrvec
     .msg2 = &la9310_msg2_irq_handler,
     .msg3 = &la9310_msg3_irq_handler,
     .watchdog = &DefaultISR,
-    .uart = &DefaultISR,
+    .uart = &gps_uart_irq_handler,
     .aem = &DefaultISR,
     .mbee = &DefaultISR,
     .axiq = &la9310_axiq_irq_handler,

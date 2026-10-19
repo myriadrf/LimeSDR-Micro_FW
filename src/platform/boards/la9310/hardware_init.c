@@ -52,7 +52,8 @@ void vLa9310_do_handshake(struct ccsr_dcr *pxDcr)
     dmb();
     log_info("done\r\n");
 
-    // Clock changed from 100 Mhz to 160Mhz after handshake
+    // Clock changed from 100 Mhz to DCS_CLK after handshake
+    g_la9310_current_platform_clk_hz = LA9310_DCS_CLK_HZ;
     vBoardFinalInit();
 }
 

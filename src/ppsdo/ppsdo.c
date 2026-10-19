@@ -430,7 +430,7 @@ void vPhyTimerPPSOUTHandler()
     uint32_t phytime = ulPhyTimerComparatorRead(PHY_TIMER_COMP_PPS_OUT);
     const uint32_t delta = phytime - last_pps_out_isr_phytime;
     last_pps_out_isr_phytime = phytime;
-    log_info("PPS_OUT[%i]:%08x, d:%u" LOG_EOL, pps_out_stage & 1, phytime, delta);
+    // log_info("PPS_OUT[%i]:%08x, d:%u" LOG_EOL, pps_out_stage & 1, phytime, delta);
 
     enum ePhyTimerComparatorTrigger next_level;
     uint32_t next_isr_phytime;
