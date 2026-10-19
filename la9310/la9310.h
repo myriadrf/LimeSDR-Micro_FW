@@ -4,6 +4,7 @@
  * Copyright 2017-2018, 2021-2022 NXP
  */
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifndef __LA9310_H__
     #define __LA9310_H__
@@ -37,5 +38,6 @@ typedef enum { LA9310_BOOT_SRC_RSV0, LA9310_BOOT_SRC_RSV1, LA9310_BOOT_SRC_I2C, 
 extern uint32_t g_la9310_current_platform_clk_hz;
 
 void vUDelay(uint32_t microseconds);
+bool la9310_clk_src_pcie(void);
 
 #endif /* __LA9310_H__ */

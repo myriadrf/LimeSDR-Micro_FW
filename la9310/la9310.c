@@ -1,6 +1,11 @@
+#include "la9310.h"
+
+#include "io.h"
+#include "immap.h"
+
 #include <stdint.h>
 
-uint32_t g_la9310_current_platform_clk_hz;
+uint32_t g_la9310_current_platform_clk_hz = PRE_BOOT_PLATFORM_CLK_HZ;
 
 void vUDelay(uint32_t microseconds)
 {
@@ -18,4 +23,19 @@ void vUDelay(uint32_t microseconds)
         :
         :
         :);
+}
+
+bool la9310_clk_src_pcie(void)
+{
+    // check if the platform clock has already been switched.
+    const uint32_t ulPbitCompletion = IN_32((uint32_t *)PBI_COMPLETIONR);
+    const uint32_t ulRcwCompletion = IN_32((uint32_t *)RCW_COMPLETIONR);
+    bool already_on_dcs_clk = (ulRcwCompletion & RCW_COMPLETION_DONE) | (ulPbitCompletion & PBI_COMPLETION_DONE);
+    if (already_on_dcs_clk)
+    {
+        // The actual frequency is not known at this point.
+        // Previous firmware run might have left any value.
+        g_la9310_current_platform_clk_hz = LA9310_DCS_CLK_HZ;
+    }
+    return !already_on_dcs_clk;
 }

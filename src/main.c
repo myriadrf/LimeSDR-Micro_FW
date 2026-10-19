@@ -32,6 +32,7 @@
 #include "vspa_debug.h"
 
 #include "ppsdo/ppsdo.h"
+#include "limesdr_micro/limesdr_micro.h"
 
 #if NXP_ERRATUM_A_009410
     #include "la9310_pci.h"
@@ -40,8 +41,6 @@
 #ifdef LMS7002M_CLOCK
     #include "limesdr_micro/limesdr_micro.h"
 #endif
-
-la9310_dspi_t g_dspi;
 
 static struct vspa_regs *const s_VspaRegs = (struct vspa_regs *)VSPA_BASE_ADDR;
 static struct ccsr_dcr *const s_Dcr = (void *)DCR_BASE_ADDR;
@@ -101,24 +100,9 @@ void v_main_Hif_Init(struct la9310_hif *pxHif)
 static int iLa9310HostPreInit()
 {
     int irc = 0;
-
     v_main_Hif_Init(s_Hif);
-
-    // vVSPAMboxInit();
-
-    // I2C already initialized in vBoardEarlyInit()
 #ifdef LMS7002M_CLOCK
-    // Initialize DSPI Handler
-    int ret = DspiInit(&g_dspi, ((1 << DSPI_CS0)), SPI_CLOCK_IN_FROM_PLATFORM(PRE_BOOT_PLATFORM_CLK_HZ), 4000000);
-    if (ret)
-    {
-        *(int *)0x41E00200 = 0xDEADBEEF;
-        while ((*(int *)0x41E00200) == 0xDEADBEEF)
-        {
-        };
-    }
-    if (initialize_lms7002m_clock_generator(&g_dspi))
-        log_err( "Failed to configure LMS7002M clock\n");
+    limesdr_micro_initialize();
 #endif
     return irc;
 }

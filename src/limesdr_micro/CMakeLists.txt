@@ -1,6 +1,6 @@
 target_compile_definitions(limesdr-micro-m4 PUBLIC "-DLMS7002M_CLOCK")
 target_sources(limesdr-micro-m4 PRIVATE
-    limesdr_micro_init.c
+    limesdr_micro.c
     limesdr_commands.c
     eeprom.c
     leds.c

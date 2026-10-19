@@ -57,6 +57,8 @@ typedef struct PPSDO_Context {
     volatile bool pps_overrun;
 } ppsdo_context_t;
 
+extern ppsdo_context_t ppsdo;
+
 void ppsdo_initialize(ppsdo_context_t *ctx, ppsdo_dac_write_t dac_write, ppsdo_dac_read_t dac_read);
 /* Enables or disables VCTCXO disciplining. Returns false if it can't be enabled. */
 bool ppsdo_enable(ppsdo_context_t *ctx, bool enable);

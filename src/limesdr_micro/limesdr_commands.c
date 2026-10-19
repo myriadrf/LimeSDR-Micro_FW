@@ -370,46 +370,6 @@ static int ProcessLMS64C_Command(const void* dataIn, void* dataOut)
     return 0;
 }
 
-static lime_Result SetLA9310SystemClock(struct la9310_hif *hif, uint32_t system_clk_hz)
-{
-    if (system_clk_hz == 0)
-        return lime_Result_InvalidValue;
-
-    // No clear limits is known, but going lower introduces a chance that VSPA DMA might
-    // get stuck, with no recovery except power cycle.
-    if (system_clk_hz < 20e6)
-        return lime_Result_OutOfRange;
-
-    const uint32_t platform_clock = system_clk_hz * 4;
-
-    // Let pending UART TX finish at the current baud rate before the clock changes
-    vSerialWaitTxEmpty((void *)UART_BASEADDR, platform_clock);
-
-    lime_Result result = lms7002m_set_frequency_cgen(rfsoc, platform_clock);
-    if (result != lime_Result_Success)
-        return result;
-
-    ppsdo_set_clock_frequency(&ppsdo, platform_clock / 8);
-
-    vSerialInit((void *)UART_BASEADDR, UART_BAUDRATE, UART_CLOCK_IN_FROM_PLATFORM(platform_clock));
-
-    uint32_t i2c_input_clk_hz = platform_clock / 8;
-    iLa9310_I2C_Init( LA9310_FSL_I2C1, i2c_input_clk_hz, LA9310_I2C_FREQ );
-
-    uint32_t spi_input_clk_hz = platform_clock / 2;
-    uint32_t spi_frequency = 4000000;
-    if (spi_input_clk_hz < spi_frequency*2)
-        spi_frequency = spi_input_clk_hz/2;
-    vDspiClkSet(&g_dspi, spi_input_clk_hz, spi_frequency);
-
-    vDcsInit(IN_32(&hif->adc_mask), IN_32(&hif->adc_rate_mask), IN_32(&hif->dac_mask), IN_32(&hif->dac_rate_mask));
-
-    // TODO: reconfigure PPS out phytimer
-    // timer64_reset();
-
-    return result;
-}
-
 static lime_Result ConfigureReferenceClock(uint32_t clk_hz, bool external)
 {
     if (clk_hz == 0)
@@ -497,7 +457,7 @@ static void HandleCommand(volatile struct la9310_sw_cmd_desc *desc)
         break;
     }
     case LIME_M4_SET_SYSTEM_CLOCK_FREQUENCY: {
-        desc->data[0] = SetLA9310SystemClock(s_Hif, desc->data[0]);
+        desc->data[0] = limesdr_micro_set_dcs_clk(s_Hif, desc->data[0]);
         status = LA9310_SW_CMD_STATUS_DONE;
         break;
     }
