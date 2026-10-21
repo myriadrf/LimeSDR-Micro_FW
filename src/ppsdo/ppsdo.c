@@ -24,6 +24,9 @@ static uint32_t pps_in_max_deviation = 0;
 static uint32_t ppsdo_clock_hz = PHYTIMER_HZ;
 ppsdo_context_t ppsdo;
 
+static volatile bool pps_in_masked = false;
+static volatile uint32_t pps_in_masked_phytime = 0;
+
 uint8_t pps_out_stage = 0;
 bool pps_out_resync_to_pps_in = false;
 
@@ -75,19 +78,40 @@ static void vctcxo_trim_dac_write(ppsdo_context_t *ctx, uint16_t dac_value)
         ctx->dac_write(dac_value);
 }
 
-/* Discards the measurement in progress. The PPS interval that is currently running
- * is skipped, as it was (partially) measured with the previous DAC value or clock.
- */
+static inline void pps_in_disable_irq(void)
+{
+    NVIC_DisableIRQ(IRQ_PPS_IN);
+}
+
+static inline void pps_in_reenable_irq(void)
+{
+    if (!pps_in_masked)
+        NVIC_EnableIRQ(IRQ_PPS_IN);
+}
+
+static void pps_in_debounce(void)
+{
+    if (!pps_in_masked)
+        return;
+    const uint32_t delta = ulPhyTimerComparatorRead(10) - last_pps_in_phytime;
+    if (delta > pps_high_duration_ticks && delta < 0x7FFFFFFFu)
+    {
+        pps_in_masked = false;
+        NVIC_ClearPendingIRQ(IRQ_PPS_IN);
+        NVIC_EnableIRQ(IRQ_PPS_IN);
+    }
+}
+
 static void vctcxo_tamer_reset_counters(ppsdo_context_t *ctx)
 {
     pps_counter_reset(&ctx->pps_1s);
     pps_counter_reset(&ctx->pps_10s);
     pps_counter_reset(&ctx->pps_100s);
 
-    NVIC_DisableIRQ(IRQ_PPS_IN);
+    pps_in_disable_irq();
     ctx->pps_pending = false;
     ctx->pps_overrun = false;
-    NVIC_EnableIRQ(IRQ_PPS_IN);
+    pps_in_reenable_irq();
     ctx->skip_next_interval = true;
 }
 
@@ -290,15 +314,16 @@ bool ppsdo_enable(ppsdo_context_t *ctx, bool enable)
 
 void ppsdo_process(ppsdo_context_t *ctx)
 {
+    pps_in_debounce();
     if (!ctx->pps_pending)
         return;
 
-    NVIC_DisableIRQ(IRQ_PPS_IN);
+    pps_in_disable_irq();
     const uint32_t delta = ctx->pps_delta;
     const bool overrun = ctx->pps_overrun;
     ctx->pps_pending = false;
     ctx->pps_overrun = false;
-    NVIC_EnableIRQ(IRQ_PPS_IN);
+    pps_in_reenable_irq();
 
     if (!ctx->enabled || ctx->tune_state == DO_NOTHING)
         return;
@@ -393,11 +418,16 @@ void vPhyTimerPPSINHandler()
     // PPS_IN interrupt is triggered by signal level.
     // GPS module PPS signal is active for some time duration
     // that can result in multiple consecutive interrupt handler calls on each PPS
+    // PPS_IN irq priority is higher than others, so constant triggering of PPS_IN ISR,
+    // would delay processing of other interrupts.
 
-    // NVIC_DisableIRQ( IRQ_PPS_IN ); // Disable interrupt for the duration of PPS
+    // Disable interrupt for the duration of PPS, ppsdo_process() reenables it once the pulse is over.
+    NVIC_DisableIRQ(IRQ_PPS_IN);
     NVIC_ClearPendingIRQ(IRQ_PPS_IN);
 
     const uint32_t phytime = ulPhyTimerComparatorRead(PHY_TIMER_COMP_PPS_IN);
+    pps_in_masked_phytime = phytime;
+    pps_in_masked = true;
     const uint32_t delta = phytime - last_pps_in_phytime;
     if (delta < pps_in_min_delta)
         return; // repeated trigger of the same pulse
@@ -414,14 +444,6 @@ void vPhyTimerPPSINHandler()
 
     pps_out_resync_to_pps_in = true;
     // schedule_pps_out(last_pps_in_phytime + pps_high_duration_ticks, ePhyTimerComparatorOut0);
-}
-
-void pps_in_debounce(void)
-{
-    const uint32_t phytime = ulPhyTimerComparatorRead(10);
-    const uint32_t delta = phytime - last_pps_in_phytime;
-    if (delta > pps_high_duration_ticks && delta < 0x7FFFFFFFu)
-        NVIC_EnableIRQ(IRQ_PPS_IN);
 }
 
 void vPhyTimerPPSOUTHandler()
