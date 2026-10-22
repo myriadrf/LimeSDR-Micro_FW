@@ -26,6 +26,11 @@ void gps_set_uart_clock(uint32_t uart_clock_hz);
 // @brief Sends a sentence, adding '$', the checksum and CRLF, e.g. gps_send_sentence("PMTK161,0").
 // @return false if the link is not established or the sentence is too long.
 bool gps_send_sentence(const char *body);
+
+// @brief Request to generate PPS pulses.
+// The request is (re)sent whenever UART link is established or the module restarts.
+void gps_request_pps(bool required);
+
 const gps_state_t *gps_get_state(void);
 void gps_uart_irq_handler(void);
 

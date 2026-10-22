@@ -23,7 +23,7 @@ static const uint32_t candidate_baudrates[] = { 9600, 115200 };
 
 // The module outputs NMEA once per second, so a window slightly over 1 s catches at least one
 // burst even if the probe is not answered.
-#define DETECT_WINDOW_MS 1500
+#define DETECT_WINDOW_MS 3500
 
 // Divisor rounding error above which a rate is not attempted.
 #define BAUDRATE_MAX_ERROR_PERMILLE 30
@@ -55,6 +55,19 @@ static struct {
 static gps_state_t gps;
 static nmea_framer_t framer;
 static uint32_t uart_clock;
+
+// PMTK285: PPS output mode and pulse width.
+#define PPS_CONFIG_COMMAND 285
+#define PPS_CONFIG_SENTENCE "PMTK285,4,100" // always output, 100 ms pulse
+#define PPS_CONFIG_RETRY_MS 2000
+#define PPS_CONFIG_MAX_ATTEMPTS 5
+
+static struct {
+    bool required;
+    bool applied; // acknowledged by the module
+    uint8_t attempts;
+    uint32_t last_attempt_tick;
+} pps_config;
 
 static struct GPS_Baudrate_Detection {
     uint32_t state_start_tick;
@@ -164,8 +177,16 @@ static void baudrate_start_candidate(void)
     baudrate_detection.state_start_tick = phytime_now();
 }
 
+// The module might have been restarted, configure it again once the link is up.
+static void pps_config_invalidate(void)
+{
+    pps_config.applied = false;
+    pps_config.attempts = 0;
+}
+
 static void baudrate_start_detection(void)
 {
+    pps_config_invalidate();
     gps.link = GPS_LINK_DETECTING;
     gps.baudrate = 0;
     baudrate_detection.candidate_index = 0;
@@ -266,6 +287,23 @@ static void gps_data_update(gps_data_aggregate_t *data, const nmea_message_t *ms
         break;
     case NMEA_MSG_PMTK_SYS:
         log_info("GPS: system message %u" LOG_EOL, msg->pmtk_sys.message);
+        if (msg->pmtk_sys.message == 1) // startup, module settings might have been reset
+            pps_config_invalidate();
+        break;
+    case NMEA_MSG_PMTK_ACK:
+        if (msg->pmtk_ack.command != PPS_CONFIG_COMMAND || !pps_config.required)
+            break;
+        if (msg->pmtk_ack.flag == 3)
+        {
+            pps_config.applied = true;
+            log_info("GPS: PPS output set to always" LOG_EOL);
+        }
+        else
+        {
+            // Invalid or unsupported command, retrying won't help.
+            log_err("GPS: PPS configuration rejected (%u)" LOG_EOL, msg->pmtk_ack.flag);
+            pps_config.attempts = PPS_CONFIG_MAX_ATTEMPTS;
+        }
         break;
     default:
         break;
@@ -332,6 +370,28 @@ static void gps_link_check(uint32_t new_errors)
     }
 }
 
+static void pps_config_process(void)
+{
+    if (!pps_config.required || pps_config.applied || gps.link != GPS_LINK_RUNNING)
+        return;
+    if (pps_config.attempts >= PPS_CONFIG_MAX_ATTEMPTS)
+        return;
+    if (pps_config.attempts > 0 && ms_since(pps_config.last_attempt_tick) < PPS_CONFIG_RETRY_MS)
+        return;
+
+    if (++pps_config.attempts == PPS_CONFIG_MAX_ATTEMPTS)
+        log_err("GPS: PPS configuration not acknowledged, giving up" LOG_EOL);
+    uart_write_sentence(PPS_CONFIG_SENTENCE, strlen(PPS_CONFIG_SENTENCE));
+    pps_config.last_attempt_tick = phytime_now();
+}
+
+void gps_request_pps(bool enable_pps)
+{
+    if (enable_pps && !pps_config.required)
+        pps_config_invalidate();
+    pps_config.required = enable_pps;
+}
+
 void gps_initialize(uint32_t uart_clock_hz)
 {
     memset(&gps, 0, sizeof(gps));
@@ -385,6 +445,8 @@ void gps_process(void)
         baudrate_detection_check();
     else
         gps_link_check(framer_errors + (gps.stats.rx_line_errors - line_errors_before));
+
+    pps_config_process();
 }
 
 void gps_set_uart_clock(uint32_t uart_clock_hz)

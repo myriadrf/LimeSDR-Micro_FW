@@ -11,6 +11,8 @@ typedef struct PPS_Counter {
     int32_t error_tolerance; /* Max tolerated |deviation| in ticks. */
     uint16_t interval; /* Window length in PPS pulses. */
     uint16_t pulse_count;
+    int32_t last_deviation; // clock_target - clock_count of the last completed window.
+    bool last_valid; // last_deviation was measured with the current DAC value and clock.
 } pps_counter_t;
 
 /* State machine for VCTCXO tuning. */
@@ -48,6 +50,8 @@ typedef struct PPSDO_Context {
     ppsdo_dac_write_t dac_write;
     ppsdo_dac_read_t dac_read;
 
+    uint32_t tolerance_ppb; // 0 uses the default per window tolerances.
+
     bool enabled;
     bool skip_next_interval; /* Next PPS interval is not a valid measurement (DAC/clock changed). */
 
@@ -66,6 +70,15 @@ bool ppsdo_enable(ppsdo_context_t *ctx, bool enable);
    task context (it performs I2C transfers), from the same thread as other I2C users. */
 void ppsdo_process(ppsdo_context_t *ctx);
 void ppsdo_set_clock_frequency(ppsdo_context_t *ctx, uint32_t freq_hz);
+
+uint32_t ppsdo_get_clock_frequency(void);
+void ppsdo_set_tolerance(ppsdo_context_t *ctx, uint32_t tolerance_ppb);
+
+// Number of measurement windows (1s, 10s, 100s) in tolerance while fine tuning, 0..3.
+uint8_t ppsdo_get_accuracy(const ppsdo_context_t *ctx);
+
+// Whether a PPS pulse has been received within the last two seconds.
+bool ppsdo_is_pps_active(void);
 
 void pps_out_initialize();
 

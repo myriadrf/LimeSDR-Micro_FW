@@ -52,6 +52,13 @@ extern struct lms7002m_context *rfsoc;
 
 static volatile int runEngine = 1;
 
+static bool PPSDOEnable(bool enable)
+{
+    const bool success = ppsdo_enable(&ppsdo, enable);
+    gps_request_pps(ppsdo.enabled);
+    return success;
+}
+
 enum CommandStatus { cmd_status_Undefined, cmd_status_Completed, cmd_status_Unknown, cmd_status_Busy, cmd_status_TooManyBlocks, cmd_status_Error, cmd_status_WrongOrder, cmd_status_ResourceDenied, cmd_status_Count };
 
 struct LMS64CPacket {
@@ -385,7 +392,7 @@ static lime_Result ConfigureReferenceClock(uint32_t clk_hz, bool external)
         // just flip the switch
         UseExternalReferenceClock(external);
         if (external)
-            ppsdo_enable(&ppsdo, false); // XO no longer drives the clock, nothing to discipline
+            PPSDOEnable(false); // cannot discipline external clock
         return lime_Result_Success;
     }
     bool isExtClkUsed = IsExternalRefClkUsed();
@@ -408,7 +415,7 @@ static lime_Result ConfigureReferenceClock(uint32_t clk_hz, bool external)
     // flip clock source switch
     UseExternalReferenceClock(external);
     if (external)
-        ppsdo_enable(&ppsdo, false); // XO no longer drives the clock, nothing to discipline
+        PPSDOEnable(false); // cannot discipline external clock
     lms7002m_set_reference_clock(rfsoc, clk_hz);
 
     // retune with new reference clock values
@@ -444,6 +451,33 @@ extern uint32_t vspairqcnt;
 _Static_assert(sizeof(struct gps_status_payload) <= sizeof(((struct la9310_sw_cmd_desc *)0)->data), "payload too big");
 _Static_assert(sizeof(struct gps_send_payload) <= sizeof(((struct la9310_sw_cmd_desc *)0)->data), "payload too big");
 _Static_assert((int)GPS_SYSTEM_COUNT_PAYLOAD >= (int)NMEA_SYSTEM_COUNT, "satellites_in_view too small");
+
+_Static_assert(sizeof(struct ppsdo_status_payload) <= sizeof(((struct la9310_sw_cmd_desc *)0)->data), "payload too big");
+_Static_assert((int)PPSDO_TUNE_STATE_COARSE_MIN == (int)COARSE_TUNE_MIN &&
+                   (int)PPSDO_TUNE_STATE_COARSE_MAX == (int)COARSE_TUNE_MAX &&
+                   (int)PPSDO_TUNE_STATE_COARSE_DONE == (int)COARSE_TUNE_DONE && (int)PPSDO_TUNE_STATE_FINE == (int)FINE_TUNE &&
+                   (int)PPSDO_TUNE_STATE_IDLE == (int)DO_NOTHING,
+    "ppsdo_tune_state_payload mismatch");
+
+static void FillPPSDOStatus(volatile struct la9310_sw_cmd_desc *desc, lime_Result result)
+{
+    struct ppsdo_status_payload response;
+    memset(&response, 0, sizeof(response));
+    response.result = (uint32_t)result;
+    response.enabled = ppsdo.enabled;
+    response.tune_state = ppsdo.tune_state;
+    response.xo_dac_value = ppsdo.vctcxo_trim_dac_value;
+    response.error_1s = -ppsdo.pps_1s.last_deviation;
+    response.error_10s = -ppsdo.pps_10s.last_deviation;
+    response.error_100s = -ppsdo.pps_100s.last_deviation;
+    response.tolerance_1s = ppsdo.pps_1s.error_tolerance;
+    response.tolerance_10s = ppsdo.pps_10s.error_tolerance;
+    response.tolerance_100s = ppsdo.pps_100s.error_tolerance;
+    response.accuracy = ppsdo_get_accuracy(&ppsdo);
+    response.pps_active = ppsdo_is_pps_active();
+    response.clock_hz = ppsdo_get_clock_frequency();
+    memcpy((void *)desc->data, &response, sizeof(response));
+}
 
 static void FillGPSStatus(struct gps_status_payload *out)
 {
@@ -591,13 +625,22 @@ static void HandleCommand(volatile struct la9310_sw_cmd_desc *desc)
         lime_Result result = lime_Result_Success;
         if (payload->enable && IsExternalRefClkUsed())
             result = lime_Result_NotSupported; // PPSDO tunes the on-board XO, which is not in use
-        else if (!ppsdo_enable(&ppsdo, payload->enable != 0))
+        else if (!PPSDOEnable(payload->enable != 0))
             result = lime_Result_Error;
-        struct ppsdo_status_payload *response = (struct ppsdo_status_payload *)desc->data;
-        response->result = (uint32_t)result;
-        response->enabled = ppsdo.enabled;
-        response->tune_state = ppsdo.tune_state;
-        response->xo_dac_value = ppsdo.vctcxo_trim_dac_value;
+        FillPPSDOStatus(desc, result);
+        status = LA9310_SW_CMD_STATUS_DONE;
+        break;
+    }
+    case LIME_M4_PPSDO_GET_STATUS: {
+        FillPPSDOStatus(desc, lime_Result_Success);
+        status = LA9310_SW_CMD_STATUS_DONE;
+        break;
+    }
+    case LIME_M4_PPSDO_CONFIG: {
+        struct ppsdo_config_payload request;
+        memcpy(&request, (void *)desc->data, sizeof(request));
+        ppsdo_set_tolerance(&ppsdo, request.tolerance_ppb);
+        FillPPSDOStatus(desc, lime_Result_Success);
         status = LA9310_SW_CMD_STATUS_DONE;
         break;
     }

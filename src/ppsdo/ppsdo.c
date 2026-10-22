@@ -60,9 +60,39 @@ static inline void pps_counter_reset(pps_counter_t *counter)
     counter->pulse_count = 0;
 }
 
+static void pps_counter_update_tolerance(pps_counter_t *counter, uint32_t freq_hz, uint32_t tolerance_ppb, int32_t default_ticks)
+{
+    if (tolerance_ppb == 0)
+    {
+        counter->error_tolerance = default_ticks;
+        return;
+    }
+    // Same as the FPGA PPSDO: tolerance = ceil(freq * interval * ppm / 1e6)
+    uint64_t ticks = ((uint64_t)freq_hz * counter->interval * tolerance_ppb + 999999999ull) / 1000000000ull;
+    if (ticks < 1)
+        ticks = 1;
+    if (ticks > INT32_MAX)
+        ticks = INT32_MAX;
+    counter->error_tolerance = (int32_t)ticks;
+}
+
+static void ppsdo_update_tolerances(ppsdo_context_t *ctx)
+{
+    pps_counter_update_tolerance(&ctx->pps_1s, ppsdo_clock_hz, ctx->tolerance_ppb, PPS_1S_ERROR_TOLERANCE);
+    pps_counter_update_tolerance(&ctx->pps_10s, ppsdo_clock_hz, ctx->tolerance_ppb, PPS_10S_ERROR_TOLERANCE);
+    pps_counter_update_tolerance(&ctx->pps_100s, ppsdo_clock_hz, ctx->tolerance_ppb, PPS_100S_ERROR_TOLERANCE);
+}
+
 static inline int32_t pps_counter_deviation(const pps_counter_t *counter)
 {
     return (int32_t)((int64_t)counter->clock_target - (int64_t)counter->clock_count);
+}
+
+// Stores the result of a completed window, so it can be reported
+static inline void pps_counter_record(pps_counter_t *counter)
+{
+    counter->last_deviation = pps_counter_deviation(counter);
+    counter->last_valid = true;
 }
 
 static inline bool pps_counter_out_of_tolerance(const pps_counter_t *counter, int32_t *deviation)
@@ -107,6 +137,9 @@ static void vctcxo_tamer_reset_counters(ppsdo_context_t *ctx)
     pps_counter_reset(&ctx->pps_1s);
     pps_counter_reset(&ctx->pps_10s);
     pps_counter_reset(&ctx->pps_100s);
+    ctx->pps_1s.last_valid = false;
+    ctx->pps_10s.last_valid = false;
+    ctx->pps_100s.last_valid = false;
 
     pps_in_disable_irq();
     ctx->pps_pending = false;
@@ -260,20 +293,20 @@ void ppsdo_initialize(ppsdo_context_t *ctx, ppsdo_dac_write_t dac_write, ppsdo_d
     ctx->vctcxo_trim_dac_value = dac_read ? dac_read() : VCTCXO_DEFAULT_DAC_VALUE;
     ctx->trimdac_initial = ctx->vctcxo_trim_dac_value;
 
+    ctx->tolerance_ppb = 0;
     ctx->enabled = false;
     ctx->skip_next_interval = true;
     ctx->pps_pending = false;
     ctx->pps_overrun = false;
 
     ctx->pps_1s.interval = 1;
-    ctx->pps_1s.error_tolerance = PPS_1S_ERROR_TOLERANCE;
     ctx->pps_10s.interval = 10;
-    ctx->pps_10s.error_tolerance = PPS_10S_ERROR_TOLERANCE;
     ctx->pps_100s.interval = 100;
-    ctx->pps_100s.error_tolerance = PPS_100S_ERROR_TOLERANCE;
     pps_counter_reset(&ctx->pps_1s);
     pps_counter_reset(&ctx->pps_10s);
     pps_counter_reset(&ctx->pps_100s);
+    ctx->pps_1s.last_deviation = ctx->pps_10s.last_deviation = ctx->pps_100s.last_deviation = 0;
+    ctx->pps_1s.last_valid = ctx->pps_10s.last_valid = ctx->pps_100s.last_valid = false;
     ppsdo_set_clock_frequency(ctx, ppsdo_clock_hz);
 
     pps_out_initialize();
@@ -294,6 +327,7 @@ bool ppsdo_enable(ppsdo_context_t *ctx, bool enable)
         ctx->vctcxo_trim_dac_value = ctx->trimdac_initial;
         ctx->tune_state = COARSE_TUNE_MIN;
         vctcxo_tamer_reset_counters(ctx);
+        ctx->pps_1s.last_deviation = ctx->pps_10s.last_deviation = ctx->pps_100s.last_deviation = 0;
         ctx->enabled = true;
         log_info("PPSDO enabled, DAC:%u" LOG_EOL, ctx->trimdac_initial);
     }
@@ -346,6 +380,12 @@ void ppsdo_process(ppsdo_context_t *ctx)
     const bool pps_1s_done = pps_counter_increment(&ctx->pps_1s, delta);
     const bool pps_10s_done = pps_counter_increment(&ctx->pps_10s, delta);
     const bool pps_100s_done = pps_counter_increment(&ctx->pps_100s, delta);
+    if (pps_1s_done)
+        pps_counter_record(&ctx->pps_1s);
+    if (pps_10s_done)
+        pps_counter_record(&ctx->pps_10s);
+    if (pps_100s_done)
+        pps_counter_record(&ctx->pps_100s);
 
     switch (ctx->tune_state)
     {
@@ -393,6 +433,7 @@ void ppsdo_set_clock_frequency(ppsdo_context_t *ctx, uint32_t freq_hz)
 
     pps_high_duration_ticks = freq_hz / 10;
     pps_low_duration_ticks = freq_hz - pps_high_duration_ticks;
+    ppsdo_update_tolerances(ctx);
 
     if (ctx->enabled)
     {
@@ -401,6 +442,49 @@ void ppsdo_set_clock_frequency(ppsdo_context_t *ctx, uint32_t freq_hz)
             ctx->tune_state = COARSE_TUNE_MIN;
         vctcxo_tamer_reset_counters(ctx);
     }
+}
+
+uint32_t ppsdo_get_clock_frequency(void)
+{
+    return ppsdo_clock_hz;
+}
+
+void ppsdo_set_tolerance(ppsdo_context_t *ctx, uint32_t tolerance_ppb)
+{
+    ctx->tolerance_ppb = tolerance_ppb;
+    ppsdo_update_tolerances(ctx);
+    log_info("PPSDO tolerance %u ppb, 1s:%li 10s:%li 100s:%li ticks" LOG_EOL,
+        tolerance_ppb,
+        ctx->pps_1s.error_tolerance,
+        ctx->pps_10s.error_tolerance,
+        ctx->pps_100s.error_tolerance);
+}
+
+static bool pps_counter_in_tolerance(const pps_counter_t *counter)
+{
+    return counter->last_valid && abs(counter->last_deviation) <= counter->error_tolerance;
+}
+
+uint8_t ppsdo_get_accuracy(const ppsdo_context_t *ctx)
+{
+    if (!ctx->enabled || ctx->tune_state != FINE_TUNE)
+        return 0;
+    if (!pps_counter_in_tolerance(&ctx->pps_1s))
+        return 0;
+    if (!pps_counter_in_tolerance(&ctx->pps_10s))
+        return 1;
+    if (!pps_counter_in_tolerance(&ctx->pps_100s))
+        return 2;
+    return 3;
+}
+
+bool ppsdo_is_pps_active(void)
+{
+    if (pps_in_count == 0)
+        return false;
+    // The 32-bit PHY timer wraps around, a pulse older than the wrap period may be reported as recent.
+    const uint32_t since_last_pulse = uGetPhyTimerTimestamp() - last_pps_in_phytime;
+    return since_last_pulse < 2 * ppsdo_clock_hz;
 }
 
 void pps_out_initialize()
@@ -450,9 +534,8 @@ void vPhyTimerPPSOUTHandler()
 {
     NVIC_ClearPendingIRQ(IRQ_PPS_OUT);
     uint32_t phytime = ulPhyTimerComparatorRead(PHY_TIMER_COMP_PPS_OUT);
-    const uint32_t delta = phytime - last_pps_out_isr_phytime;
     last_pps_out_isr_phytime = phytime;
-    // log_info("PPS_OUT[%i]:%08x, d:%u" LOG_EOL, pps_out_stage & 1, phytime, delta);
+    // log_info("PPS_OUT[%i]:%08x, d:%u" LOG_EOL, pps_out_stage & 1, phytime, phytime - last_pps_out_isr_phytime);
 
     enum ePhyTimerComparatorTrigger next_level;
     uint32_t next_isr_phytime;
