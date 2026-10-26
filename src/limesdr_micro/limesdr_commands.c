@@ -301,7 +301,7 @@ static int ProcessLMS64C_Command(const void* dataIn, void* dataOut)
         outPacket->payload[3] = hardware_version; // hardware version
         outPacket->payload[4] = 0; // expansion/daughter board id
         uint64_t serial = 0;
-        EEPROM_Read(0xFFF0, &serial, 8); // TODO: currently normal storage, replace with EEPROM write once block
+        EEPROM_ReadSerialNumber(&serial); // stays 0 if the identification page is not programmed
         for (int i = 17; i >= 10; --i)
         {
             outPacket->payload[i] = (serial & 0xFF); // GET_INFO serial is MSB
