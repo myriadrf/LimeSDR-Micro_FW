@@ -430,23 +430,6 @@ static lime_Result ConfigureReferenceClock(uint32_t clk_hz, bool external)
     return status;
 }
 
-extern uint32_t __bootloader_dest;
-extern uint32_t __bootloader_src;
-extern uint32_t __bootloader_size;
-static void LoadBootloader(void)
-{
-    volatile struct la9310_boot_header *boot_header = (struct la9310_boot_header *)TCMU_PHY_ADDR;
-    boot_header->preamble = 0x0;
-    uint32_t *dst = &__bootloader_dest;
-    const uint32_t *src = &__bootloader_src;
-    const uint32_t size = (uint32_t)&__bootloader_size;
-    log_info("bl_src_offset: 0x%08x\n", src);
-    log_info("bl_dest: 0x%08x\n", dst);
-    log_info("bl_size: 0x%08x\n", size);
-    memcpy(dst, src, size);
-    dsb();
-}
-
 extern uint32_t vspairqcnt;
 _Static_assert(sizeof(struct gps_status_payload) <= sizeof(((struct la9310_sw_cmd_desc *)0)->data), "payload too big");
 _Static_assert(sizeof(struct gps_send_payload) <= sizeof(((struct la9310_sw_cmd_desc *)0)->data), "payload too big");
@@ -529,15 +512,13 @@ static void HandleCommand(volatile struct la9310_sw_cmd_desc *desc)
         break;
     }
     case LIME_M4_BOOTLOADER: {
-        log_info("LoadBootloader\r\n");
+        log_info("FirmwareReload" LOG_EOL);
         OUT_32(&vspa_csr->vspa_irqen, 0x0);
-        disable_irq();
-        LoadBootloader();
-        log_info("jump to %8x\r\n", &bootloader_reset_handler);
         desc->data[0] = 0;
         desc->status = LA9310_SW_CMD_STATUS_DONE;
         bootloader_reset_handler();
         // stops here, jumped to bootloader code.
+        __builtin_unreachable();
         break;
     }
     case LIME_M4_HEARTHBEAT: { // Signalize firmware is alive

@@ -21,13 +21,6 @@ MEMORY
 
   /* TCMU is 64bit accessible */
   m_dtcm    (RW)  : ORIGIN = 0x20000000, LENGTH = 64K
-
-  /*
-  Code for reloading next firmware will be stored/executed here.
-  Placed in data section, so that bootloader would not overwrite itself while loading.
-  */
-  m_temp_bootloader (RWX) : ORIGIN = 0x20000000 + 32K, LENGTH = 8K
-
   br_data   (R)   : ORIGIN = 0x2000F000, LENGTH = 0x00001000
 }
 
@@ -41,18 +34,6 @@ SECTIONS
     KEEP(*(*.romboot_header));
   } > m_tcml
   PROVIDE(__firmware_bin_src_offset = __firmware_bin_start - ORIGIN(m_tcml));
-
-
-  .bootloader_lib :
-  {
-    /* code and data only: a wildcard would also pull in .comment,
-     * .ARM.attributes and, with -g, the .debug_* sections */
-    *bootloader.c.obj (SORT_BY_ALIGNMENT(.text*) SORT_BY_ALIGNMENT(.rodata*) SORT_BY_ALIGNMENT(.data*))
-  } > m_temp_bootloader AT > m_tcml
-  PROVIDE_HIDDEN (__bootloader_src = LOADADDR(.bootloader_lib));
-  PROVIDE_HIDDEN (__bootloader_dest = ADDR(.bootloader_lib));
-  PROVIDE_HIDDEN (__bootloader_size =  SIZEOF(.bootloader_lib));
-  PROVIDE_HIDDEN (__bootloader_stack = 0x20000000 + 63K);
 
   .text :
   {

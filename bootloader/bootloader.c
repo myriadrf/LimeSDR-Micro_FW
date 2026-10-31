@@ -5,7 +5,6 @@
 
 #include "la9310_gpio.h"
 
-#define PREAMBLE 0xaa55aa55
 #define M4_THUMB_BIT 0x1
 
 #define LED1_PIN 17
@@ -30,58 +29,35 @@ static inline void LED_GPIO_set_value(uint32_t pin, bool value)
         clrbits_le32((uint32_t)(&p_reg[GPIO_DAT]), (1 << pin));
 }
 
-// TODO: Code of Loading from host memory already exists in ROM. Should find it's address and reuse it.
-// Having this procedure run from TCML risks overwriting itself if the image is large enough.
-__attribute__((noreturn)) static void fw_boot_from_host_memory(void)
+// Boot-from-PCIe path of the ROM's main function, at the point where PCIe is already initialized.
+// From here the ROM:
+//  - polls TCMU for the boot preamble, then validates the boot header, error code is left in DCFG SCRATCHRW1 (0x41E00200)
+//  - copies the image from host memory and jumps to it
+#define ROM_PCIE_BOOT_ENTRY (0x00000CAE | M4_THUMB_BIT)
+// The function keeps these in sp and r4, the same values it has at this point after a reset
+#define ROM_PCIE_BOOT_STACK 0x2000FF8C
+#define ROM_BOOT_SOURCE_PCIE 3
+
+__attribute__((noreturn)) static void ROM_boot_firmware_over_pcie(void)
 {
-    disable_irq();
+    // ROM execution path: Clears TCMU, PCIe init, load firmware.
+    // Must skip the PCIe init, so explicitly clear TCMU and jump straight to the firmware load section.
     volatile struct la9310_boot_header *boot_header = (struct la9310_boot_header *)TCMU_PHY_ADDR;
+    boot_header->preamble = 0;
 
-    LED_GPIO_config_output(LED1_PIN);
-    uint32_t cnt = 0;
-    while (boot_header->preamble != PREAMBLE)
-    {
-        LED_GPIO_set_value(LED1_PIN, ++cnt & 0x40000);
-        dmb();
-    }
-
-    uint32_t *dst = (uint32_t *)boot_header->bl_dest;
-    const volatile uint32_t *src = (uint32_t *)(boot_header->bl_src_offset + PCIE_PHY_ADDR);
-    const uint32_t size = boot_header->bl_size;
-
-    for (uint32_t copied = 0; copied < size; copied += sizeof(uint32_t))
-        *dst++ = *src++;
-
-    LED_GPIO_set_value(LED1_PIN, 1); // off
-
-    void (*jump_to_fw_entry)(void) = (void *)(boot_header->bl_entry | M4_THUMB_BIT);
-    dsb();
-    jump_to_fw_entry();
-
-    // Control should never reach here
-    while (1)
-    {
-    };
+    // MSP can only be set from privileged context
+    asm volatile("msr msp, %[stack]\n"
+                 "mov r4, %[boot_source]\n"
+                 "bx %[entry]\n"
+                 :
+                 : [stack] "r"(ROM_PCIE_BOOT_STACK), [boot_source] "r"(ROM_BOOT_SOURCE_PCIE), [entry] "r"(ROM_PCIE_BOOT_ENTRY)
+                 : "r4");
+    __builtin_unreachable();
 }
-
-extern uint32_t __bootloader_stack; // provided by linker script
 
 __attribute__((noreturn)) void bootloader_reset_handler(void)
 {
     disable_irq();
-    // Initialize Core Registers
-    asm volatile("mov    r0, #0x0\n"
-                 "mov    r1, r0\n"
-                 "mov    r2, r0\n"
-                 "mov    r3, r0\n"
-                 "mov    r4, r0\n"
-                 "mov    r5, r0\n"
-                 "mov    r6, r0\n"
-                 // "mov    r7, r0\n"
-                 :
-                 :
-                 : "r0", "r1", "r2", "r3", "r4", "r5", "r6");
-
     // Set Priviledged Mode.
     asm volatile("mrs    r0, control\n"
                  "bic    r0, 0x1\n"
@@ -90,12 +66,6 @@ __attribute__((noreturn)) void bootloader_reset_handler(void)
                  :
                  : "r0");
 
-    // MSP can only be set from privileged context
-    asm volatile("ldr r0, =__bootloader_stack\n"
-                 "msr msp, r0\n"
-                 :
-                 :
-                 : "r0");
     SYST->STCSR = (SYST->STCSR & ~(0x1)); // disable systick
 #pragma GCC unroll 8
     for (int i = 0; i < 8; ++i)
@@ -104,9 +74,9 @@ __attribute__((noreturn)) void bootloader_reset_handler(void)
         NVIC->ICPR[i] = 0xFFFFFFFF; // clear pending interrupt flags
     }
 
+    SCB->ICSR = (1 << 30) | (1 << 27) | (1 << 25); // Clear pending systick, nmi, pendsv interrupts
     // switch back to ROM ISR vectors
     SCB->VTOR = 0;
-    SCB->ICSR = (1 << 30) | (1 << 27) | (1 << 25); // Clear pending systick, nmi, pendsv interrupts
     dsb();
     isb();
 
@@ -118,11 +88,13 @@ __attribute__((noreturn)) void bootloader_reset_handler(void)
     // outlive the firmware that published it
     OUT_32(0x41E0027C, 0);
 
-    volatile struct la9310_boot_header *boot_header = (struct la9310_boot_header *)TCMU_PHY_ADDR;
-    boot_header->preamble = 0;
+    // on while waiting for the next firmware, which turns it off when it initializes the LEDs
+    LED_GPIO_config_output(LED1_PIN);
+    LED_GPIO_set_value(LED1_PIN, 0);
+    dsb();
 
-    fw_boot_from_host_memory();
-
+    ROM_boot_firmware_over_pcie();
+    __builtin_unreachable();
     while (1)
     {
     };

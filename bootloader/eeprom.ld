@@ -15,10 +15,6 @@ MEMORY
     Limit it's size so 100kHz I2C could load it and setup in <100ms for PCIe enumeration.
   */
   m_plugin (RX) : ORIGIN = 0x1F800000, LENGTH = 400
-
-  /* place bootloader at the end of TCML, so it would be unlikely to overwrite itself while loading next image.
-     TODO: it should be possible to reuse memory load code from BootROM, so there would be no issues with self overwrite.
-  */
   m_bootloader  (RX) : ORIGIN = 0x1F800000 + 63K, LENGTH = 1K
   m_dtcm     (RW) : ORIGIN = 0x20000000 + 63K , LENGTH = 1K
 }
