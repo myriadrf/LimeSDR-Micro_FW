@@ -9,7 +9,6 @@
 
 #include "la9310_irq.h"
 #include "la9310_sirq.h"
-#include "iqstream/iqstream.h"
 #include "io.h"
 #include "vspa_debug.h"
 
@@ -19,6 +18,8 @@
 #define LA9310_SCRATCH_SIRQ_CLEAR_REG 8
 
 #define BITMASK(n) (1 << n)
+
+extern void iqstream_vspa_irq_handler(void);
 
 static struct la9310_sirq *g_sirq = NULL;
 

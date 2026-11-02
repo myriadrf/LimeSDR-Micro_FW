@@ -329,33 +329,10 @@ void La9310VSPA_IRQRelayHandler(void)
     log_isr("ISR:%s: Out" LOG_EOL, __func__);
 }
 
-extern void iqstream_handle_vspa_dma_irq(uint32_t dma_irq_stat);
-extern void iqstream_handle_vspa_flags_irq(uint32_t dma_irq_stat);
-
 void La9310VSPA_IRQDirectHandler(void)
 {
     struct vspa_regs *pVspaRegs = (struct vspa_regs *)VSPA_BASE_ADDR;
-    const uint32_t dma_irq_stat = IN_32(&pVspaRegs->dma_irq_stat);
-    // log_info( "VSPA_");
-    if (dma_irq_stat)
-    {
-        OUT_32(&pVspaRegs->dma_irq_stat, dma_irq_stat);
-        // log_info( "_DMA, %x", dma_irq_stat);
-        iqstream_handle_vspa_dma_irq(dma_irq_stat);
-        // la9310_sirq_raise_events(&pLa9310Info->softirq, (1 << VSPA_DDR_WRITE_DONE) );
-    }
-
-    const uint32_t signal_flags = IN_32(&pVspaRegs->vcpu_host_flags0);
-    if (signal_flags)
-    {
-        OUT_32(&pVspaRegs->vcpu_host_flags0, signal_flags);
-        // log_info("_sig, %x", signal_flags);
-        iqstream_handle_vspa_flags_irq(signal_flags);
-    }
-    // log_info(LOG_EOL);
     NVIC_ClearPendingIRQ(IRQ_VSPA);
-    // vspa_dma_mark_events();
-
 #if ARM_ERRATUM_838869
     dsb();
 #endif

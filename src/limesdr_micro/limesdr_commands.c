@@ -24,9 +24,6 @@
 #include "eeprom.h"
 #include "timer64.h"
 #include "la9310_sirq.h"
-#include "iqstream/iqstream.h"
-#include "iqstream/receiver.h"
-#include "iqstream/transmitter.h"
 #include "ppsdo/ppsdo.h"
 #include "ppsdo/gps.h"
 
@@ -557,47 +554,6 @@ static void HandleCommand(volatile struct la9310_sw_cmd_desc *desc)
     case LIME_M4_DMA: {
         log_info("cmd:DMA" LOG_EOL);
 
-        status = LA9310_SW_CMD_STATUS_DONE;
-        break;
-    }
-    case LIME_M4_IQSTREAM_CTRL: {
-        struct iqstream_control_payload *payload = (struct iqstream_control_payload *)desc->data;
-        if (payload->enable)
-            desc->data[0] = iqstream_enable(payload->rxmask, payload->txmask);
-        else
-            desc->data[0] = iqstream_disable(payload->rxmask, payload->txmask);
-        status = LA9310_SW_CMD_STATUS_DONE;
-        break;
-    }
-    case LIME_M4_RX_CHANNEL_SELECT: {
-        struct iqstream_channel_select *payload = (struct iqstream_channel_select *)desc->data;
-        desc->data[0] = receiver_lane_set_channel(payload->lane, payload->channel);
-        status = LA9310_SW_CMD_STATUS_DONE;
-        break;
-    }
-    case LIME_M4_RX_SET_OVERSAMPLE: {
-        struct iqstream_channel_config *payload = (struct iqstream_channel_config *)desc->data;
-        desc->data[0] = receiver_set_oversample(payload->channel, payload->oversample_pow2);
-        status = LA9310_SW_CMD_STATUS_DONE;
-        break;
-    }
-    case LIME_M4_TX_SET_OVERSAMPLE: {
-        struct iqstream_channel_config *payload = (struct iqstream_channel_config *)desc->data;
-        desc->data[0] = transmitter_set_oversample(payload->channel, payload->oversample_pow2);
-        status = LA9310_SW_CMD_STATUS_DONE;
-        break;
-    }
-    case LIME_M4_RX_GET_OVERSAMPLE:
-    case LIME_M4_TX_GET_OVERSAMPLE: {
-        struct iqstream_channel_config *payload = (struct iqstream_channel_config *)desc->data;
-        int oversample_pow2 = desc->cmd == LIME_M4_RX_GET_OVERSAMPLE ? receiver_get_oversample(payload->channel)
-                                                                     : transmitter_get_oversample(payload->channel);
-        if (oversample_pow2 < 0)
-        {
-            status = LA9310_SW_CMD_STATUS_ERROR;
-            break;
-        }
-        desc->data[0] = oversample_pow2;
         status = LA9310_SW_CMD_STATUS_DONE;
         break;
     }

@@ -26,8 +26,6 @@
 #include "tmu.h"
 #include "serial_ns16550.h"
 
-#include "iqstream/iqstream.h"
-
 #include "vspa_regs.h"
 #include "vspa_debug.h"
 
@@ -279,7 +277,6 @@ int main( void )
 
     axiq_loopback(false, 0xF);
 
-    iqstream_init();
     la9310_m4_init_complete(s_Dcr);
 
     // /* Start FreeRTOS scheduler */

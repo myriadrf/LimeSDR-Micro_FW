@@ -1,6 +1,4 @@
 #include "m4_memorymap.h"
-#include "iqstream/receiver.h"
-#include "iqstream/transmitter.h"
 
 #include "config.h"
 #include "la9310_host_if.h"

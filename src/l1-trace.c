@@ -40,7 +40,7 @@ void l1_trace_clear(void)
     trace_hif.bytes_produced = 0;
     trace_hif.event_count = 0;
     trace_hif.event_drops = 0;
-    WAIT_TIMEOUT_R(!dmac_is_running(1 << L1_TRACE_DMA_CHANNEL), 5000);
+    WAIT_FOR(!dmac_is_running(1 << L1_TRACE_DMA_CHANNEL), 5000);
     // while (dmac_is_running(1 << L1_TRACE_DMA_CHANNEL)){
     // }
     dmac_clear_complete((1 << L1_TRACE_DMA_CHANNEL));

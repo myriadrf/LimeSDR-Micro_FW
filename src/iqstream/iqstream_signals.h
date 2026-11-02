@@ -21,7 +21,6 @@ enum HTV_Signal {
     HTV_SIGNAL_TXLANE0_PRIME = (1 << 13),
     HTV_SIGNAL_TXLANE0_TCD_PENDING = (1 << 14),
     HTV_SIGNAL_TXLANE0_ABORT = (1 << 15),
-    HTV_SIGNAL_TXLANE0_UNBRICK = (1 << 16),
 };
 
 enum VTH_Signal {
@@ -33,8 +32,5 @@ enum VTH_Signal {
     VTH_SIGNAL_TXLANE0_TCD_DONE = (1 << 14),
     VTH_SIGNAL_ERROR = (1 << 31),
 };
-
-void signal_to_vspa(uint32_t flags);
-uint32_t vspa_signal_status();
 
 #endif // LIME_IQSTREAM_SIGNALS_H

@@ -212,6 +212,7 @@ lime_Result limesdr_micro_set_dcs_clk(struct la9310_hif *hif, uint32_t dcs_clk_h
     // get stuck, with no recovery except power cycle.
     if (dcs_clk_hz < 20e6)
         return lime_Result_OutOfRange;
+    log_info("Set DCS_CLK %u" LOG_EOL, dcs_clk_hz);
 
     // Let pending UART TX finish at the current baud rate before the clock changes
     vSerialWaitTxEmpty((void *)UART_BASEADDR, UART_CLOCK_IN_FROM_PLATFORM(g_la9310_current_platform_clk_hz));
