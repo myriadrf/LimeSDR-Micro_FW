@@ -101,7 +101,7 @@ static int iLa9310HostPreInit()
     int irc = 0;
     v_main_Hif_Init(s_Hif);
 #ifdef LMS7002M_CLOCK
-    limesdr_micro_initialize();
+    irc = limesdr_micro_initialize();
 #endif
     return irc;
 }

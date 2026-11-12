@@ -40,6 +40,11 @@ static int i2c_write8(int module, uint32_t i2c_moduleAddress, uint8_t addr, uint
     return iLa9310_I2C_Write(module, i2c_moduleAddress, addr, LA9310_I2C_DEV_OFFSET_LEN_1_BYTE, &value, 1);
 }
 
+static inline int i2c_read8(int module, uint32_t i2c_moduleAddress, uint8_t addr, uint8_t *value)
+{
+    return iLa9310_I2C_Read(module, i2c_moduleAddress, addr, LA9310_I2C_DEV_OFFSET_LEN_1_BYTE, value, 1);
+}
+
 int32_t spi_lms7002m_write(la9310_dspi_t *dspi, uint16_t addr, uint16_t value)
 {
     int32_t j = 0;
@@ -163,6 +168,18 @@ static void initialize_power_regulators(uint32_t i2c_handle)
     }
 }
 
+// Only do LMS7002M hardware reset when LA9310 is running of a PCIe ref clock
+static void i2c_reset_lms7002m(uint32_t i2c_handle)
+{
+    log_info("LMS7002M HW Reset" LOG_EOL);
+    uint8_t gpio_a = 0;
+    i2c_read8(i2c_handle, i2c_expander_addr, 0x12, &gpio_a);
+    gpio_a &= ~(1 << 0); // Reset LMS7002, reset active when low
+    i2c_write8(i2c_handle, i2c_expander_addr, 0x12, gpio_a);
+    gpio_a |= (1 << 0);
+    i2c_write8(i2c_handle, i2c_expander_addr, 0x12, gpio_a);
+}
+
 static void initialize_i2c_expander(uint32_t i2c_handle)
 {
     // I2C I/O expander (IC15, MCP23017-E/ML)
@@ -237,7 +254,7 @@ lime_Result limesdr_micro_set_dcs_clk(struct la9310_hif *hif, uint32_t dcs_clk_h
     return result;
 }
 
-void limesdr_micro_initialize(void)
+int limesdr_micro_initialize(void)
 {
     // Enable LMS7002M transmitter, PHYTimer 19, controls LMS_TXEN pin
     vPhyTimerComparatorForce(19, ePhyTimerComparatorOut1);
@@ -253,13 +270,18 @@ void limesdr_micro_initialize(void)
     // If this is not the first firmware run, the clocks can be already changed from PCIe ref clk.
     if (la9310_clk_src_pcie())
     {
-        // all initial clocks state is known.
+        // initial DCS_CLK state is known.
         log_info("ColdStart, platform clk %u" LOG_EOL, PRE_BOOT_PLATFORM_CLK_HZ);
         iLa9310_I2C_Init(LA9310_FSL_I2C1, I2C_CLOCK_IN_FROM_PLATFORM(PRE_BOOT_PLATFORM_CLK_HZ), LA9310_I2C_FREQ);
         initialize_i2c_expander(LA9310_FSL_I2C1);
         initialize_power_regulators(LA9310_FSL_I2C1);
 
         DspiInit(&g_dspi, ((1 << DSPI_CS0)), SPI_CLOCK_IN_FROM_PLATFORM(PRE_BOOT_PLATFORM_CLK_HZ), LMS7002M_SPI_SPEED_HZ);
+
+        // On host reboot, the LA9310 gets reset, and is switched back to PCIe clock.
+        // If the board still had power during reboot, LMS7002M retains state from previous session.
+        // Do a hardware reset of LMS7002M in case it had broken/latched state.
+        i2c_reset_lms7002m(LA9310_FSL_I2C1);
 
 #ifdef EXT_REF_CLK_FREQ
         log_info("Ext. Ref. Clk %u" LOG_EOL, EXT_REF_CLK_FREQ);
@@ -269,12 +291,15 @@ void limesdr_micro_initialize(void)
         UseExternalReferenceClock(false);
 #endif
         log_info("Config MCLK1/DCS_CLK %u" LOG_EOL, LA9310_DCS_CLK_HZ);
-        lime_Result result = lms7002m_set_frequency_cgen(rfsoc, 4 * LA9310_DCS_CLK_HZ);
         lms7002m_spi_modify_csr(rfsoc, LMS7002M_EN_ADCCLKH_CLKGN, 0x0); // FCLKH to ADC
         lms7002m_spi_modify_csr(rfsoc, LMS7002M_CLKH_OV_CLKL_CGEN, 0x2); // divide clock by 4
         lms7002m_spi_modify_csr(rfsoc, LMS7002M_MCLK1SRC, 0x3); // switch MCLK1 clock source to RxTSPCLKA
+        lime_Result result = lms7002m_set_frequency_cgen(rfsoc, 4 * LA9310_DCS_CLK_HZ);
         if (result != lime_Result_Success)
+        {
             log_err("MCLK1 fail", LOG_EOL);
+            return -1;
+        }
     }
     else
     {
@@ -300,17 +325,22 @@ void limesdr_micro_initialize(void)
 
         // no need to reinitialize power regulators, they are not modified after initial setup, so should be good from previous run
         log_info("Config DCS_CLK %u" LOG_EOL, LA9310_DCS_CLK_HZ);
-        lime_Result result = lms7002m_set_frequency_cgen(rfsoc, 4 * LA9310_DCS_CLK_HZ);
-        if (result != lime_Result_Success)
-            log_err("MCLK1 fail", LOG_EOL);
         lms7002m_spi_modify_csr(rfsoc, LMS7002M_EN_ADCCLKH_CLKGN, 0x0); // FCLKH to ADC
         lms7002m_spi_modify_csr(rfsoc, LMS7002M_CLKH_OV_CLKL_CGEN, 0x2); // divide clock by 4
         lms7002m_spi_modify_csr(rfsoc, LMS7002M_MCLK1SRC, 0x3); // switch MCLK1 clock source to RxTSPCLKA
+        lime_Result result = lms7002m_set_frequency_cgen(rfsoc, 4 * LA9310_DCS_CLK_HZ);
+        if (result != lime_Result_Success)
+        {
+            log_err("MCLK1 fail", LOG_EOL);
+            return -1;
+        }
 
         DspiInit(&g_dspi, ((1 << DSPI_CS0)), SPI_CLOCK_IN_FROM_PLATFORM(g_la9310_current_platform_clk_hz), LMS7002M_SPI_SPEED_HZ);
 
         iLa9310_I2C_Init(LA9310_FSL_I2C1, I2C_CLOCK_IN_FROM_PLATFORM(g_la9310_current_platform_clk_hz), LA9310_I2C_FREQ);
         initialize_i2c_expander(LA9310_FSL_I2C1);
+        // on warm start, power regulators should already be configured, but just in case reconfigure again to expected values.
+        initialize_power_regulators(LA9310_FSL_I2C1);
     }
 
     iLa9310_I2C_Read(LA9310_FSL_I2C1, i2c_expander_addr, 0x13, LA9310_I2C_DEV_OFFSET_LEN_1_BYTE, &hardware_version, 1);
@@ -341,4 +371,5 @@ void limesdr_micro_initialize(void)
     const uint16_t xo_dac = ReadXODAC_EEPROM();
     SetXODAC(xo_dac);
     log_info("ClockInit done" LOG_EOL);
+    return 0;
 }
