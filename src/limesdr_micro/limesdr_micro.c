@@ -225,9 +225,11 @@ lime_Result limesdr_micro_set_dcs_clk(struct la9310_hif *hif, uint32_t dcs_clk_h
     if (dcs_clk_hz == 0)
         return lime_Result_InvalidValue;
 
-    // No clear limits is known, but going lower introduces a chance that VSPA DMA might
-    // get stuck, with no recovery except power cycle.
-    if (dcs_clk_hz < 20e6)
+    // No clear limits are known. LA9310 seems to be able to operate with DCS_CLK as low as 15MHz.
+    // Going lower is possible, but appears to start to introduce digital noise in AXIQ data.
+    // The ADC spec minimum is 20Msps, that would represent 40MHz DCS_CLK.
+    // Practically ADC seems to work fine down to 7.5Msps, going below that starts to increasingly distort ADC samples.
+    if (dcs_clk_hz < 15e6)
         return lime_Result_OutOfRange;
     log_info("Set DCS_CLK %u" LOG_EOL, dcs_clk_hz);
 
