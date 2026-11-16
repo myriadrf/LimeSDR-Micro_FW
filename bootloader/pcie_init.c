@@ -110,6 +110,27 @@ static inline void setup_pcie_bars()
 
     // reduce BAR0 size to 64MB
     OUT_32((uint32_t *)(PCIE_BASE_ADDR + 0x1010), 0x3FFFFFF); // BAR0_MASK
+
+    // disable Expansion ROM BAR, it's not used (bit0 = ROM BAR enable)
+    OUT_32((uint32_t *)(PCIE_BASE_ADDR + 0x1030), 0x0); // EXP_ROM_BAR_MASK
+}
+
+// Trim the extended capability list, hide from the host:
+//  - ATS (Address Translation Services): when the host IOMMU sees ATS it enables device
+//    IOTLB and issues ATS invalidations the LA9310 never completes,
+//    e.g. "AMD-Vi: Completion-Wait loop timed out".
+//  - Secondary PCI Express: it is needed for Gen3 equalization. should not be listed when the controller is configured for Gen1/Gen2.
+//
+// Must be called while DBI read-only registers are write enabled.
+static inline void trim_pcie_ext_caps()
+{
+    // LA9310 extended capability list: AER(0x100) -> Secondary PCIe(0x148) -> ATS(0x158) -> end.
+    // Clearing a header's Next Capability Offset terminates the list after that capability.
+#define PCIE_AER_EXT_CAP_OFFSET 0x100
+#define PCIE_SEC_PCIE_EXT_CAP_OFFSET 0x148
+#define PCIE_EXT_CAP_NEXT_MASK (0xFFFu << 20)
+    const uint32_t last_cap = check_pcie_gen2() ? PCIE_AER_EXT_CAP_OFFSET : PCIE_SEC_PCIE_EXT_CAP_OFFSET;
+    out_32_masked((uint32_t *)(PCIE_BASE_ADDR + last_cap), 0, PCIE_EXT_CAP_NEXT_MASK);
 }
 
 #define PCIE_MISC_CONTROL_1_OFF 0x8BC
@@ -134,6 +155,9 @@ void pcie_init(void)
 
     // Set PCIe Link Speed
     set_pcie_link_speed();
+
+    // Hide ATS (host IOMMU invalidations time out)
+    trim_pcie_ext_caps();
 
     // #ifdef CONFIG_PCIE_EQU_PROG
     //     // Eualization register configuration as requested by verification team.
