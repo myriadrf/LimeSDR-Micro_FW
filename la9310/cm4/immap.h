@@ -27,6 +27,11 @@
 #define DCS_BASE_ADDR (CCSR_BASE_ADDR + 0x1040000)
 #define LA9310_RFIC_LLCP_BASE_ADDR (CCSR_BASE_ADDR + 0x4010000)
 
+/* MSI capability in the PCIe controller's config space (DBI) */
+#define PCIE_MSI_CAP_REG (0x50) /* capability header, Message Control in bits 31:16 */
+#define PCIE_MSI_CAP_ENABLE (1u << 16)
+#define PCIE_MSI_CAP_MME_SHIFT (20) /* Multiple Message Enable: log2 of the vectors the host enabled */
+#define PCIE_MSI_CAP_MME_MASK (0x7u << PCIE_MSI_CAP_MME_SHIFT)
 #define PCIE_MSI_ADDR_REG (0x54)
 #define PCIE_MSI_DATA_REG_1 (0x5c)
 

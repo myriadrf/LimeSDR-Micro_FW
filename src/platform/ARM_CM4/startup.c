@@ -11,15 +11,14 @@ extern void DebugMon_Handler(void);
 extern void PCIE_IRQHandler(void);
 extern void La9310eDMA_IRQHandler(void);
 extern void La9310WDOG_IRQHandler(void);
-extern void La9310VSPA_IRQHandler(void);
 extern void vPhyTimerPPSINHandler(void);
 extern void vPhyTimerPPSOUTHandler(void);
 
-extern void la9310_msg1_irq_handler(void);
-extern void la9310_msg2_irq_handler(void);
-extern void la9310_msg3_irq_handler(void);
-extern void la9310_axiq_irq_handler(void);
-extern void la9310_vspa_irq_handler(void);
+extern void inbound_msg1_isr(void);
+extern void inbound_msg2_isr(void);
+extern void inbound_msg3_isr(void);
+extern void la9310_axiq_isr(void);
+extern void la9310_vspa_isr(void);
 extern void gps_uart_irq_handler(void);
 
 extern void _start(void);
@@ -89,16 +88,16 @@ __attribute__((aligned(0x100), section(".isr_vector"))) struct la9310_cm4_isrvec
     .ip2 = &DefaultISR,
     .ip3 = &DefaultISR,
     .edma = &DefaultISR,
-    .msg1 = &la9310_msg1_irq_handler,
-    .msg2 = &la9310_msg2_irq_handler,
-    .msg3 = &la9310_msg3_irq_handler,
+    .msg1 = &inbound_msg1_isr,
+    .msg2 = &inbound_msg2_isr,
+    .msg3 = &inbound_msg3_isr,
     .watchdog = &DefaultISR,
     .uart = &gps_uart_irq_handler,
     .aem = &DefaultISR,
     .mbee = &DefaultISR,
-    .axiq = &la9310_axiq_irq_handler,
+    .axiq = &la9310_axiq_isr,
     .adc_dac = &DefaultISR,
-    .vspa = &la9310_vspa_irq_handler,
+    .vspa = &la9310_vspa_isr,
     .thermal_alarm = &DefaultISR,
     .thermal_critical_alarm = &DefaultISR,
     .epu = &DefaultISR,

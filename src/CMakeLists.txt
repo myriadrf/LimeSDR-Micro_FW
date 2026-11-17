@@ -58,7 +58,6 @@ endif()
 if(LMS7002M_CLOCK)
     add_subdirectory(limesdr_micro)
 endif()
-add_subdirectory(iqstream)
 add_subdirectory(ppsdo)
 
 target_include_directories(limesdr-micro-m4 PRIVATE
@@ -69,7 +68,8 @@ target_include_directories(limesdr-micro-m4 PRIVATE
 target_sources(limesdr-micro-m4 PRIVATE
     print_scan.c
     m4_memorymap.c
-    la9310_sirq.c
+    outbound_msi.c
+    inbound_irq.c
     vspa_debug.c
     platform/ARM_CM4/startup.c
     log.c

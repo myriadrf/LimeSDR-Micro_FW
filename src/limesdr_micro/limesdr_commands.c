@@ -23,7 +23,6 @@
 
 #include "eeprom.h"
 #include "timer64.h"
-#include "la9310_sirq.h"
 #include "ppsdo/ppsdo.h"
 #include "ppsdo/gps.h"
 
@@ -31,7 +30,6 @@ extern la9310_dspi_t g_dspi;
 extern struct la9310_hif *const s_Hif;
 extern ppsdo_context_t ppsdo;
 
-extern struct la9310_sirq softirq;
 static uint16_t xo_dac_value = 0;
 
 struct vspa_regs *vspa_csr = (struct vspa_regs *)VSPA_BASE_ADDR;
@@ -622,7 +620,6 @@ void ServiceCommands()
 
         HandleCommand(pxCmdDesc);
         dsb();
-        // la9310_sirq_raise_events(&softirq, BITMASK(HOST_COMMAND_DONE));
     }
 }
 

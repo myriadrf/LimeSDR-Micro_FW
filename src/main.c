@@ -14,7 +14,7 @@
 #include <phytimer.h>
 
 #include "la9310_host_if.h"
-#include "la9310_sirq.h"
+#include "outbound_msi.h"
 
 #include "la9310_dcs_api.h"
 #include "fsl_dspi.h"
@@ -44,7 +44,6 @@
 static struct vspa_regs *const s_VspaRegs = (struct vspa_regs *)VSPA_BASE_ADDR;
 static struct ccsr_dcr *const s_Dcr = (void *)DCR_BASE_ADDR;
 struct la9310_hif *const s_Hif = (struct la9310_hif *)((uint32_t)TCML_PHY_ADDR + LA9310_EP_HIF_OFFSET);
-struct la9310_sirq softirq;
 extern ppsdo_context_t ppsdo;
 extern void SetXODAC(uint16_t value);
 extern uint16_t GetXODAC(void);
@@ -168,7 +167,7 @@ static int iInitHandler()
     OUT_32(&s_Dcr->ulScratchrw[LA9310_BOOT_HSHAKE_HIF_SIZ_REG], sizeof(struct la9310_hif));
     dmb();
 
-    OUT_32(&s_Dcr->ulScratchrw[9], (uint32_t)&memlog);
+    OUT_32(&s_Dcr->ulScratchrw[LA9310_SCRATCH_MLOG_ADDR], (uint32_t)&memlog);
     VspaDebugProxyInit(s_Dcr->ulScratchrw);
 
     /* XXX:NOTE - Do all initialization that is required by Host driver to
@@ -188,7 +187,7 @@ static int iInitHandler()
     vPCIEInterruptInit();
 #endif
 
-    la9310_sirq_initialize(&softirq, s_Dcr->ulScratchrw);
+    la9310_msi_events_init(s_Dcr->ulScratchrw);
 
     vInitMsgUnit();
     irc = iLa9310HostPostInit();
