@@ -71,6 +71,7 @@ target_sources(limesdr-micro-m4 PRIVATE
     outbound_msi.c
     inbound_irq.c
     vspa_debug.c
+    profiling.c
     platform/ARM_CM4/startup.c
     log.c
     platform/ARM_CM4/soc.c

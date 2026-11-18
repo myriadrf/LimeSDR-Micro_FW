@@ -28,6 +28,7 @@
 
 #include "vspa_regs.h"
 #include "vspa_debug.h"
+#include "profiling.h"
 
 #include "ppsdo/ppsdo.h"
 #include "limesdr_micro/limesdr_micro.h"
@@ -256,6 +257,7 @@ int main( void )
     {
         goto out;
     }
+    profiling_cycles_init();
 
     tmuInit((TmuRegs_t *)TMU_BASE_ADDR);
 
