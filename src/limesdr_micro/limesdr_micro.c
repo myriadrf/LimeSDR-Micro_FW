@@ -19,6 +19,9 @@
 #include <string.h>
 
 #define LMS7002M_SPI_SPEED_HZ 4000000
+// LMS7002M SPI is specified up to 50MHz, keep a conservative margin.
+#define LMS7002M_SPI_MAX_SPEED_HZ 40000000
+_Static_assert(LMS7002M_SPI_SPEED_HZ <= LMS7002M_SPI_MAX_SPEED_HZ, "LMS7002M SPI speed out of spec");
 const uint8_t i2c_expander_addr = 0x20;
 
 la9310_dspi_t g_dspi;
@@ -220,6 +223,31 @@ static void initialize_i2c_expander(uint32_t i2c_handle)
     }
 }
 
+// Changes the LMS7002M CGEN frequency, while the LA9310 platform clock is already sourced from it.
+// The DSPI clock is derived from the platform clock, so retuning CGEN also changes the SPI clock,
+// while SPI is being used for the retuning. In the transition the new output divider is applied to the
+// old VCO frequency, and VCO tuning sweeps CSW across the VCO range, so the platform clock transiently
+// exceeds both the old and the new frequency. If the DSPI divider stays set for a lower old frequency,
+// SPI can be overclocked far beyond the LMS7002M limit and the CGEN tuning readbacks get corrupted.
+// So during the change, configure DSPI for an upper bound of the transient platform clock.
+static lime_Result set_platform_clock_from_cgen(uint32_t platform_clock)
+{
+    // CGEN VCO range is 1.93-2.94GHz, so x2 margin covers any VCO frequency with the new output divider.
+    uint32_t transient_max = 2 * platform_clock;
+    if (transient_max < g_la9310_current_platform_clk_hz)
+        transient_max = g_la9310_current_platform_clk_hz;
+    vDspiClkSet(&g_dspi, SPI_CLOCK_IN_FROM_PLATFORM(transient_max), LMS7002M_SPI_SPEED_HZ);
+
+    lime_Result result = lms7002m_set_frequency_cgen(rfsoc, platform_clock);
+    // On failure the actual platform clock is unknown, so keep the conservative SPI clock.
+    if (result != lime_Result_Success)
+        return result;
+
+    g_la9310_current_platform_clk_hz = platform_clock;
+    vDspiClkSet(&g_dspi, SPI_CLOCK_IN_FROM_PLATFORM(platform_clock), LMS7002M_SPI_SPEED_HZ);
+    return result;
+}
+
 lime_Result limesdr_micro_set_dcs_clk(struct la9310_hif *hif, uint32_t dcs_clk_hz)
 {
     if (dcs_clk_hz == 0)
@@ -238,18 +266,15 @@ lime_Result limesdr_micro_set_dcs_clk(struct la9310_hif *hif, uint32_t dcs_clk_h
 
     const uint32_t platform_clock = dcs_clk_hz * 4;
     // DCS_CLK=MCLK1, MCLK1 output is CGEN/4, LA9310 platform clock is DCS_CLK*4
-    lime_Result result = lms7002m_set_frequency_cgen(rfsoc, platform_clock);
+    lime_Result result = set_platform_clock_from_cgen(platform_clock);
     if (result != lime_Result_Success)
         return result;
-    g_la9310_current_platform_clk_hz = platform_clock;
     ppsdo_set_clock_frequency(&ppsdo, PHYTIMER_CLOCK_IN_FROM_PLATFORM(platform_clock));
 
     // UART bus
     gps_set_uart_clock(UART_CLOCK_IN_FROM_PLATFORM(platform_clock));
     // I2C bus
     iLa9310_I2C_Init(LA9310_FSL_I2C1, I2C_CLOCK_IN_FROM_PLATFORM(platform_clock), LA9310_I2C_FREQ);
-    // SPI bus
-    vDspiClkSet(&g_dspi, SPI_CLOCK_IN_FROM_PLATFORM(platform_clock), LMS7002M_SPI_SPEED_HZ);
 
     // ADC/DAC sample rate
     vDcsInit(IN_32(&hif->adc_mask), IN_32(&hif->adc_rate_mask), IN_32(&hif->dac_mask), IN_32(&hif->dac_rate_mask));
@@ -330,7 +355,8 @@ int limesdr_micro_initialize(void)
         lms7002m_spi_modify_csr(rfsoc, LMS7002M_EN_ADCCLKH_CLKGN, 0x0); // FCLKH to ADC
         lms7002m_spi_modify_csr(rfsoc, LMS7002M_CLKH_OV_CLKL_CGEN, 0x2); // divide clock by 4
         lms7002m_spi_modify_csr(rfsoc, LMS7002M_MCLK1SRC, 0x3); // switch MCLK1 clock source to RxTSPCLKA
-        lime_Result result = lms7002m_set_frequency_cgen(rfsoc, 4 * LA9310_DCS_CLK_HZ);
+        // platform clock is already running from CGEN
+        lime_Result result = set_platform_clock_from_cgen(4 * LA9310_DCS_CLK_HZ);
         if (result != lime_Result_Success)
         {
             log_err("MCLK1 fail", LOG_EOL);
