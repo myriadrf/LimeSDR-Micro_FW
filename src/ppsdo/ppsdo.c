@@ -366,7 +366,7 @@ void ppsdo_process(ppsdo_context_t *ctx)
     const int32_t interval_error = (int32_t)(delta - ppsdo_clock_hz);
     if (overrun || (uint32_t)abs(interval_error) > pps_in_max_deviation)
     {
-        log_dbg("PPSDO: discarding PPS interval %u" LOG_EOL, delta);
+        log_dbg("PPSDO: discarding PPS interval %lu" LOG_EOL, delta);
         vctcxo_tamer_reset_counters(ctx);
         return;
     }
@@ -453,7 +453,7 @@ void ppsdo_set_tolerance(ppsdo_context_t *ctx, uint32_t tolerance_ppb)
 {
     ctx->tolerance_ppb = tolerance_ppb;
     ppsdo_update_tolerances(ctx);
-    log_info("PPSDO tolerance %u ppb, 1s:%li 10s:%li 100s:%li ticks" LOG_EOL,
+    log_info("PPSDO tolerance %lu ppb, 1s:%li 10s:%li 100s:%li ticks" LOG_EOL,
         tolerance_ppb,
         ctx->pps_1s.error_tolerance,
         ctx->pps_10s.error_tolerance,
@@ -517,7 +517,7 @@ void vPhyTimerPPSINHandler()
         return; // repeated trigger of the same pulse
     last_pps_in_phytime = phytime;
 
-    log_info("PPS_IN[%i]:%08x, d:%u" LOG_EOL, pps_in_count, phytime, delta);
+    log_info("PPS_IN[%lu]:%08lx, d:%lu" LOG_EOL, pps_in_count, phytime, delta);
     ++pps_in_count;
 
     // The tuning itself writes the XO DAC over I2C, so it's done in ppsdo_process() from task context.

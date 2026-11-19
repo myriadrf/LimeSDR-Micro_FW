@@ -72,7 +72,7 @@ void axiq_loopback(bool bLoopbackEnable, uint32_t rx_mask)
     else
         OUT_32(DBGGNCR, (REMOVE_AXIQ_LOOPBACK_MASK & IN_32(DBGGNCR)));
 
-    log_dbg("%s: IN_32( DBGGNCR ) = %#x\r\n", __func__, IN_32(DBGGNCR));
+    log_dbg("%s: IN_32( DBGGNCR ) = %#x" LOG_EOL, __func__, IN_32(DBGGNCR));
 }
 
 void v_main_Hif_Init(struct la9310_hif *pxHif)
@@ -83,7 +83,7 @@ void v_main_Hif_Init(struct la9310_hif *pxHif)
     pxHif->dac_rate_mask = 0x1;
 
     pxHif->hif_ver = LA9310_VER_MAKE( LA9310_HIF_MAJOR_VERSION, LA9310_HIF_MINOR_VERSION );
-    log_dbg("Initialized HIF - %d.%d\n", LA9310_HIF_MAJOR_VERSION, LA9310_HIF_MINOR_VERSION);
+    log_dbg("Initialized HIF - %d.%d" LOG_EOL, LA9310_HIF_MAJOR_VERSION, LA9310_HIF_MINOR_VERSION);
 }
 
 /* iLa9310HostPreInit: Host and La9310 both do a handshake for clock configuration
@@ -177,7 +177,7 @@ static int iInitHandler()
     irc = iLa9310HostPreInit();
     if( irc )
     {
-        log_err("%s: iLa9310HostPreInit Failed, rc %d" LOG_EOL, __func__, irc);
+        log_err("iLa9310HostPreInit fail(%d)" LOG_EOL, irc);
         return irc;
     }
 
@@ -195,7 +195,7 @@ static int iInitHandler()
 
     if( irc )
     {
-        log_err("%s: iLa9310HostPostInit Failed, rc %d" LOG_EOL, __func__, irc);
+        log_err("iLa9310HostPostInit fail(%d)" LOG_EOL, irc);
         goto out;
     }
 
@@ -223,7 +223,7 @@ static void gps_module_stop(void)
     // Put GPS module to low power standby mode
     vSerialWriteBlocking((void *)UART_BASEADDR, (uint8_t *)"$PMTK161,0*28\r\n", 15);
     // following Tx activity on UART will wake it up
-    log_info("done\r\n");
+    log_info("done" LOG_EOL);
 }
 
 extern void ServiceCommands();
@@ -247,7 +247,7 @@ int main( void )
     } else if ( BootSource == LA9310_BOOT_SRC_I2C ) {
         // PRINTF("I2C\n");
     } else {
-        // log_err("Invalid\n");
+        // log_err("Invalid" LOG_EOL);
         goto out;
     }
 
@@ -264,7 +264,7 @@ int main( void )
 #ifdef LMS7002M_CLOCK
     if (LMS64C_protocol_init() != 0)
     {
-        log_err("LMS64C_protocol_init failed\r\n");
+        log_err("LMS64C_protocol_init failed" LOG_EOL);
         goto out;
     }
 #endif
@@ -286,7 +286,7 @@ int main( void )
     ServiceCommands();
 
 out:
-    log_err( "main() failed %d\n", irc);
+    log_err("main() fail(%d)" LOG_EOL, irc);
 
     /* Should never reach this point */
     while( true )

@@ -14,7 +14,7 @@ struct MemoryLog memlog = { .buffer_addr = &log_buffer[0],
     .buffer_size = sizeof(log_buffer),
     .produced = 0,
     .host_consumed = 0,
-    .log_level = LA9310_LOG_LEVEL_INFO };
+    .log_level = LOG_LEVEL_INFO };
 
 static void vMemlogWrite(const uint8_t *pucData, size_t xLength)
 {

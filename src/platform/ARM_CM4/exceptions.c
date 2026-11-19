@@ -20,11 +20,11 @@ static void prvPrintUsageFaultReason( uint32_t ulVal )
     }
     else if( ( ulVal & ( 1 << 1 ) ) )
     {
-        log_err("Invalid state Usage Fault" LOG_EOL);
+        log_err("Invalid state" LOG_EOL);
     }
     else if( ( ulVal & ( 1 << 2 ) ) )
     {
-        log_err("Invalid PC load UsageFault caused by invalid EXC_RETURN value" LOG_EOL);
+        log_err("Invalid PC load caused by invalid EXC_RETURN value" LOG_EOL);
     }
     else if( ( ulVal & ( 1 << 3 ) ) )
     {
@@ -46,58 +46,58 @@ static void prvPrintBusFaultReason( uint32_t ulVal )
 
     if( ( ulVal & ( 1 << 0 ) ) )
     {
-        log_err("This bit indicates a bus fault on an instruction prefetch" LOG_EOL);
+        log_err("on instruction prefetch" LOG_EOL);
     }
     else if( ( ulVal & ( 1 << 2 ) ) )
     {
-        log_err("Imprecise data access error" LOG_EOL);
+        log_err("Imprecise data access" LOG_EOL);
     }
     else if( ( ulVal & ( 1 << 3 ) ) )
     {
-        log_err("bus fault has occurred on exception return" LOG_EOL);
+        log_err("on unstacking for a return from exception" LOG_EOL);
     }
     else if( ( ulVal & ( 1 << 4 ) ) )
     {
-        log_err("Bus fault has occurred on exception entry" LOG_EOL);
+        log_err("on stacking for exception entry" LOG_EOL);
     }
     else if( ( ulVal & ( 1 << 5 ) ) )
     {
-        log_err(" fault occurred during floating-point lazy state preservation" LOG_EOL);
+        log_err("floating point lazy state preservation" LOG_EOL);
     }
     else if( ( ulVal & ( 1 << 7 ) ) && ( ulVal & ( 1 << 1 ) ) )
     {
-        log_err("Precise data access error. Bus Fault Address Register is: %x" LOG_EOL, SCB->BFAR);
+        log_err("Precise data access error. Bus Fault Address Register: %lx" LOG_EOL, SCB->BFAR);
     }
 }
 
 static void prvPrintMemMngFaultReason( uint32_t ulVal )
 {
-    log_err("Memory fault: ");
+    log_err("Mem fault: ");
 
     if( ( ulVal & ( 1 << 0 ) ) )
     {
-        log_err("Instruction access violation" LOG_EOL);
+        log_err("instruction access violation" LOG_EOL);
     }
     else if( ( ulVal & ( 1 << 1 ) ) )
     {
-        log_err("Data access violation" LOG_EOL);
+        log_err("data access violation" LOG_EOL);
     }
     else if( ( ulVal & ( 1 << 3 ) ) )
     {
-        log_err("Memory Management Fault on unstacking for a return from exception" LOG_EOL);
+        log_err("on unstacking for a return from exception" LOG_EOL);
     }
     else if( ( ulVal & ( 1 << 4 ) ) )
     {
-        log_err("Memory Management Fault on stacking for exception entry" LOG_EOL);
+        log_err("on stacking for exception entry" LOG_EOL);
     }
     else if( ( ulVal & ( 1 << 5 ) ) )
     {
-        log_err("Memory Management Fault during floating point lazy state preservation" LOG_EOL);
+        log_err("floating point lazy state preservation" LOG_EOL);
     }
 
     if( ( ulVal & ( 1 << 7 ) ) )
     {
-        log_err("Memory management fault address : %x" LOG_EOL, SCB->MMFAR);
+        log_err("Memory management fault address : %lx" LOG_EOL, SCB->MMFAR);
     }
 }
 
@@ -105,15 +105,15 @@ static void prvGetHardFaultReason( void )
 {
     uint32_t ulCFSRValue;
 
-    log_err("SCB->CFSR = 0x%08x" LOG_EOL, SCB->CFSR);
-    log_err("SCB->HFSR = 0x%08x" LOG_EOL, SCB->HFSR);
+    log_err("CFSR=0x%08lx" LOG_EOL, SCB->CFSR);
+    log_err("HFSR=0x%08lx" LOG_EOL, SCB->HFSR);
 
     ulCFSRValue = SCB->CFSR;
 
     if( ( SCB->HFSR & SCB_HFSR_DEBUGEVT_MSK ) )
     {
         log_err("Debug Event Hard Fault" LOG_EOL);
-        log_err("SCB->DFSR = 0x%08x\n", SCB->DFSR);
+        log_err("DFSR=0x%08lx" LOG_EOL, SCB->DFSR);
     }
     else if( ( SCB->HFSR & SCB_HFSR_VECTTBL_MSK ) )
     {
@@ -168,23 +168,23 @@ static void prvDumpStackFrame( uint32_t * pulMSP )
     stacked_pc = ( ( uint32_t ) pulMSP[ 6 ] );
     stacked_psr = ( ( uint32_t ) pulMSP[ 7 ] );
 
-    log_err("========STACK FRAME=========" LOG_EOL);
-    log_err("\tr0 : %x" LOG_EOL, stacked_r0);
-    log_err("\tr1 : %x" LOG_EOL, stacked_r1);
-    log_err("\tr2 : %x" LOG_EOL, stacked_r2);
-    log_err("\tr3 : %x" LOG_EOL, stacked_r3);
-    log_err("\tr12 : %x" LOG_EOL, stacked_r12);
-    log_err("\tlr : %x" LOG_EOL, stacked_lr);
-    log_err("\tpc : %x" LOG_EOL, stacked_pc);
-    log_err("\tpsr : %x" LOG_EOL, stacked_psr);
-    log_err("=====END OF STACK FRAME======" LOG_EOL);
+    log_err("=STACK FRAME=" LOG_EOL);
+    log_err("\tr0:\t%lx" LOG_EOL, stacked_r0);
+    log_err("\tr1:\t%lx" LOG_EOL, stacked_r1);
+    log_err("\tr2:\t%lx" LOG_EOL, stacked_r2);
+    log_err("\tr3:\t%lx" LOG_EOL, stacked_r3);
+    log_err("\tr12:\t%lx" LOG_EOL, stacked_r12);
+    log_err("\tlr:\t%lx" LOG_EOL, stacked_lr);
+    log_err("\tpc:\t%lx" LOG_EOL, stacked_pc);
+    log_err("\tpsr:\t%lx" LOG_EOL, stacked_psr);
+    log_err("=END OF STACK FRAME=" LOG_EOL);
 }
 
 void vAnalyzeFault( uint32_t * pulMSP,
                     uint32_t ulFaultAddr )
 {
     prvDumpStackFrame( pulMSP );
-    log_err(LOG_EOL "Fault Address : %x" LOG_EOL, ulFaultAddr);
+    log_err(LOG_EOL "Fault Address:%lx" LOG_EOL, ulFaultAddr);
     prvGetHardFaultReason();
 }
 

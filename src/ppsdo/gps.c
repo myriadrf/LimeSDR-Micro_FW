@@ -164,7 +164,7 @@ static void baudrate_start_candidate(void)
     }
 
     const uint32_t baudrate = candidate_baudrates[baudrate_detection.candidate_index];
-    log_dbg("GPS: trying %u baud" LOG_EOL, baudrate);
+    log_dbg("GPS: trying %lu baud" LOG_EOL, baudrate);
     uart_set_baudrate(baudrate);
 
     // $PMTK000 test command, the module replies with $PMTK001,0,3.
@@ -215,7 +215,7 @@ static void baudrate_detection_check(void)
         gps.baudrate = candidate_baudrates[baudrate_detection.candidate_index];
         baudrate_detection.last_sentence_tick = phytime_now();
         baudrate_detection.errors_since_sentence = 0;
-        log_info("GPS: detected %u baud" LOG_EOL, gps.baudrate);
+        log_info("GPS: detected %lu baud" LOG_EOL, gps.baudrate);
         return;
     }
 
@@ -365,7 +365,7 @@ static void gps_link_check(uint32_t new_errors)
         ms_since(baudrate_detection.last_sentence_tick) >= LINK_LOST_MS)
     {
         // Silence alone is not a lost link, the module may be in standby.
-        log_err("GPS: receiving only invalid data at %u baud, redetecting" LOG_EOL, gps.baudrate);
+        log_err("GPS: receiving only invalid data at %lu baud, redetecting" LOG_EOL, gps.baudrate);
         baudrate_start_detection();
     }
 }
@@ -457,7 +457,7 @@ void gps_set_uart_clock(uint32_t uart_clock_hz)
     case GPS_LINK_RUNNING:
         if (!is_baudrate_achievable(gps.baudrate))
         {
-            log_err("GPS: %u baud not possible with %u Hz UART clock" LOG_EOL, gps.baudrate, uart_clock_hz);
+            log_err("GPS: %lu baud not possible with %lu Hz UART clock" LOG_EOL, gps.baudrate, uart_clock_hz);
             baudrate_start_detection();
             break;
         }

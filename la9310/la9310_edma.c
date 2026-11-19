@@ -9,7 +9,7 @@
 #include "la9310_error_codes.h"
 #include "la9310_stats.h"
 
-#include "log.h"
+#include "la9310_log.h"
 #include "io.h"
 #include "core_cm4.h"
 
@@ -31,7 +31,7 @@ pvEdmaHandle pEdmaAllocChannel(edma_channel_info_t *pEdmaCh, void *info, Callbac
     uint32_t usChannelNumber = NO_CHANNEL_AVL, c = 0;
     la9310_stats_t *pStats = &la9310_global_stats;
 
-    log_info("%s:EDMA_ERQ_REG:%x" LOG_EOL, __func__, IN_32((uint32_t *)EDMA_ERQ_REG));
+    la9310_log_info("%s:EDMA_ERQ_REG:%x" LOG_EOL, __func__, IN_32((uint32_t *)EDMA_ERQ_REG));
 
     for (c = 0; c < EDMA_CHANNELS; c++)
     {

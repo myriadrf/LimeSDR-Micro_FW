@@ -11,7 +11,7 @@
 #include "la9310.h"
 
 #include "cm4/config.h"
-#include "log.h"
+#include "la9310_log.h"
 #include "io.h"
 #include "immap.h"
 
@@ -60,7 +60,7 @@ static void prvSet_I2C_Bus_Speed(i2c_regs_t *i2c_regs, uint32_t ulSys_Freq, uint
         }
     }
 
-    log_dbg("ucFdr is::::%d" LOG_EOL, ucFdr);
+    la9310_log_dbg("ucFdr is::::%d" LOG_EOL, ucFdr);
     OUT_8(&i2c_regs->ucI2C_Ibfd, ucFdr); /* Write divider value */
 }
 
@@ -89,7 +89,7 @@ int iLa9310_I2C_Init(uint32_t ulI2C_Regs_P, uint32_t ulSys_Freq, uint32_t ulI2C_
     prvEnable_Digital_Filter(i2c_regs);
     /* Clear status register */
     prvClear_Status_Flags(i2c_regs, LA9310_I2C_SR_IBIF | LA9310_I2C_SR_IBAL);
-    log_dbg("in INIT, value of ibsr is :: %x" LOG_EOL, i2c_regs->ucI2C_Ibsr);
+    la9310_log_dbg("in INIT, value of ibsr is :: %x" LOG_EOL, i2c_regs->ucI2C_Ibsr);
 
     /* Start I2C controller */
     if (IN_8(&i2c_regs->ucI2C_Ibcr) & LA9310_I2C_CR_MDIS)
@@ -103,7 +103,7 @@ int iLa9310_I2C_Init(uint32_t ulI2C_Regs_P, uint32_t ulSys_Freq, uint32_t ulI2C_
     {
         if (!(IN_8(&i2c_regs->ucI2C_Ibcr) & LA9310_I2C_CR_MDIS))
         {
-            log_dbg("in INIT,I2C initialised" LOG_EOL);
+            la9310_log_dbg("in INIT,I2C initialised" LOG_EOL);
             return 1;
         }
 
@@ -111,7 +111,7 @@ int iLa9310_I2C_Init(uint32_t ulI2C_Regs_P, uint32_t ulSys_Freq, uint32_t ulI2C_
 
     } while (++ulCount < LA9310_I2C_LOOP_COUNT);
 
-    log_info("in INIT,No I2C wakeup " LOG_EOL);
+    la9310_log_info("in INIT,No I2C wakeup " LOG_EOL);
     return -I2C_NO_WAKEUP_INIT;
 }
 
@@ -121,7 +121,7 @@ static int prvWait_For_Bus_Free(i2c_regs_t *i2c_regs, int iCurrent_Bus_Master)
     uint8_t ucFlag = 0;
     uint32_t ulCount = 0;
 
-    log_dbg("in WFBF,val of ibsr and ibcr is %x and %x" LOG_EOL, i2c_regs->ucI2C_Ibsr, i2c_regs->ucI2C_Ibcr);
+    la9310_log_dbg("in WFBF,val of ibsr and ibcr is %x and %x" LOG_EOL, i2c_regs->ucI2C_Ibsr, i2c_regs->ucI2C_Ibcr);
 
     do
     {
@@ -131,7 +131,8 @@ static int prvWait_For_Bus_Free(i2c_regs_t *i2c_regs, int iCurrent_Bus_Master)
         {
             if (ucStatus & LA9310_I2C_SR_IBAL)
             {
-                log_dbg("in WFBF,IBAL Lost ,val of ibsr anf ibcr is %x and %x" LOG_EOL, i2c_regs->ucI2C_Ibsr, i2c_regs->ucI2C_Ibcr);
+                la9310_log_dbg(
+                    "in WFBF,IBAL Lost ,val of ibsr anf ibcr is %x and %x" LOG_EOL, i2c_regs->ucI2C_Ibsr, i2c_regs->ucI2C_Ibcr);
                 ucFlag = (LA9310_I2C_SR_IBIF | LA9310_I2C_SR_IBAL);
                 prvClear_Status_Flags(i2c_regs, ucFlag);
             }
@@ -146,7 +147,7 @@ static int prvWait_For_Bus_Free(i2c_regs_t *i2c_regs, int iCurrent_Bus_Master)
 
     } while (++ulCount < LA9310_I2C_LOOP_COUNT);
 
-    log_dbg("in WFBF,Bus not IDLE" LOG_EOL);
+    la9310_log_dbg("in WFBF,Bus not IDLE" LOG_EOL);
     return -I2C_NOT_IDLE;
 }
 
@@ -162,7 +163,7 @@ static int prvWait_For_Status_Change(i2c_regs_t *i2c_regs, uint8_t ucState)
         if (ucStatus & LA9310_I2C_SR_IBAL)
         {
             prvClear_Status_Flags(i2c_regs, LA9310_I2C_SR_IBIF | LA9310_I2C_SR_IBAL);
-            log_dbg("in WFSC,Arbitration lost with status" LOG_EOL);
+            la9310_log_dbg("in WFSC,Arbitration lost with status" LOG_EOL);
             return -I2C_RESTART;
         }
 
@@ -175,7 +176,7 @@ static int prvWait_For_Status_Change(i2c_regs_t *i2c_regs, uint8_t ucState)
 
     } while (++ulCount < LA9310_I2C_LOOP_COUNT);
 
-    log_dbg("in WFSC,I2C timeout with status" LOG_EOL);
+    la9310_log_dbg("in WFSC,I2C timeout with status" LOG_EOL);
     return -I2C_TIMEOUT;
 }
 
@@ -263,7 +264,7 @@ static int prvTransmit_Byte(i2c_regs_t *i2c_regs, uint8_t ucByte)
     if (ucTemp & LA9310_I2C_SR_NO_RXAK)
     {
         prvClear_Status_Flags(i2c_regs, LA9310_I2C_SR_IBIF);
-        log_dbg("in TB,NO slave ACK" LOG_EOL);
+        la9310_log_dbg("in TB,NO slave ACK" LOG_EOL);
         return -I2C_NOACK;
     }
 
@@ -278,13 +279,13 @@ static void prvStop_I2C_Cntrl(i2c_regs_t *i2c_regs)
     ucTemp = IN_8(&i2c_regs->ucI2C_Ibcr);
     ucTemp &= ~(LA9310_I2C_CR_MSSL | LA9310_I2C_CR_TXRX);
 
-    log_dbg("in SIC ,val of ibsr and ibcr is %x and %x" LOG_EOL, i2c_regs->ucI2C_Ibsr, i2c_regs->ucI2C_Ibcr);
+    la9310_log_dbg("in SIC ,val of ibsr and ibcr is %x and %x" LOG_EOL, i2c_regs->ucI2C_Ibsr, i2c_regs->ucI2C_Ibcr);
     OUT_8(&i2c_regs->ucI2C_Ibcr, ucTemp);
     ret = prvWait_For_Bus_Free(i2c_regs, LA9310_IS_CURRENT_MASTER);
 
     if (ret != 1)
     {
-        log_dbg("in SIC,STOP failed" LOG_EOL);
+        la9310_log_dbg("in SIC,STOP failed" LOG_EOL);
     }
 }
 
@@ -303,7 +304,7 @@ static uint32_t prvWrite_Data(i2c_regs_t *i2c_regs, const uint8_t *psrc, uint32_
 
         if (ret != 1)
         {
-            log_dbg("in WD, only %u bytes wrote" LOG_EOL, i);
+            la9310_log_dbg("in WD, only %lu bytes wrote" LOG_EOL, i);
             return i;
         }
 
@@ -312,7 +313,7 @@ static uint32_t prvWrite_Data(i2c_regs_t *i2c_regs, const uint8_t *psrc, uint32_
         if (ucTemp & LA9310_I2C_SR_NO_RXAK)
         {
             prvClear_Status_Flags(i2c_regs, LA9310_I2C_SR_IBIF);
-            log_dbg("in WD,No Ack from Slave,Thus only %u bytes wrote" LOG_EOL, i);
+            la9310_log_dbg("in WD,No Ack from Slave,Thus only %lu bytes wrote" LOG_EOL, i);
             return i;
         }
     }
@@ -349,7 +350,7 @@ static uint32_t prvRead_Data(i2c_regs_t *i2c_regs, uint8_t *pdes, uint32_t ulSiz
 
         if (ret != 1)
         {
-            log_dbg("in RD,Only %u bytes read" LOG_EOL, i);
+            la9310_log_dbg("in RD,Only %lu bytes read" LOG_EOL, i);
             return i;
         }
 
@@ -389,7 +390,7 @@ static int prvAttempt_Send_Addr(
     i2c_pin_control = (i2c_pin_control_t *)ulval;
 #endif
     ucControl = IN_8(&i2c_regs->ucI2C_Ibcr);
-    log_dbg("in ASA,value of ibsr and ibcr is %x and %x " LOG_EOL, i2c_regs->ucI2C_Ibsr, ucControl);
+    la9310_log_dbg("in ASA,value of ibsr and ibcr is %x and %x " LOG_EOL, i2c_regs->ucI2C_Ibsr, ucControl);
 
     /* Enable I2C controller */
     if (ucControl & LA9310_I2C_CR_MDIS)
@@ -411,7 +412,7 @@ static int prvAttempt_Send_Addr(
 
     if (IN_8(&i2c_regs->ucI2C_Ibcr) & LA9310_I2C_CR_MDIS)
     {
-        log_dbg("in ASA,I2C No wakeup" LOG_EOL);
+        la9310_log_dbg("in ASA,I2C No wakeup" LOG_EOL);
         return -I2C_NO_WAKEUP_READ;
     }
 
@@ -420,7 +421,7 @@ static int prvAttempt_Send_Addr(
      */
     if (IN_8(&i2c_regs->ucI2C_Ibad) == (uint8_t)(ucDev_Addr << 1))
     {
-        log_dbg("in ASA,ibad and device address matches,ibad is %x" LOG_EOL, i2c_regs->ucI2C_Ibad);
+        la9310_log_dbg("in ASA,ibad and device address matches,ibad is %x" LOG_EOL, i2c_regs->ucI2C_Ibad);
         OUT_8(&i2c_regs->ucI2C_Ibad, (LA9310_I2C_RESERVED_ID << 1));
     }
 
@@ -440,7 +441,7 @@ static int prvAttempt_Send_Addr(
 
         if (IN_8(&i2c_regs->ucI2C_Ibcr) & LA9310_I2C_CR_MDIS)
         {
-            log_dbg("in ASA,I2C No wakeup" LOG_EOL);
+            la9310_log_dbg("in ASA,I2C No wakeup" LOG_EOL);
             return -I2C_NO_WAKEUP_READ;
         }
 
@@ -459,16 +460,16 @@ static int prvAttempt_Send_Addr(
     ucTemp = IN_8(&i2c_regs->ucI2C_Ibcr);
     ucTemp |= LA9310_I2C_CR_MSSL;
     OUT_8(&i2c_regs->ucI2C_Ibcr, ucTemp);
-    log_dbg("in ASA,after master set ,val of ibsr ad ibcr is %x and %x" LOG_EOL, i2c_regs->ucI2C_Ibsr, i2c_regs->ucI2C_Ibcr);
+    la9310_log_dbg("in ASA,after master set ,val of ibsr ad ibcr is %x and %x" LOG_EOL, i2c_regs->ucI2C_Ibsr, i2c_regs->ucI2C_Ibcr);
     dmb();
 
     ret = prvWait_For_Status_Change(i2c_regs, LA9310_I2C_SR_IBB_BUSY);
 
-    log_dbg("in ASA,after WFSC ,val of ibsr and ibcr is %x and %x" LOG_EOL, i2c_regs->ucI2C_Ibsr, i2c_regs->ucI2C_Ibcr);
+    la9310_log_dbg("in ASA,after WFSC ,val of ibsr and ibcr is %x and %x" LOG_EOL, i2c_regs->ucI2C_Ibsr, i2c_regs->ucI2C_Ibcr);
 
     if (ret != 1)
     {
-        log_dbg("in ASA,Bus not BUSY" LOG_EOL);
+        la9310_log_dbg("in ASA,Bus not BUSY" LOG_EOL);
         return -I2C_NOT_BUSY;
     }
 
@@ -509,7 +510,7 @@ static int prvAttempt_Send_Addr(
     {
         if (ret == -I2C_NOACK)
         {
-            log_dbg("in ASA,No slave ACK for SLAVE ID" LOG_EOL);
+            la9310_log_dbg("in ASA,No slave ACK for SLAVE ID" LOG_EOL);
             return -I2C_NODEV;
         }
         else if (ret == -I2C_TIMEOUT)
@@ -555,7 +556,7 @@ static int prvInit_Source_Addr(
 
         if (ret == 1)
         {
-            log_dbg("ISA,src_offset/alen init done" LOG_EOL);
+            la9310_log_dbg("ISA,src_offset/alen init done" LOG_EOL);
             return 1;
         }
 
@@ -566,16 +567,17 @@ static int prvInit_Source_Addr(
             return ret;
         }
 
-        log_dbg("in ASA,Retry failed on iteration and value is %d" LOG_EOL, retry);
+        la9310_log_dbg("in ASA,Retry failed on iteration and value is %d" LOG_EOL, retry);
 
         /* Disabling Module
          * And waiting for it to be disabled
          */
         OUT_8(&i2c_regs->ucI2C_Ibcr, (LA9310_I2C_CR_MDIS | (IN_8(&i2c_regs->ucI2C_Ibcr) & 0x03)));
-        log_dbg("in ISA,after disabling ,val of ibsr and ibcr is %x and %x" LOG_EOL, i2c_regs->ucI2C_Ibsr, i2c_regs->ucI2C_Ibcr);
+        la9310_log_dbg(
+            "in ISA,after disabling ,val of ibsr and ibcr is %x and %x" LOG_EOL, i2c_regs->ucI2C_Ibsr, i2c_regs->ucI2C_Ibcr);
     }
 
-    log_dbg("Failed to initialize transfer" LOG_EOL);
+    la9310_log_dbg("Failed to initialize transfer" LOG_EOL);
     return ret;
 }
 
@@ -587,7 +589,7 @@ static int prvCheck_Offset(uint32_t ulDev_Offset, uint8_t ucDev_Offset_Len, uint
             (ucDev_Offset_Len == LA9310_I2C_DEV_OFFSET_LEN_2_BYTE) || (ucDev_Offset_Len == LA9310_I2C_DEV_OFFSET_LEN_3_BYTE) ||
             (ucDev_Offset_Len == LA9310_I2C_DEV_OFFSET_LEN_4_BYTE)))
     {
-        log_dbg("in CO,Invalid offset" LOG_EOL);
+        la9310_log_dbg("in CO,Invalid offset" LOG_EOL);
         return -I2C_INVALID_OFFSET;
     }
 
@@ -600,7 +602,7 @@ static int prvCheck_Offset(uint32_t ulDev_Offset, uint8_t ucDev_Offset_Len, uint
 
         if (ovf_cond1 || ovf_cond2 || ovf_cond3)
         {
-            log_dbg("in CO,Offset greater than 8-bit or invalid data length" LOG_EOL);
+            la9310_log_dbg("in CO,Offset greater than 8-bit or invalid data length" LOG_EOL);
             return -I2C_INVALID_OFFSET;
         }
 
@@ -613,7 +615,7 @@ static int prvCheck_Offset(uint32_t ulDev_Offset, uint8_t ucDev_Offset_Len, uint
 
         if (ovf_cond1 || ovf_cond2 || ovf_cond3)
         {
-            log_dbg("in CO,Offset greater than 16-bit or invalid data length" LOG_EOL);
+            la9310_log_dbg("in CO,Offset greater than 16-bit or invalid data length" LOG_EOL);
             return -I2C_INVALID_OFFSET;
         }
 
@@ -626,7 +628,7 @@ static int prvCheck_Offset(uint32_t ulDev_Offset, uint8_t ucDev_Offset_Len, uint
 
         if (ovf_cond1 || ovf_cond2 || ovf_cond3)
         {
-            log_dbg("in CO,Offset greater than 24-bit or invalid data length" LOG_EOL);
+            la9310_log_dbg("in CO,Offset greater than 24-bit or invalid data length" LOG_EOL);
             return -I2C_INVALID_OFFSET;
         }
 
@@ -639,14 +641,14 @@ static int prvCheck_Offset(uint32_t ulDev_Offset, uint8_t ucDev_Offset_Len, uint
 
         if (ovf_cond1 || ovf_cond2 || ovf_cond3)
         {
-            log_dbg("in CO,Offset greater than 32-bit or invalid data length" LOG_EOL);
+            la9310_log_dbg("in CO,Offset greater than 32-bit or invalid data length" LOG_EOL);
             return -I2C_INVALID_OFFSET;
         }
 
         break;
 
     default:
-        log_dbg("in CO,valid offset" LOG_EOL);
+        la9310_log_dbg("in CO,valid offset" LOG_EOL);
     }
 
     return 1;
@@ -700,13 +702,13 @@ int iLa9310_I2C_Read(
 
     if (ulRet_Bytes != ulD_Len)
     {
-        log_dbg("in RIR,only %u bytes read" LOG_EOL, ulRet_Bytes);
+        la9310_log_dbg("in RIR,only %lu bytes read" LOG_EOL, ulRet_Bytes);
         prvStop_I2C_Cntrl(i2c_regs);
         return ulRet_Bytes;
     }
 
     prvStop_I2C_Cntrl(i2c_regs);
-    log_dbg("in RIR,%u bytes read successfully" LOG_EOL, ulD_Len);
+    la9310_log_dbg("in RIR,%lu bytes read successfully" LOG_EOL, ulD_Len);
     return ulRet_Bytes;
 }
 
@@ -740,13 +742,13 @@ int iLa9310_I2C_Write(uint32_t ulI2C_Regs_P,
 
     if (ulRet_Bytes != ulD_Len)
     {
-        log_dbg("in RIW,only %u bytes transferred" LOG_EOL, ulRet_Bytes);
+        la9310_log_dbg("in RIW,only %lu bytes transferred" LOG_EOL, ulRet_Bytes);
         prvStop_I2C_Cntrl(i2c_regs);
         return ulRet_Bytes;
     }
 
     prvStop_I2C_Cntrl(i2c_regs);
-    log_dbg("in RIW,%u bytes wrote successfully" LOG_EOL, ulD_Len);
+    la9310_log_dbg("in RIW,%lu bytes wrote successfully" LOG_EOL, ulD_Len);
     return ulRet_Bytes;
 }
 
@@ -756,6 +758,6 @@ int iLa9310_I2C_Disable(uint32_t ulI2C_Regs_P)
 
     i2c_regs = (i2c_regs_t *)ulI2C_Regs_P;
     OUT_8(&i2c_regs->ucI2C_Ibcr, (LA9310_I2C_CR_MDIS | (IN_8(&i2c_regs->ucI2C_Ibcr) & 0x03))); /* Stop I2C controller */
-    log_dbg("in RID,I2C Module successfully  disabled" LOG_EOL);
+    la9310_log_dbg("in RID,I2C Module successfully  disabled" LOG_EOL);
     return 1;
 }

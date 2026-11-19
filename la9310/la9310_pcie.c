@@ -5,7 +5,7 @@
  */
 
 #include "la9310_pci.h"
-#include "log.h"
+#include "la9310_log.h"
 
 #include "io.h"
 #include "config.h"
@@ -84,7 +84,7 @@ void vLA9310DumpPCIeRegs()
 
 void vLa9310PcieiAtuOutboundSet(void *dbi, int idx, int type, uint64_t cpu_addr, uint64_t pciAddr, uint32_t size)
 {
-    log_dbg("dbi %llx lcpu %#x ucpu %#x lpci %#x upci %#x size %lu\n",
+    la9310_log_dbg("dbi %p lcpu %#lx ucpu %#lx lpci %#lx upci %#lx size %lu" LOG_EOL,
         dbi,
         lower_32_bits(cpu_addr),
         upper_32_bits(cpu_addr),
@@ -123,14 +123,14 @@ void vWaitForPCIeLinkStability()
     uint32_t *pulPEX_PF0_DBG = (uint32_t *)(PCIE_PF0_DBG_REG);
 
     /* Check link Stability @ L0 state */
-    log_info("PCIe LTSSM..");
+    la9310_log_info("PCIe LTSSM..");
     uint32_t last_state = 0xFFFFFFFF;
     while (1)
     {
         volatile uint32_t ulDbgRegVal = IN_32(pulPEX_PF0_DBG);
         const uint32_t state = ulDbgRegVal & PCIE_LTSSM_MASK;
         if (state != last_state)
-            log_info(".%X", state);
+            la9310_log_info(".%lX", state);
         last_state = state;
         // Link status might be constantly flipping between L0 and L0s(standby) states
         if (state == PCIE_LTSSM_L0_STATE || state == PCIE_LTSSM_L0s_STATE)
@@ -149,7 +149,7 @@ void vWaitForPCIeLinkStability()
 
         vBusyDelay(PCIE_LTSSM_DELAY_COUNT);
     }
-    log_info(".done" LOG_EOL);
+    la9310_log_info(".done" LOG_EOL);
 }
 
 #if NXP_ERRATUM_A_009531

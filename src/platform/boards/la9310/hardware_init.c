@@ -35,7 +35,7 @@ static void vBoardFinalInit(void)
 void vLa9310_do_handshake(struct ccsr_dcr *pxDcr)
 {
 #if CLOCK_CONFIG_BY_HOST
-    log_info("LA9310->Host: START_CLOCK_CONFIG\r\n");
+    log_info("LA9310->Host: START_CLOCK_CONFIG" LOG_EOL);
     OUT_32( &pxDcr->ulScratchrw[ 1 ], LA9310_HOST_START_CLOCK_CONFIG );
     dmb();
 
@@ -44,13 +44,13 @@ void vLa9310_do_handshake(struct ccsr_dcr *pxDcr)
     {
     }
 
-    log_info("Host->LA9310: HOST_COMPLETE_CLOCK_CONFIG\r\n");
+    log_info("Host->LA9310: HOST_COMPLETE_CLOCK_CONFIG" LOG_EOL);
     dmb();
 #endif
     log_info("System clock switch...");
     vSocResetHandshake();
     dmb();
-    log_info("done\r\n");
+    log_info("done" LOG_EOL);
 
     // Clock changed from 100 Mhz to DCS_CLK after handshake
     g_la9310_current_platform_clk_hz = LA9310_DCS_CLK_HZ;
@@ -60,7 +60,7 @@ void vLa9310_do_handshake(struct ccsr_dcr *pxDcr)
 // Signal host that the M4 core has completed initialization
 void la9310_m4_init_complete(struct ccsr_dcr *pxDcr)
 {
-    log_info("LA9310->HOST: START_DRIVER_INIT\n");
+    log_info("LA9310->HOST: START_DRIVER_INIT" LOG_EOL);
     OUT_32(&pxDcr->ulScratchrw[1], LA9310_HOST_START_DRIVER_INIT);
 }
 

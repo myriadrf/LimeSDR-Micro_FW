@@ -5,7 +5,7 @@
 
 #include "la9310_dcs.h"
 #include "la9310_dcs_api.h"
-#include "log.h"
+#include "la9310_log.h"
 #include "io.h"
 
 #include "la9310_error_codes.h"
@@ -30,7 +30,7 @@ int xLa9310AdcDacPowerUp(LA9310XcvrDCS_t dcs)
         {
             if (!(ulAdcDacRegVal--))
             {
-                log_err("%s: DAC reset sync failed\n", __func__);
+                la9310_log_err("%s reset sync failed" LOG_EOL, "DAC");
                 return FAILURE;
             }
         }
@@ -67,7 +67,7 @@ int xLa9310AdcDacPowerUp(LA9310XcvrDCS_t dcs)
         {
             if (!(ulAdcDacRegVal--))
             {
-                log_err("%s: ADC reset sync failed\n", __func__);
+                la9310_log_err("%s reset sync failed" LOG_EOL, "ADC");
                 return FAILURE;
             }
         }
@@ -123,7 +123,7 @@ int xLa9310ConfigAdcDacClock(LA9310XcvrDCS_t dcs, int freq)
     {
         if (!(ulClkCfgRegVal--))
         {
-            log_err("%s: adc/dac clk sync failed\n", __func__);
+            la9310_log_err("adc/dac clk sync failed" LOG_EOL);
             return FAILURE;
         }
     }
@@ -147,7 +147,7 @@ int xLa9310ResetAdcDac(LA9310XcvrDCS_t dcs)
         {
             if (!(ulAdcDacRegVal--))
             {
-                log_err("%s: DAC reset sync failed\n", __func__);
+                la9310_log_err("%s reset sync failed" LOG_EOL, "DAC");
                 return FAILURE;
             }
         }
@@ -185,7 +185,7 @@ int xLa9310ResetAdcDac(LA9310XcvrDCS_t dcs)
         {
             if (!(ulAdcDacRegVal--))
             {
-                log_err("%s: ADC reset sync failed\n", __func__);
+                la9310_log_err("%s reset sync failed" LOG_EOL, "ADC");
                 return FAILURE;
             }
         }
@@ -273,7 +273,7 @@ int xLa9310AdcDacOpModeCtrl(LA9310XcvrDCS_t dcs, AdcDacOPMConfig_t OPM)
         {
             if (!(ulAdcDacRegVal--))
             {
-                log_err("%s: DAC reset sync failed\n", __func__);
+                la9310_log_err("%s reset sync failed" LOG_EOL, "DAC");
                 return FAILURE;
             }
         }
@@ -287,7 +287,7 @@ int xLa9310AdcDacOpModeCtrl(LA9310XcvrDCS_t dcs, AdcDacOPMConfig_t OPM)
             {
                 if (!(ulAdcDacRegVal--))
                 {
-                    log_err("%s: DAC ready bit is not set.\n", __func__);
+                    la9310_log_err("%s ready bit is not %s" LOG_EOL, "DAC", "set");
                     return FAILURE;
                 }
             }
@@ -298,7 +298,7 @@ int xLa9310AdcDacOpModeCtrl(LA9310XcvrDCS_t dcs, AdcDacOPMConfig_t OPM)
             {
                 if (!(ulAdcDacRegVal--))
                 {
-                    log_err("%s: DAC ready bit is not clear.\n", __func__);
+                    la9310_log_err("%s ready bit is not %s" LOG_EOL, "DAC", "clear");
                     return FAILURE;
                 }
             }
@@ -421,7 +421,7 @@ int xLa9310AdcDacOpModeCtrl(LA9310XcvrDCS_t dcs, AdcDacOPMConfig_t OPM)
         {
             if (!(ulAdcDacRegVal--))
             {
-                log_err("%s: ADC reset sync failed\n", __func__);
+                la9310_log_err("%s reset sync failed" LOG_EOL, "ADC");
                 return FAILURE;
             }
         }
@@ -435,7 +435,7 @@ int xLa9310AdcDacOpModeCtrl(LA9310XcvrDCS_t dcs, AdcDacOPMConfig_t OPM)
             {
                 if (!(ulAdcDacRegVal--))
                 {
-                    log_err("%s: ADC ready bit is not set.\n", __func__);
+                    la9310_log_err("%s ready bit is not %s" LOG_EOL, "ADC", "set");
                     return FAILURE;
                 }
             }
@@ -446,7 +446,7 @@ int xLa9310AdcDacOpModeCtrl(LA9310XcvrDCS_t dcs, AdcDacOPMConfig_t OPM)
             {
                 if (!(ulAdcDacRegVal--))
                 {
-                    log_err("%s: ADC ready bit is not clear.\n", __func__);
+                    la9310_log_err("%s ready bit is not %s" LOG_EOL, "ADC", "clear");
                     return FAILURE;
                 }
             }
@@ -496,7 +496,7 @@ int xLa9310AdcDacSetGateReady(LA9310XcvrDCS_t dcs)
     {
         if (!(ulAdcDacRegVal--))
         {
-            log_err("%s: ADC/DAC Gate Ready failed\n", __func__);
+            la9310_log_err("ADC/DAC Gate Ready failed" LOG_EOL);
             return FAILURE;
         }
     }
@@ -560,10 +560,10 @@ void vDcsInit(int adc_mask, int adc_freq_mask, int dac_mask, int dac_freq_mask)
         /* Wait for DAC ready and trigger the Gate signal */
         xLa9310AdcDacSetGateReady(XCVR_TRX_TX_DAC);
 
-        log_info("%s: DAC Init completed\r\n", __func__);
+        la9310_log_info("DAC Init completed" LOG_EOL);
     }
 
-    log_info("DCS Init completed\r\n");
+    la9310_log_info("DCS Init completed" LOG_EOL);
 }
 
 int vLa9310DCSClockSwitch(LA9310XcvrDCS_t dcs, DCSFreq_t freq)
@@ -577,7 +577,7 @@ int vLa9310DCSClockSwitch(LA9310XcvrDCS_t dcs, DCSFreq_t freq)
 
         if (SUCCESS != xRet)
         {
-            log_err("%s: DCS (%d) power down failed." LOG_EOL, dcs, __func__);
+            la9310_log_err("%s: DCS (%d) power down failed." LOG_EOL, __func__, dcs);
             break;
         }
 
@@ -586,7 +586,7 @@ int vLa9310DCSClockSwitch(LA9310XcvrDCS_t dcs, DCSFreq_t freq)
 
         if (SUCCESS != xRet)
         {
-            log_err("%s: DCS (%d) clk config failed." LOG_EOL, dcs, __func__);
+            la9310_log_err("%s: DCS (%d) clk config failed." LOG_EOL, __func__, dcs);
             break;
         }
 
@@ -595,7 +595,7 @@ int vLa9310DCSClockSwitch(LA9310XcvrDCS_t dcs, DCSFreq_t freq)
 
         if (SUCCESS != xRet)
         {
-            log_err("%s: DCS (%d) power up failed." LOG_EOL, dcs, __func__);
+            la9310_log_err("%s: DCS (%d) power up failed." LOG_EOL, __func__, dcs);
             break;
         }
     } while (0);

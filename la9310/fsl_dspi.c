@@ -6,7 +6,7 @@
  */
 
 #include "fsl_dspi.h"
-#include "log.h"
+#include "la9310_log.h"
 #include "io.h"
 
 #include "cm4/config.h"
@@ -57,8 +57,8 @@ int32_t lDspiHzToBaud(uint32_t *lpbr, uint32_t *lbr, uint32_t ulSpeedHz, uint32_
 
     if (lMinScale == INT_MAX)
     {
-        log_err(
-            "Can not find valid baud rate,speed_hz is %d,clkrate is %ld, we use the max prescaler value.\n", ulSpeedHz, ulBusClk);
+        la9310_log_err(
+            "Valid baud rate not found, speed_hz %lu, clkrate %lu, we use the max prescaler value." LOG_EOL, ulSpeedHz, ulBusClk);
         *lpbr = ARRAY_SIZE(lPbrTbl) - 1;
         *lbr = ARRAY_SIZE(lBrTbl) - 1;
         return DSPI_CLKSET_ERROR;
@@ -74,7 +74,7 @@ void vDspiClkSet(la9310_dspi_t *xDspiHandle, uint32_t ulspi_input_clk_frequency,
     uint32_t ulBusSetup, ulBusClk;
 
     ulBusClk = ulspi_input_clk_frequency;
-    log_info("DSPI Clock Set: Expected speed:%u  Bus clock:%u " LOG_EOL, ulSpeed, ulBusClk);
+    la9310_log_info("DSPI Clock Set: Expected speed:%lu  Bus clock:%lu " LOG_EOL, ulSpeed, ulBusClk);
     ulBusSetup = in_dspile32(&xDspiHandle->DspiRegs->ulCtar[0]);
     ulBusSetup = ulBusSetup & (~(DSPI_CTAR_DBR | DSPI_CTAR_PBR(0x3) | DSPI_CTAR_BR(0xf)));
     lret = lDspiHzToBaud(&lBesti, &lBestj, ulSpeed, ulBusClk);
@@ -82,7 +82,7 @@ void vDspiClkSet(la9310_dspi_t *xDspiHandle, uint32_t ulspi_input_clk_frequency,
     if (lret)
     {
         ulSpeed = DSPI_DEFAULT_FREQUENCY;
-        log_err("DSPI :setting failed,setting default " LOG_EOL);
+        la9310_log_err("DSPI :setting failed,setting default " LOG_EOL);
         lret = lDspiHzToBaud(&lBesti, &lBestj, ulSpeed, ulBusClk);
     }
 
@@ -144,12 +144,12 @@ static int8_t lDspiClaimBus(la9310_dspi_t *xDspiHandle)
 
     vDspiFslClearFifo(xDspiHandle);
 
-    log_dbg("MCR    %x" LOG_EOL, in_le32(&xDspiHandle->DspiRegs->ulMcr));
-    log_dbg("TCR    %x" LOG_EOL, in_le32(&xDspiHandle->DspiRegs->ulTcr));
-    log_dbg("CTAR0  %x" LOG_EOL, in_le32(&xDspiHandle->DspiRegs->ulCtar[0]));
-    log_dbg("SR     %x" LOG_EOL, in_le32(&xDspiHandle->DspiRegs->ulSr));
-    log_dbg("RSER   %x" LOG_EOL, in_le32(&xDspiHandle->DspiRegs->ulIrsr));
-    log_dbg("CTARE0 %x" LOG_EOL, in_le32(&xDspiHandle->DspiRegs->ulCtarX[0]));
+    la9310_log_dbg("MCR\t%x" LOG_EOL, in_le32(&xDspiHandle->DspiRegs->ulMcr));
+    la9310_log_dbg("TCR\t%x" LOG_EOL, in_le32(&xDspiHandle->DspiRegs->ulTcr));
+    la9310_log_dbg("CTAR0\t%x" LOG_EOL, in_le32(&xDspiHandle->DspiRegs->ulCtar[0]));
+    la9310_log_dbg("SR\t%x" LOG_EOL, in_le32(&xDspiHandle->DspiRegs->ulSr));
+    la9310_log_dbg("RSER\t%x" LOG_EOL, in_le32(&xDspiHandle->DspiRegs->ulIrsr));
+    la9310_log_dbg("CTARE0\t%x" LOG_EOL, in_le32(&xDspiHandle->DspiRegs->ulCtarX[0]));
 
     /*Check module TX and RX status */
     while (retry)
@@ -163,7 +163,7 @@ static int8_t lDspiClaimBus(la9310_dspi_t *xDspiHandle)
         }
 
         retry--;
-        log_err(" DSPI RX/TX not ready! SR[%x]" LOG_EOL, ulSrVal);
+        la9310_log_err(" DSPI not ready SR(%lx)" LOG_EOL, ulSrVal);
     }
 
     return ret;

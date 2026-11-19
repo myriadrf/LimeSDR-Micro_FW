@@ -63,7 +63,7 @@ int32_t spi_lms7002m_write(la9310_dspi_t *dspi, uint16_t addr, uint16_t value)
 
     int32_t iRet = lDspiPush(dspi, DSPI_CS0, DSPI_DEV_WRITE, ucData, 4);
     if (0 > iRet)
-        log_err("lDspiPush failed, error[%d]" LOG_EOL, iRet);
+        log_err("SPI_PUSH fail(%ld)" LOG_EOL, iRet);
     return iRet;
 }
 
@@ -79,7 +79,7 @@ int32_t spi_lms7002m_read(la9310_dspi_t *dspi, uint16_t addr, uint16_t *value)
     if (0 > iRet)
     {
         *value = 0xDEAD;
-        log_err("lDspiPush failed, error[%d]" LOG_EOL, iRet);
+        log_dbg("SPI_PUSH fail(%ld)" LOG_EOL, iRet);
         return iRet;
     }
 
@@ -87,7 +87,7 @@ int32_t spi_lms7002m_read(la9310_dspi_t *dspi, uint16_t addr, uint16_t *value)
     if (0 > iRet)
     {
         *value = 0xBEEF;
-        log_err("lDspiPop failed, error[%d]" LOG_EOL, iRet);
+        log_dbg("SPI_POP fail(%ld)" LOG_EOL, iRet);
         return iRet;
     }
     // index 0 should be ignored, this is outcome of above push operation
@@ -259,7 +259,7 @@ lime_Result limesdr_micro_set_dcs_clk(struct la9310_hif *hif, uint32_t dcs_clk_h
     // Practically ADC seems to work fine down to 7.5Msps, going below that starts to increasingly distort ADC samples.
     if (dcs_clk_hz < 15e6)
         return lime_Result_OutOfRange;
-    log_info("Set DCS_CLK %u" LOG_EOL, dcs_clk_hz);
+    log_info("Set DCS_CLK %lu" LOG_EOL, dcs_clk_hz);
 
     // Let pending UART TX finish at the current baud rate before the clock changes
     vSerialWaitTxEmpty((void *)UART_BASEADDR, UART_CLOCK_IN_FROM_PLATFORM(g_la9310_current_platform_clk_hz));
@@ -324,7 +324,7 @@ int limesdr_micro_initialize(void)
         lime_Result result = lms7002m_set_frequency_cgen(rfsoc, 4 * LA9310_DCS_CLK_HZ);
         if (result != lime_Result_Success)
         {
-            log_err("MCLK1 fail", LOG_EOL);
+            log_err("MCLK1 fail" LOG_EOL);
             return -1;
         }
     }
@@ -345,7 +345,7 @@ int limesdr_micro_initialize(void)
 
         const uint32_t cgen_freq = lms7002m_get_frequency_cgen(rfsoc); // CGEN freq is same as LA9310 platform
         g_la9310_current_platform_clk_hz = cgen_freq;
-        log_info("Current DCS_CLK:%u" LOG_EOL, g_la9310_current_platform_clk_hz / 4);
+        log_info("Current DCS_CLK:%lu" LOG_EOL, g_la9310_current_platform_clk_hz / 4);
 
         // set comms to known speeds
         DspiInit(&g_dspi, ((1 << DSPI_CS0)), SPI_CLOCK_IN_FROM_PLATFORM(g_la9310_current_platform_clk_hz), LMS7002M_SPI_SPEED_HZ);
@@ -359,7 +359,7 @@ int limesdr_micro_initialize(void)
         lime_Result result = set_platform_clock_from_cgen(4 * LA9310_DCS_CLK_HZ);
         if (result != lime_Result_Success)
         {
-            log_err("MCLK1 fail", LOG_EOL);
+            log_err("MCLK1 fail" LOG_EOL);
             return -1;
         }
 

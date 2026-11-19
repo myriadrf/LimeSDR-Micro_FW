@@ -8,8 +8,8 @@
 static void printf64_t(uint64_t value)
 {
     const uint32_t *words = (uint32_t *)&value;
-    log_info("%08X", words[1]);
-    log_info("%08X", words[0]);
+    log_info("%08lX", words[1]);
+    log_info("%08lX", words[0]);
 }
 
 static const uint8_t running_phytimer_id = 10;
@@ -19,7 +19,7 @@ static uint32_t counter_lsb = 0; // phytimer value
 
 void timer64_reset(void)
 {
-    log_info("timer64_reset\n");
+    log_info("timer64_reset" LOG_EOL);
 
     counter_msb = 0;
     counter_lsb = 0;

@@ -25,6 +25,21 @@ add_compile_options(
 
 add_link_options(--specs=nano.specs)
 
+# Build time log level for a logging domain: messages above it are compiled
+# out, together with their strings. Values match LOG_LEVEL_* in la9310/log_core.h.
+set(LOG_LEVEL_NAMES NONE ERR WARN INFO DBG ISR ALL)
+function(add_log_level_option cache_var description target define)
+    set(${cache_var} "ALL" CACHE STRING "${description} (${LOG_LEVEL_NAMES})")
+    set_property(CACHE ${cache_var} PROPERTY STRINGS ${LOG_LEVEL_NAMES})
+    string(TOUPPER "${${cache_var}}" level_name)
+    list(FIND LOG_LEVEL_NAMES "${level_name}" level)
+    if(level EQUAL -1)
+        message(FATAL_ERROR "${cache_var}=${${cache_var}} is invalid, use one of: ${LOG_LEVEL_NAMES}")
+    endif()
+    target_compile_definitions(${target} PRIVATE ${define}=${level})
+    message(STATUS "${cache_var}: ${level_name}")
+endfunction()
+
 add_subdirectory(la9310)
 add_subdirectory(bootloader)
 # currently not utilizing FreeRTOS

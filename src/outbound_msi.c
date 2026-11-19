@@ -37,7 +37,7 @@ void la9310_msi_events_init(uint32_t *scratch_regs)
     ev->msi_addr = (msi_cap & PCIE_MSI_CAP_ENABLE) ? (LA9310_EP_TOHOST_MSI_PHY_ADDR | (msi_addr & 0xFFF)) : 0;
     ev->msi_data = IN_32((uint32_t *)(PCIE_BASE_ADDR + PCIE_MSI_DATA_REG_1)) & 0xFFFF;
     ev->msi_vector_count = 1u << ((msi_cap & PCIE_MSI_CAP_MME_MASK) >> PCIE_MSI_CAP_MME_SHIFT);
-    log_info("MSI %s, %d vec" LOG_EOL, ev->msi_addr ? "on" : "off", ev->msi_vector_count);
+    log_info("MSI %s, %lu vec" LOG_EOL, ev->msi_addr ? "on" : "off", ev->msi_vector_count);
 
     // the interface has to be initialized before the host can find it
     dsb();
@@ -97,7 +97,7 @@ void la9310_msi_events_raise(uint32_t events)
             ++msi_count;
         }
         ev->msi_count = msi_count;
-        log_isr("RaiseMsi ev=%x vec=%x mux=%d n=%d" LOG_EOL, events, direct_vectors, use_mux_vector, vector_count);
+        log_isr("RaiseMsi ev=%lx vec=%lx mux=%d n=%lu" LOG_EOL, events, direct_vectors, use_mux_vector, vector_count);
     }
     dsb();
     enable_irq();

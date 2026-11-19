@@ -20,7 +20,7 @@ void inbound_msg1_isr(void)
     NVIC_DisableIRQ(IRQ_MSG1);
 
     uint32_t msir = IN_32(&pMsgUnit[0].msir); // clear on read
-    log_isr("MSG1:%x" LOG_EOL, msir);
+    log_isr("MSG1:%lx" LOG_EOL, msir);
     (void)msir;
 
     NVIC_ClearPendingIRQ(IRQ_MSG1);
@@ -31,7 +31,7 @@ void inbound_msg1_isr(void)
 void inbound_msg2_isr(void)
 {
     uint32_t msir = IN_32(&pMsgUnit[1].msir); // clear on read
-    log_isr("MSG2:%x" LOG_EOL, msir);
+    log_isr("MSG2:%lx" LOG_EOL, msir);
     (void)msir;
     NVIC_ClearPendingIRQ(IRQ_MSG2);
 #if ARM_ERRATUM_838869

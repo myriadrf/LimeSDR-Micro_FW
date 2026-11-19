@@ -9,7 +9,7 @@
 #include "la9310_error_codes.h"
 #include "la9310_irq.h"
 
-#include "log.h"
+#include "la9310_log.h"
 #include "io.h"
 #include "core_cm4.h"
 
@@ -55,12 +55,12 @@ int iLa9310AviHostSendMboxToVspa(void *AviHndlr, uint32_t mbox_msb, uint32_t mbo
     struct avi_mbox Cm4Mbox;
     int retval = 0;
 
-    log_dbg("%s: In" LOG_EOL, __func__);
+    la9310_log_dbg("%s: In" LOG_EOL, __func__);
 
     /* Check if AVI init is done or not */
     if (NULL == pAviHndlr)
     {
-        log_err("ERR: AVI library INIT not done" LOG_EOL, mbox_index);
+        la9310_log_err("ERR: AVI library INIT not done" LOG_EOL, mbox_index);
         retval = -AVI_IPC_INIT_NOT_DONE;
         goto hndl_retval;
     }
@@ -68,7 +68,7 @@ int iLa9310AviHostSendMboxToVspa(void *AviHndlr, uint32_t mbox_msb, uint32_t mbo
     /* Invalid mbox_index*/
     if (mbox_index > 1)
     {
-        log_err("ERR: Invalid MBOX index [%d]" LOG_EOL, mbox_index);
+        la9310_log_err("ERR: Invalid MBOX index [%d]" LOG_EOL, mbox_index);
         retval = -AVI_INVALID_MBOX_INDEX;
         goto hndl_retval;
     }
@@ -94,13 +94,13 @@ int iLa9310AviHostSendMboxToVspa(void *AviHndlr, uint32_t mbox_msb, uint32_t mbo
         /* Host to VCPU mailbox is still pending
          * Enqueue the mailbox to the appropriate
          * Mailbox Queue */
-        log_dbg("INFO: MBOX[%d] occupied, Putting into Queue" LOG_EOL, mbox_index);
+        la9310_log_dbg("MBOX[%d] occupied, Putting into Queue" LOG_EOL, mbox_index);
 
         if (0 == mbox_index)
         {
             if (pdTRUE != xQueueSendToBackFromISR(((struct avi_hndlr *)AviHndlr)->Cm4ToVspaQMbox0, &Cm4Mbox, 0))
             {
-                log_err("ERR:%s: Cm4ToVspaQMbox0 Full" LOG_EOL, __func__);
+                la9310_log_err("ERR:%s: Cm4ToVspaQMbox0 Full" LOG_EOL, __func__);
                 pStats->avi_err_queue_full++;
                 retval = -1;
             }
@@ -109,7 +109,7 @@ int iLa9310AviHostSendMboxToVspa(void *AviHndlr, uint32_t mbox_msb, uint32_t mbo
         {
             if (pdTRUE != xQueueSendToBack(((struct avi_hndlr *)AviHndlr)->Cm4ToVspaQMbox1, &Cm4Mbox, 0))
             {
-                log_err("ERR:%s: Cm4ToVspaQMbox1 Full" LOG_EOL, __func__);
+                la9310_log_err("ERR:%s: Cm4ToVspaQMbox1 Full" LOG_EOL, __func__);
                 pStats->avi_err_queue_full++;
                 retval = -AVI_MBOX_NOT_AVAILABLE;
             }
@@ -117,7 +117,7 @@ int iLa9310AviHostSendMboxToVspa(void *AviHndlr, uint32_t mbox_msb, uint32_t mbo
     }
     else
     {
-        log_dbg("INFO: Send MBOX[%d] to VSPA" LOG_EOL, mbox_index);
+        la9310_log_dbg("Send MBOX[%d] to VSPA" LOG_EOL, mbox_index);
 
         if (0 == mbox_index)
         {
@@ -146,7 +146,7 @@ hndl_retval:
         xSemaphoreGive(((struct avi_hndlr *)AviHndlr)->Cm4ToVspaQMutex1);
     }
 
-    log_dbg("%s: Out" LOG_EOL, __func__);
+    la9310_log_dbg("%s: Out" LOG_EOL, __func__);
     return retval;
 }
 
@@ -155,12 +155,12 @@ int iLa9310AviHostRecvMboxFromVspa(void *AviHndlr, struct avi_mbox *mbox, uint32
     int retval = AVI_MBOX_RCV_FAIL;
     struct la9310_stats *pStats = pLa9310Info->stats;
 
-    log_dbg("%s: In" LOG_EOL, __func__);
+    la9310_log_dbg("%s: In" LOG_EOL, __func__);
 
     /* Check if AVI init is done or not */
     if (NULL == pAviHndlr)
     {
-        log_err("ERR: AVI library INIT not done" LOG_EOL, mbox_index);
+        la9310_log_err("ERR: AVI library INIT not done" LOG_EOL, mbox_index);
         retval = -AVI_IPC_INIT_NOT_DONE;
         goto hndl_retval;
     }
@@ -168,36 +168,36 @@ int iLa9310AviHostRecvMboxFromVspa(void *AviHndlr, struct avi_mbox *mbox, uint32
     /* Invalid mbox_index*/
     if (mbox_index > 1)
     {
-        log_err("ERR: Invalid MBOX index [%d]" LOG_EOL, mbox_index);
+        la9310_log_err("ERR: Invalid MBOX index [%d]" LOG_EOL, mbox_index);
         retval = AVI_INVALID_MBOX_INDEX;
         goto hndl_retval;
     }
 
     if (0 == mbox_index)
     {
-        log_dbg("Read VSPA MBOX[%d]" LOG_EOL, mbox_index);
+        la9310_log_dbg("Read VSPA MBOX[%d]" LOG_EOL, mbox_index);
 
         if (pdPASS == xQueueReceive(((struct avi_hndlr *)AviHndlr)->VspaToCm4QMbox0, mbox, (TickType_t)AVI_RECV_VSPA_MBOX_TIMEOUT))
         {
-            log_dbg("Rcvd VSPA MBOX[%d] msb_lsb %x_%x" LOG_EOL, mbox_index, mbox->msb, mbox->lsb);
+            la9310_log_dbg("Rcvd VSPA MBOX[%d] msb_lsb %x_%x" LOG_EOL, mbox_index, mbox->msb, mbox->lsb);
             pStats->avi_cm4_mbox0_rx_cnt++;
             retval = 0;
         }
     }
     else
     {
-        log_info("Read VSPA MBOX[%d]" LOG_EOL, mbox_index);
+        la9310_log_info("Read VSPA MBOX[%d]" LOG_EOL, mbox_index);
 
         if (pdPASS == xQueueReceive(((struct avi_hndlr *)AviHndlr)->VspaToCm4QMbox1, mbox, (TickType_t)AVI_RECV_VSPA_MBOX_TIMEOUT))
         {
-            log_dbg("Rcvd VSPA MBOX[%d] msb_lsb %x_%x" LOG_EOL, mbox_index, mbox->msb, mbox->lsb);
+            la9310_log_dbg("Rcvd VSPA MBOX[%d] msb_lsb %x_%x" LOG_EOL, mbox_index, mbox->msb, mbox->lsb);
             pStats->avi_cm4_mbox1_rx_cnt++;
             retval = 0;
         }
     }
 
 hndl_retval:
-    log_dbg("%s: Out" LOG_EOL, __func__);
+    la9310_log_dbg("%s: Out" LOG_EOL, __func__);
     return retval;
 }
 
@@ -206,7 +206,7 @@ void AviHndleMboxInterrupt(struct avi_hndlr *AviHndlr)
     struct vspa_regs *pVspaRegs = (struct vspa_regs *)AviHndlr->pVspaRegs;
     struct avi_mbox vspambox;
 
-    log_dbg("status %X %s: In" LOG_EOL, IN_32(&pVspaRegs->vspa_status), __func__);
+    la9310_log_dbg("status %X %s: In" LOG_EOL, IN_32(&pVspaRegs->vspa_status), __func__);
 
     /* Check which MBOX is set and enqueue the message
      * to the respective Queue
@@ -214,33 +214,33 @@ void AviHndleMboxInterrupt(struct avi_hndlr *AviHndlr)
 
     if (IN_32(&pVspaRegs->vspa_status) & VSPA_MBOX0_STATUS & uMailboxMonitorMask)
     {
-        log_dbg("%s: Rcvd mbox0 from VSPA" LOG_EOL, __func__);
+        la9310_log_dbg("%s: Rcvd mbox0 from VSPA" LOG_EOL, __func__);
         vspambox.msb = IN_32(&pVspaRegs->host_in_0_msb);
         vspambox.lsb = IN_32(&pVspaRegs->host_in_0_lsb);
 
         if (pdTRUE != xQueueSendToBackFromISR(AviHndlr->VspaToCm4QMbox0, &vspambox, NULL))
         {
-            log_dbg("ERR:%s: VspaToCm4QMbox0 Full" LOG_EOL, __func__);
+            la9310_log_dbg("ERR:%s: VspaToCm4QMbox0 Full" LOG_EOL, __func__);
         }
 
         OUT_32(&pVspaRegs->vspa_status, VSPA_MBOX0_STATUS);
     }
     else if (IN_32(&pVspaRegs->vspa_status) & VSPA_MBOX1_STATUS & uMailboxMonitorMask)
     {
-        log_dbg("%s: Rcvd mbox1 from VSPA" LOG_EOL, __func__);
+        la9310_log_dbg("%s: Rcvd mbox1 from VSPA" LOG_EOL, __func__);
         vspambox.msb = IN_32(&pVspaRegs->host_in_1_msb);
         vspambox.lsb = IN_32(&pVspaRegs->host_in_1_lsb);
 
         if (pdTRUE != xQueueSendToBackFromISR(AviHndlr->VspaToCm4QMbox1, &vspambox, NULL))
         {
-            log_dbg("ERR:%s: VspaToCm4QMbox1 Full" LOG_EOL, __func__);
+            la9310_log_dbg("ERR:%s: VspaToCm4QMbox1 Full" LOG_EOL, __func__);
         }
 
         OUT_32(&pVspaRegs->vspa_status, VSPA_MBOX1_STATUS);
     }
     else if (IN_32(&pVspaRegs->vspa_status) & CM4_MBOX0_STATUS & uMailboxMonitorMask)
     {
-        log_dbg("%s: Rcvd mbox0 ack" LOG_EOL, __func__);
+        la9310_log_dbg("%s: Rcvd mbox0 ack" LOG_EOL, __func__);
 
         /* Check QUEUE status and then check
          * if CM4 mailbox is queued
@@ -249,7 +249,7 @@ void AviHndleMboxInterrupt(struct avi_hndlr *AviHndlr)
         {
             if (pdPASS == xQueueReceiveFromISR(((struct avi_hndlr *)AviHndlr)->Cm4ToVspaQMbox0, &vspambox, NULL))
             {
-                log_dbg("%s:  sending msg to VSPA mbox0" LOG_EOL, __func__);
+                la9310_log_dbg("%s:  sending msg to VSPA mbox0" LOG_EOL, __func__);
                 OUT_32(&pVspaRegs->host_out_0_msb, vspambox.msb);
                 dmb();
                 OUT_32(&pVspaRegs->host_out_0_lsb, vspambox.lsb);
@@ -260,13 +260,13 @@ void AviHndleMboxInterrupt(struct avi_hndlr *AviHndlr)
     }
     else if (IN_32(&pVspaRegs->vspa_status) & CM4_MBOX1_STATUS & uMailboxMonitorMask)
     {
-        log_dbg("%s: Rcvd mbox1 ack" LOG_EOL, __func__);
+        la9310_log_dbg("%s: Rcvd mbox1 ack" LOG_EOL, __func__);
 
         if (0 != uxQueueMessagesWaitingFromISR(AviHndlr->Cm4ToVspaQMbox1))
         {
             if (pdPASS == xQueueReceiveFromISR(((struct avi_hndlr *)AviHndlr)->Cm4ToVspaQMbox1, &vspambox, NULL))
             {
-                log_dbg("%s:  sending msg to VSPA mbox1" LOG_EOL, __func__);
+                la9310_log_dbg("%s:  sending msg to VSPA mbox1" LOG_EOL, __func__);
                 OUT_32(&pVspaRegs->host_out_1_msb, vspambox.msb);
                 dmb();
                 OUT_32(&pVspaRegs->host_out_1_lsb, vspambox.lsb);
@@ -277,15 +277,15 @@ void AviHndleMboxInterrupt(struct avi_hndlr *AviHndlr)
     }
     else
     {
-        log_err("ERR: Invalid VSPA status\n");
+        la9310_log_err("ERR: Invalid VSPA status" LOG_EOL);
     }
 
-    log_dbg("%s: Out" LOG_EOL, __func__);
+    la9310_log_dbg("%s: Out" LOG_EOL, __func__);
 }
 
 void La9310VSPA_IRQDefaultHandler(void)
 {
-    log_isr("ISR:%s: Handle VSPA interrupt" LOG_EOL, __func__);
+    la9310_log_isr("ISR:%s: Handle VSPA interrupt" LOG_EOL, __func__);
     /*iLa9310RaiseIrqEvt(pLa9310Info, IRQ_EVT_VSPA_BIT); */
 
     /* Clear NVIC interrupt */
@@ -298,7 +298,7 @@ void La9310VSPA_IRQRelayHandler(void)
     uint32_t status;
     struct la9310_stats *pStats = pLa9310Info->stats;
 
-    log_isr("ISR:%s: In" LOG_EOL, __func__);
+    la9310_log_isr("ISR:%s: In" LOG_EOL, __func__);
 
     /* Currently all VSPA interrupts are sent to Host
      * Raise MSI towards Host.
@@ -315,18 +315,18 @@ void La9310VSPA_IRQRelayHandler(void)
         /* Mailbox related interrupt, got some work
          */
         pStats->avi_mbox_intr_raised++;
-        log_isr("ISR:%s: calling AviHndleMboxInterrupt" LOG_EOL, __func__);
+        la9310_log_isr("ISR:%s: calling AviHndleMboxInterrupt" LOG_EOL, __func__);
         AviHndleMboxInterrupt(pAviHndlr);
     }
     else
     {
-        log_isr("ISR: Raise VSPA DMA MSI to Host" LOG_EOL);
+        la9310_log_isr("ISR: Raise VSPA DMA MSI to Host" LOG_EOL);
         /*iLa9310RaiseIrqEvt(pLa9310Info, IRQ_EVT_VSPA_BIT); */
     }
 
     /* Clear NVIC interrupt */
     NVIC_ClearPendingIRQ(IRQ_VSPA);
-    log_isr("ISR:%s: Out" LOG_EOL, __func__);
+    la9310_log_isr("ISR:%s: Out" LOG_EOL, __func__);
 }
 
 void La9310VSPA_IRQDirectHandler(void)
@@ -365,7 +365,7 @@ unsigned int iLa9310AviVspaHwVer(void)
 {
     struct vspa_regs *pVspaRegs = (struct vspa_regs *)VSPA_BASE_ADDR;
 
-    log_info("INFO: VSPA Hw VER: 0x%x" LOG_EOL, pVspaRegs->hw_version);
+    la9310_log_info("VSPA Hw VER: 0x%x" LOG_EOL, pVspaRegs->hw_version);
 
     return pVspaRegs->hw_version;
 }
@@ -374,7 +374,7 @@ unsigned int iLa9310AviVspaSwVer(void)
 {
     struct vspa_regs *pVspaRegs = (struct vspa_regs *)VSPA_BASE_ADDR;
 
-    log_info("INFO: VSPA Sw VER: 0x%x" LOG_EOL, pVspaRegs->sw_version);
+    la9310_log_info("VSPA Sw VER: 0x%x" LOG_EOL, pVspaRegs->sw_version);
 
     return pVspaRegs->sw_version;
 }
@@ -386,26 +386,24 @@ void *iLa9310AviHandle()
 
 void *iLa9310AviInit(void)
 {
-    log_dbg("%s: In" LOG_EOL, __func__);
+    la9310_log_dbg("%s: In" LOG_EOL, __func__);
 
     if (NULL == pAviHndlr)
     {
-        log_info("INFO:%s: AVI Init Starting" LOG_EOL, __func__);
+        la9310_log_info("AVI Init Starting" LOG_EOL);
 
         pAviHndlr = pvPortMalloc(sizeof(struct avi_hndlr));
 
         if (NULL == pAviHndlr)
         {
-            log_err("%s: Memory allocation failed for "
-                    "AVI\r\n",
-                __func__);
+            la9310_log_err("Memory allocation failed for AVI" LOG_EOL);
             goto hndl_retval;
         }
 
         pAviHndlr->pVspaRegs = (struct vspa_regs *)VSPA_BASE_ADDR;
     }
 hndl_retval:
-    log_dbg("%s: Out" LOG_EOL, __func__);
+    la9310_log_dbg("%s: Out" LOG_EOL, __func__);
     return pAviHndlr;
 }
 
@@ -413,17 +411,15 @@ int iLa9310AviConfig(void)
 {
     struct vspa_regs *pVspaRegs = NULL;
 
-    log_dbg("%s: In" LOG_EOL, __func__);
+    la9310_log_dbg("%s: In" LOG_EOL, __func__);
 
-    log_info("INFO:%s: AVI Config Starting" LOG_EOL, __func__);
+    la9310_log_info("AVI Config Starting" LOG_EOL);
 
     pAviHndlr = iLa9310AviInit();
 
     if (NULL == pAviHndlr)
     {
-        log_err("%s: Memory allocation failed for "
-                "AVI\r\n",
-            __func__);
+        la9310_log_err("Memory allocation failed for AVI" LOG_EOL);
         goto hndl_retval;
     }
 
@@ -456,14 +452,14 @@ int iLa9310AviConfig(void)
     // clear VSPA DMA irq flag
     OUT_32(&pVspaRegs->dma_irq_stat, IN_32(&pVspaRegs->dma_irq_stat));
     /* Enable VSPA interrupt handling for FreeRTOS */
-    log_info("INFO:%s: Enabling IRQ_VSPA" LOG_EOL, __func__);
+    la9310_log_info("INFO:%s: Enabling IRQ_VSPA" LOG_EOL, __func__);
     NVIC_SetPriority(IRQ_VSPA, VSPA_IRQ_PRIORITY);
     NVIC_EnableIRQ(IRQ_VSPA);
-    log_info("INFO:%s: AVI Init Done" LOG_EOL, __func__);
+    la9310_log_info("INFO:%s: AVI Init Done" LOG_EOL, __func__);
 
     return 0;
 hndl_retval:
-    log_dbg("%s: Out" LOG_EOL, __func__);
+    la9310_log_dbg("%s: Out" LOG_EOL, __func__);
     return 1;
 }
 
@@ -494,7 +490,7 @@ void iLa9310AviClose(void)
     struct vspa_regs *pVspaRegs = NULL;
     UBaseType_t uxNumberOfItems;
 
-    log_dbg("%s: Disabling IRQ line For VSPA\n", __func__);
+    la9310_log_dbg("Disabling IRQ line For VSPA" LOG_EOL);
     NVIC_DisableIRQ(IRQ_VSPA);
 
     IntHndlr = La9310VSPA_IRQDefaultHandler;
@@ -505,11 +501,11 @@ void iLa9310AviClose(void)
 
         /* Disabling Mbox Irqs */
         OUT_32(&pVspaRegs->vspa_irqen, IN_32(&pVspaRegs->vspa_irqen) & (~uMailboxMonitorMask));
-        log_dbg("%s:MailBox Interrupts have been disabled\n", __func__);
+        la9310_log_dbg("MailBox Interrupts have been disabled" LOG_EOL);
     }
     else
     {
-        log_err("Mbox Avi Hndlr: Address not found\n");
+        la9310_log_err("Mbox Avi Hndlr: Address not found" LOG_EOL);
         goto close_err;
     }
 
@@ -518,62 +514,62 @@ void iLa9310AviClose(void)
 
     if (uxNumberOfItems)
     {
-        log_info("Queue Cm4ToVspaQMbox0: %d items will be lost\n", uxNumberOfItems);
+        la9310_log_info("Queue Cm4ToVspaQMbox0: %d items will be lost" LOG_EOL, uxNumberOfItems);
     }
 
     uxNumberOfItems = uxQueueMessagesWaiting(pAviHndlr->Cm4ToVspaQMbox1);
 
     if (uxNumberOfItems)
     {
-        log_info("Queue Cm4ToVspaQMbox1: %d items will be lost\n", uxNumberOfItems);
+        la9310_log_info("Queue Cm4ToVspaQMbox1: %d items will be lost" LOG_EOL, uxNumberOfItems);
     }
 
     uxNumberOfItems = uxQueueMessagesWaiting(pAviHndlr->VspaToCm4QMbox0);
 
     if (uxNumberOfItems)
     {
-        log_info("Queue VspaToCm4QMbox0: %d items will be lost\n", uxNumberOfItems);
+        la9310_log_info("Queue VspaToCm4QMbox0: %d items will be lost" LOG_EOL, uxNumberOfItems);
     }
 
     uxNumberOfItems = uxQueueMessagesWaiting(pAviHndlr->VspaToCm4QMbox1);
 
     if (uxNumberOfItems)
     {
-        log_info("Queue VspaToCm4QMbox1: %d items will be lost\n", uxNumberOfItems);
+        la9310_log_info("Queue VspaToCm4QMbox1: %d items will be lost" LOG_EOL, uxNumberOfItems);
     }
 
     /* Delete Queues */
-    log_dbg("%s : Deleting Queues \n", __func__);
+    la9310_log_dbg("Deleting Queues" LOG_EOL);
     vQueueDelete(pAviHndlr->Cm4ToVspaQMbox0);
     vQueueDelete(pAviHndlr->Cm4ToVspaQMbox1);
     vQueueDelete(pAviHndlr->VspaToCm4QMbox0);
     vQueueDelete(pAviHndlr->VspaToCm4QMbox1);
 
     /* Delete Semaphores */
-    log_dbg("%s : Deleting Semaphores \n", __func__);
+    la9310_log_dbg("Deleting Semaphores" LOG_EOL);
     vQueueDelete(pAviHndlr->Cm4ToVspaQMutex0);
     vQueueDelete(pAviHndlr->Cm4ToVspaQMutex1);
 
     /*Releasing momory of struct avi_hndlr */
-    log_dbg("%s : Releasing Memory\n", __func__);
+    la9310_log_dbg("%s : Releasing Memory" LOG_EOL, __func__);
     vPortFree(pAviHndlr);
     pAviHndlr = NULL;
 
     NVIC_EnableIRQ(IRQ_VSPA);
-    log_dbg("%s: Enabling IRQ with Default Handler\n", __func__);
+    la9310_log_dbg("Enabling IRQ with Default Handler" LOG_EOL);
 
 close_err:
-    log_dbg("Close: No AviInit Interface Identified\n");
+    la9310_log_dbg("Close: No AviInit Interface Identified" LOG_EOL);
 }
 
 void iLa9310VspaInit(void)
 {
-    log_dbg("%s: In" LOG_EOL, __func__);
+    la9310_log_dbg("%s: In" LOG_EOL, __func__);
     /* Register Interrupt Handler */
     IntHndlr = La9310VSPA_IRQDefaultHandler;
     /* Enable VSPA interrupt handling for FreeRTOS */
     NVIC_EnableIRQ(IRQ_VSPA);
-    log_dbg("%s: Out" LOG_EOL, __func__);
+    la9310_log_dbg("%s: Out" LOG_EOL, __func__);
 }
 
 void vAxiqLoopbackSet(bool bLoopbackEnable, uint32_t rx_mask)
@@ -583,5 +579,5 @@ void vAxiqLoopbackSet(bool bLoopbackEnable, uint32_t rx_mask)
     else
         OUT_32(DBGGNCR, (REMOVE_AXIQ_LOOPBACK_MASK & IN_32(DBGGNCR)));
 
-    log_dbg("%s: IN_32( DBGGNCR ) = %#x\r\n", __func__, IN_32(DBGGNCR));
+    la9310_log_dbg("%s: IN_32( DBGGNCR ) = %#x" LOG_EOL, __func__, IN_32(DBGGNCR));
 }

@@ -7,7 +7,7 @@
 #include "llcp_api.h"
 #include "immap.h"
 
-#include "log.h"
+#include "la9310_log.h"
 #include "io.h"
 
 void vLlcpRegRW(uint16_t *val, uint16_t addr, uint8_t rw)
@@ -27,11 +27,11 @@ void vLlcpRegRW(uint16_t *val, uint16_t addr, uint8_t rw)
     if (rw == LLCP_REG_W)
     {
         OUT_16((uint16_t *)(uiLlcpAddr + addr), *val);
-        log_dbg("%s:write 0x%x: 0x%x\n", __func__, (addr >> 1), *val);
+        la9310_log_dbg("%s:write 0x%x: 0x%x" LOG_EOL, __func__, (addr >> 1), *val);
     }
     else
     {
         *val = IN_16((uint16_t *)(uiLlcpAddr + addr));
-        log_dbg("%s:read 0x%x: 0x%x\n", __func__, (addr >> 1), *val);
+        la9310_log_dbg("%s:read 0x%x: 0x%x" LOG_EOL, __func__, (addr >> 1), *val);
     }
 }

@@ -8,7 +8,7 @@
 #include "la9310.h"
 
 #include "io.h"
-#include "log.h"
+#include "la9310_log.h"
 
 #define SERIAL_LCRVAL SERIAL_LCR_8N1
 #define SERIAL_FCRVAL (SERIAL_FCR_FIFO_EN | SERIAL_FCR_RXSR | SERIAL_FCR_TXSR)
@@ -24,13 +24,13 @@ void vSerialWaitTxEmpty(NS16550_t base, uint32_t ulSrcClockHz)
         --retries;
     }
     if (retries == 0)
-        log_err("Serial TX drain timeout" LOG_EOL);
+        la9310_log_err("Serial TX drain timeout" LOG_EOL);
 }
 
 void vSerialInit(NS16550_t base, uint32_t ulBaudRate, uint32_t ulSrcClockHz)
 {
     int lBaudDivisor;
-    log_info("SerialInit: baud:%u, clk:%u wait for TEMT...", ulBaudRate, ulSrcClockHz);
+    la9310_log_info("SerialInit: baud:%lu, clk:%lu wait for TEMT...", ulBaudRate, ulSrcClockHz);
     vSerialWaitTxEmpty(base, ulSrcClockHz);
 
     /* round to nearest divisor */
@@ -49,7 +49,7 @@ void vSerialInit(NS16550_t base, uint32_t ulBaudRate, uint32_t ulSrcClockHz)
 
     /* clear line errors (framing/overrun) caused by a baud rate or clock change */
     (void)IN_8(&base->lsr);
-    log_info("done" LOG_EOL);
+    la9310_log_info("done" LOG_EOL);
 }
 
 void vSerialWriteBlocking(NS16550_t xBase, const uint8_t *pucData, uint32_t xLength)

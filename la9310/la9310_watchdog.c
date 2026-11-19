@@ -11,7 +11,7 @@
 
 #include "io.h"
 #include "core_cm4.h"
-#include "log.h"
+#include "la9310_log.h"
 
 static uint32_t load_value;
 
@@ -51,7 +51,7 @@ int iWdogEnable(uint32_t wdog_load_val, struct la9310_info *pLa9310Info)
 
 void vWdogDisable(void)
 {
-    log_info("%s: WDOG DISABLE" LOG_EOL, __func__);
+    la9310_log_info("%s: WDOG DISABLE" LOG_EOL, __func__);
     OUT_32(WDOG_LOCK_REG, WDOG_UNLOCK);
     OUT_32(WDOG_CONTROL_REG, 0xfffffffc & IN_32((uint32_t *)WDOG_CONTROL_REG));
     OUT_32(WDOG_LOCK_REG, WDOG_LOCK);
@@ -59,7 +59,7 @@ void vWdogDisable(void)
 
 void vWdogReload(void)
 {
-    log_info("%s: WDOG Reload" LOG_EOL, __func__);
+    la9310_log_info("%s: WDOG Reload" LOG_EOL, __func__);
     OUT_32(WDOG_LOCK_REG, WDOG_UNLOCK);
     OUT_32(WDOG_INTCLR_REG, 0x1 | IN_32((uint32_t *)WDOG_INTCLR_REG));
     OUT_32(WDOG_LOAD_REG, load_value);
@@ -76,7 +76,7 @@ void La9310WDOG_IRQHandler(void)
 
     if (count == 0)
     {
-        log_isr("%s: WDOG IRQ Handler" LOG_EOL, __func__);
+        la9310_log_isr("%s: WDOG IRQ Handler" LOG_EOL, __func__);
         count++;
         pStats->WDOG_interrupt++;
     }

@@ -140,12 +140,12 @@ void SetXODAC(uint16_t value)
     int bytesWritten = iLa9310_I2C_Write(LA9310_FSL_I2C1, 0x4C, 0x30, LA9310_I2C_DEV_OFFSET_LEN_1_BYTE, buffer, 2);
     if (bytesWritten != 2)
     {
-        log_err("Failed to write XODAC(%d)\n", value);
+        log_err("Failed to write XODAC(%d)" LOG_EOL, value);
     }
     else
     {
         xo_dac_value = value;
-        log_info("XO_DAC set to (%d)\n", value);
+        log_info("XO_DAC set to (%d)" LOG_EOL, value);
     }
 }
 
@@ -521,7 +521,7 @@ static void HandleCommand(volatile struct la9310_sw_cmd_desc *desc)
         desc->status = LA9310_SW_CMD_STATUS_IN_PROGRESS;
         desc->data[0] = ~pattern;
         status = LA9310_SW_CMD_STATUS_DONE;
-        log_info("Alive Pattern - changed 0x%08x to 0x%08x\n", pattern, ~pattern);
+        log_info("Alive Pattern - changed 0x%08lx to 0x%08lx" LOG_EOL, pattern, ~pattern);
         break;
     }
     case LIME_M4_HARDWARE_COUNTER_RESET: {
@@ -599,7 +599,7 @@ static void HandleCommand(volatile struct la9310_sw_cmd_desc *desc)
         break;
     }
     default:
-        log_err("sw cmd not implemented: %d\r\n", desc->cmd);
+        log_err("sw cmd not implemented: %lu" LOG_EOL, desc->cmd);
         status = LA9310_SW_CMD_STATUS_ERROR;
         break;
     }
