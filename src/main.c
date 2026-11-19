@@ -28,6 +28,9 @@
 
 #include "vspa_regs.h"
 #include "vspa_debug.h"
+#ifdef M4_DEBUG_MONITOR
+    #include "m4_monitor.h"
+#endif
 #include "profiling.h"
 
 #include "ppsdo/ppsdo.h"
@@ -169,6 +172,9 @@ static int iInitHandler()
     dmb();
 
     OUT_32(&s_Dcr->ulScratchrw[LA9310_SCRATCH_MLOG_ADDR], (uint32_t)&memlog);
+#ifdef M4_DEBUG_MONITOR
+    M4MonitorInit();
+#endif
     VspaDebugProxyInit(s_Dcr->ulScratchrw);
 
     /* XXX:NOTE - Do all initialization that is required by Host driver to

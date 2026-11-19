@@ -101,7 +101,7 @@ static void prvPrintMemMngFaultReason( uint32_t ulVal )
     }
 }
 
-static void prvGetHardFaultReason( void )
+static void prvLogHardFaultReason( void )
 {
     uint32_t ulCFSRValue;
 
@@ -139,6 +139,11 @@ static void prvGetHardFaultReason( void )
             prvPrintMemMngFaultReason( ulCFSRValue );
         }
     }
+}
+
+static void prvGetHardFaultReason( void )
+{
+    prvLogHardFaultReason();
 
     isb();
     dmb();
@@ -186,6 +191,12 @@ void vAnalyzeFault( uint32_t * pulMSP,
     prvDumpStackFrame( pulMSP );
     log_err(LOG_EOL "Fault Address:%lx" LOG_EOL, ulFaultAddr);
     prvGetHardFaultReason();
+}
+
+void vLogFault( uint32_t * pulFrame )
+{
+    prvDumpStackFrame( pulFrame );
+    prvLogHardFaultReason();
 }
 
 void vHardFaultHandler( void )

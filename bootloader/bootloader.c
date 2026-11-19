@@ -87,6 +87,14 @@ __attribute__((noreturn)) void bootloader_reset_handler(void)
     // SCRATCHRW32: VSPA debug proxy pointer (src/vspa_debug.h), must not
     // outlive the firmware that published it
     OUT_32(0x41E0027C, 0);
+    // debug monitor (src/m4_monitor.h): the next firmware may have no
+    // DebugMonitor handler, so leave no monitor debug event armed, unless
+    // a JTAG debugger (DHCSR.C_DEBUGEN) owns the debug unit
+    if (!(IN_32(0xE000EDF0) & 1))
+    {
+        OUT_32(0xE000EDFC, IN_32(0xE000EDFC) & ~(0xFu << 16)); // DEMCR MON_EN/PEND/STEP/REQ
+        OUT_32(0xE0002000, 1u << 1); // FP_CTRL: KEY, disabled
+    }
 
     // on while waiting for the next firmware, which turns it off when it initializes the LEDs
     LED_GPIO_config_output(LED1_PIN);

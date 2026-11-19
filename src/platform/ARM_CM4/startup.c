@@ -23,6 +23,18 @@ extern void gps_uart_irq_handler(void);
 
 extern void _start(void);
 
+#ifdef M4_DEBUG_MONITOR
+    #include "m4_monitor.h"
+    // faults and debug events stop in the debug monitor (src/m4_monitor.h)
+    #define FAULT_HANDLER M4MonitorEntry
+    #define DEBUGMON_HANDLER M4MonitorEntry
+    #define HARD_FAULT_HANDLER M4MonitorEntry
+#else
+    #define FAULT_HANDLER DefaultISR
+    #define DEBUGMON_HANDLER DefaultISR
+    #define HARD_FAULT_HANDLER vHardFaultHandler
+#endif
+
 static void DefaultISR(void)
 {
     // Do nothing
@@ -63,16 +75,16 @@ __attribute__((aligned(0x100), section(".isr_vector"))) struct la9310_cm4_isrvec
     .stacktop = &__stack,
     .reset_handler = &m4_reset_handler,
     .nmi_handler = &DefaultISR,
-    .hard_fault_handler = &vHardFaultHandler,
-    .mpu_fault_handler = &DefaultISR,
-    .bus_fault_handler = &DefaultISR,
-    .usage_fault_handler = &DefaultISR,
+    .hard_fault_handler = &HARD_FAULT_HANDLER,
+    .mpu_fault_handler = &FAULT_HANDLER,
+    .bus_fault_handler = &FAULT_HANDLER,
+    .usage_fault_handler = &FAULT_HANDLER,
     .reserved_0 = 0,
     .reserved_1 = 0,
     .reserved_2 = 0,
     .reserved_3 = 0,
     .svcall_handler = &SVC_Handler,
-    .debug_monitor_handler = &DefaultISR,
+    .debug_monitor_handler = &DEBUGMON_HANDLER,
     .reserved_4 = 0,
     .pendsv_handler = &PendSV_Handler,
     .sys_tick_handler = &SysTick_Handler,

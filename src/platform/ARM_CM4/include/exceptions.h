@@ -46,4 +46,14 @@ void vEnableExceptions( void );
 void vAnalyzeFault( uint32_t * pulMSP,
                     uint32_t ulFaultAddr );
 
+/*****************************************************************************
+ * @vLogFault
+ *
+ * Logs the stack frame and the fault reason, and returns.
+ *
+ * pulFrame - [IN][M]  Exception stack frame of the faulting code.
+ *
+ ****************************************************************************/
+void vLogFault( uint32_t * pulFrame );
+
 #endif /* ifndef __EXCEPTIONS_H__ */

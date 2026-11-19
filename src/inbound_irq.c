@@ -41,9 +41,7 @@ void inbound_msg2_isr(void)
 
 void inbound_msg3_isr(void)
 {
-    uint32_t msir = IN_32(&pMsgUnit[2].msir); // clear on read
-    VspaDebugProxy();
-    (void)msir;
+    VspaDebugProxyPoll(); // reads MSIR3 (clear on read)
     NVIC_ClearPendingIRQ(IRQ_MSG3);
 #if ARM_ERRATUM_838869
     dsb();
