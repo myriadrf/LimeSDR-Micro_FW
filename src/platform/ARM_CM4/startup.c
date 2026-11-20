@@ -23,9 +23,9 @@ extern void gps_uart_irq_handler(void);
 
 extern void _start(void);
 
-#ifdef M4_DEBUG_MONITOR
+#ifdef M4_DEBUGGER
     #include "m4_monitor.h"
-    // faults and debug events stop in the debug monitor (src/m4_monitor.h)
+    // faults and debug events stop in the debug monitor (src/debugger/m4_monitor.h)
     #define FAULT_HANDLER M4MonitorEntry
     #define DEBUGMON_HANDLER M4MonitorEntry
     #define HARD_FAULT_HANDLER M4MonitorEntry

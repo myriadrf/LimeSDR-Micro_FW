@@ -84,10 +84,10 @@ __attribute__((noreturn)) void bootloader_reset_handler(void)
     // and indicate for software that M4 has active firmware loaded
     for (uint32_t addr = 0x41E00200; addr <= 0x41E00220; addr += 4)
         OUT_32(addr, 0);
-    // SCRATCHRW32: VSPA debug proxy pointer (src/vspa_debug.h), must not
+    // SCRATCHRW32: VSPA debug proxy pointer (src/debugger/vspa_debug.h), must not
     // outlive the firmware that published it
     OUT_32(0x41E0027C, 0);
-    // debug monitor (src/m4_monitor.h): the next firmware may have no
+    // debug monitor (src/debugger/m4_monitor.h): the next firmware may have no
     // DebugMonitor handler, so leave no monitor debug event armed, unless
     // a JTAG debugger (DHCSR.C_DEBUGEN) owns the debug unit
     if (!(IN_32(0xE000EDF0) & 1))

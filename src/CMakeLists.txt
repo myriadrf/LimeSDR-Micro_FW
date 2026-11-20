@@ -52,12 +52,10 @@ add_log_level_option(DEVICE_LOG_LEVEL "LimeSDR-Micro board firmware build time l
 set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 
 option(LMS7002M_CLOCK "Configure LMS7002M clock generator to 153.6MHz" ON)
-option(M4_DEBUG_MONITOR "Self-hosted M4 debugging over PCIe: debug monitor exception handler (src/m4_monitor.h)" ON)
 
-if (M4_DEBUG_MONITOR)
-    target_compile_definitions(limesdr-micro-m4 PRIVATE M4_DEBUG_MONITOR)
-    target_sources(limesdr-micro-m4 PRIVATE m4_monitor.c)
-endif()
+add_subdirectory(debugger)
+target_link_libraries(limesdr-micro-m4 PRIVATE la9310-dbg-client-proxy)
+
 option(BOOT_HEADER "Prefix firmware with a boot header" ON)
 
 if (BOOT_HEADER)
@@ -79,7 +77,6 @@ target_sources(limesdr-micro-m4 PRIVATE
     m4_memorymap.c
     outbound_msi.c
     inbound_irq.c
-    vspa_debug.c
     profiling.c
     platform/ARM_CM4/startup.c
     log.c
@@ -117,7 +114,6 @@ add_custom_target(limesdr-micro-m4-bin ALL
 add_feature_info("EXT_REF_CLK" EXT_REF_CLK "Use external reference clock (${EXT_REF_CLK} Hz)")
 add_feature_info("LMS7002M_CLOCK" LMS7002M_CLOCK "Provide DCS_CLK from LMS7002M MCLK1 output")
 add_feature_info("BOOT_HEADER" BOOT_HEADER "Prefix firmware with a boot header")
-add_feature_info("M4_DEBUG_MONITOR" M4_DEBUG_MONITOR "Self-hosted M4 debugging through the debug monitor exception")
 
 #########################################################################
 # summary

@@ -5,15 +5,18 @@
 #include "core_cm4.h"
 #include "immap.h"
 #include "io.h"
-#ifdef M4_DEBUG_MONITOR
+#ifdef M4_DEBUGGER
     #include "m4_monitor.h"
 #endif
 
+#ifdef VSPA_DEBUGGER
 #define VSPA_DBG_BASE 0xE0046000u
 #define VSPA_DBG_SPAN 0x1000u
+#endif
 
 #define MSIR3 (MSG_UNIT_BASE_ADDR + 0x14u) /* clear on read */
 
+#ifdef M4_DEBUGGER
 #define CCR_BFHFNMIGN (1u << 8)
 #define CFSR_BFSR_MASK 0x0000FF00u
 #define CFSR_BUS_ERROR ((1u << 9) | (1u << 10)) /* PRECISERR, IMPRECISERR */
@@ -27,6 +30,7 @@ static const struct {
     {0x40000000u, 0x50000000u}, /* CCSR */
     {0xE0000000u, 0xE0100000u}, /* private peripheral bus */
 };
+#endif
 
 /* 64-byte aligned: data[] starts on a 32-byte boundary for the host's block reads */
 static volatile struct vspa_dbg_proxy proxy __attribute__((aligned(64)));
@@ -43,6 +47,7 @@ void VspaDebugProxyInit(volatile uint32_t *scratch_regs)
     scratch_regs[VSPA_DBG_SCRATCH_PTR] = (uint32_t)&proxy;
 }
 
+#ifdef M4_DEBUGGER
 /* Words at any M4 address. A bus error must not fault the firmware: the
  * accesses run at priority -1 (FAULTMASK) with CCR.BFHFNMIGN set, where the
  * core ignores data bus faults and only records them in BFSR. */
@@ -87,6 +92,7 @@ static uint32_t M4Access(uint32_t op, uint32_t addr, uint32_t count, uint32_t fi
         __asm volatile("cpsie f" ::: "memory");
     return error;
 }
+#endif
 
 static uint32_t Execute(void)
 {
@@ -95,7 +101,7 @@ static uint32_t Execute(void)
     const uint32_t count = proxy.count;
     const uint32_t offset = proxy.offset;
 
-#ifdef M4_DEBUG_MONITOR
+#ifdef M4_DEBUGGER
     if (op == VSPA_DBG_OP_MON_INFO)
     {
         proxy.data[0] = M4MonitorAddress();
@@ -107,28 +113,39 @@ static uint32_t Execute(void)
         M4MonitorRequestHalt();
         return 0;
     }
-#endif
-    if (op < VSPA_DBG_OP_READ || op > VSPA_DBG_OP_M4_WRITE)
-        return VSPA_DBG_ERR_OP;
-    if (count == 0 || count > VSPA_DBG_MAX_WORDS)
-        return VSPA_DBG_ERR_COUNT;
     if (op == VSPA_DBG_OP_M4_READ || op == VSPA_DBG_OP_M4_WRITE)
-        return M4Access(op, offset, count, fixed);
-    const uint32_t span = fixed ? 4u : count * 4u;
-    if ((offset & 3u) || offset >= VSPA_DBG_SPAN || span > VSPA_DBG_SPAN - offset)
-        return VSPA_DBG_ERR_OFFSET;
-
-    uint32_t addr = VSPA_DBG_BASE + offset;
-    for (uint32_t i = 0; i < count; i++)
     {
-        if (op == VSPA_DBG_OP_READ)
-            proxy.data[i] = IN_32(addr);
-        else
-            OUT_32(addr, proxy.data[i]);
-        if (!fixed)
-            addr += 4u;
+        if (count == 0 || count > VSPA_DBG_MAX_WORDS)
+            return VSPA_DBG_ERR_COUNT;
+        return M4Access(op, offset, count, fixed);
     }
-    return 0;
+#endif
+#ifdef VSPA_DEBUGGER
+    if (op == VSPA_DBG_OP_READ || op == VSPA_DBG_OP_WRITE)
+    {
+        if (count == 0 || count > VSPA_DBG_MAX_WORDS)
+            return VSPA_DBG_ERR_COUNT;
+        const uint32_t span = fixed ? 4u : count * 4u;
+        if ((offset & 3u) || offset >= VSPA_DBG_SPAN || span > VSPA_DBG_SPAN - offset)
+            return VSPA_DBG_ERR_OFFSET;
+
+        uint32_t addr = VSPA_DBG_BASE + offset;
+        for (uint32_t i = 0; i < count; i++)
+        {
+            if (op == VSPA_DBG_OP_READ)
+                proxy.data[i] = IN_32(addr);
+            else
+                OUT_32(addr, proxy.data[i]);
+            if (!fixed)
+                addr += 4u;
+        }
+        return 0;
+    }
+#endif
+    (void)fixed;
+    (void)count;
+    (void)offset;
+    return VSPA_DBG_ERR_OP;
 }
 
 void VspaDebugProxyPoll(void)

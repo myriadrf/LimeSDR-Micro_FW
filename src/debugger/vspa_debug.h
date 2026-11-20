@@ -28,6 +28,10 @@
  *
  * Ops 3-6 came after version 1 without changing the struct; firmware
  * without them answers VSPA_DBG_ERR_OP.
+ *
+ * Build options (src/debugger/CMakeLists.txt): VSPA_DEBUGGER provides ops 1-2,
+ * M4_DEBUGGER ops 3-6 and the monitor. The proxy (DEBUG_PROXY) exists
+ * when either is enabled; a disabled op answers VSPA_DBG_ERR_OP.
  */
 
 #define VSPA_DBG_SCRATCH_PTR 31u /* ulScratchrw[] index: SCRATCHRW32 */
@@ -66,8 +70,17 @@ struct vspa_dbg_proxy {
     uint32_t data[VSPA_DBG_MAX_WORDS];
 };
 
+#ifdef DEBUG_PROXY
 void VspaDebugProxyInit(volatile uint32_t *scratch_regs);
 /* serve a pending request, if any: from the MSG3 interrupt, or polled */
 void VspaDebugProxyPoll(void);
+#else
+/* no proxy: SCRATCHRW32 stays 0, so the host finds none */
+static inline void VspaDebugProxyInit(volatile uint32_t *scratch_regs)
+{
+    (void)scratch_regs;
+}
+static inline void VspaDebugProxyPoll(void) {}
+#endif
 
 #endif

@@ -28,7 +28,7 @@
 
 #include "vspa_regs.h"
 #include "vspa_debug.h"
-#ifdef M4_DEBUG_MONITOR
+#ifdef M4_DEBUGGER
     #include "m4_monitor.h"
 #endif
 #include "profiling.h"
@@ -144,8 +144,11 @@ static void iGpioInitRFIC(void)
 
 static void vInitMsgUnit(void)
 {
+#ifdef DEBUG_PROXY
+    // message unit 3: debug proxy requests (debugger/vspa_debug.h)
     NVIC_SetPriority( IRQ_MSG3, 3 );
     NVIC_EnableIRQ( IRQ_MSG3 );
+#endif
 }
 
 static void SetupVSPA_IRQ(struct vspa_regs *regs)
@@ -172,7 +175,7 @@ static int iInitHandler()
     dmb();
 
     OUT_32(&s_Dcr->ulScratchrw[LA9310_SCRATCH_MLOG_ADDR], (uint32_t)&memlog);
-#ifdef M4_DEBUG_MONITOR
+#ifdef M4_DEBUGGER
     M4MonitorInit();
 #endif
     VspaDebugProxyInit(s_Dcr->ulScratchrw);
