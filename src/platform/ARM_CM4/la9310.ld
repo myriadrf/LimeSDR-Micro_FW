@@ -16,8 +16,10 @@ HEAP_SIZE = 1K;
 /* Specify the memory areas */
 MEMORY
 {
-  /* TCML is 32bit accessible */
-  m_tcml    (RWX) : ORIGIN = 0x1F800000, LENGTH = 128K
+  /* TCML is 32bit accessible, 128K. Its top 20K are split off for the legacy host interface, so that the memory
+     usage report shows what the firmware uses instead of the end of that interface. */
+  m_tcml    (RWX) : ORIGIN = 0x1F800000, LENGTH = 0x1B000
+  m_tcml_hif (RW) : ORIGIN = 0x1F81B000, LENGTH = 0x5000
 
   /* TCMU is 64bit accessible */
   m_dtcm    (RW)  : ORIGIN = 0x20000000, LENGTH = 64K
@@ -172,12 +174,13 @@ SECTIONS
   } > m_tcml
 
   /* Legacy host interface, at the TCML address that software predating the host interface table expects
-     (LA9310_LEGACY_HIF_OFFSET, include/la9310_host_if.h). NOLOAD, so the image doesn't grow to reach it. */
-  .legacy_hif 0x1F81B000 (NOLOAD) :
+     (LA9310_LEGACY_HIF_OFFSET, include/la9310_host_if.h). NOLOAD, so the image doesn't grow to reach it. The m_tcml
+     region ends where it starts, so TCML data can't overlap it. */
+  .legacy_hif (NOLOAD) :
   {
     KEEP(*(.legacy_hif))
-  } > m_tcml
-  ASSERT(__m_data_end <= ADDR(.legacy_hif), "TCML data overlaps the legacy host interface")
+  } > m_tcml_hif
+  ASSERT(ADDR(.legacy_hif) == ORIGIN(m_tcml) + 0x1B000, "legacy host interface moved")
 
    /* Initializes stack on the end of block */
   __StackTop   = __m_data_end;
