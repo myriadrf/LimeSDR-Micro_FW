@@ -11,6 +11,7 @@
 #include "ppsdo/gps.h"
 #include "phytimer.h"
 #include "la9310_host_if.h"
+#include "limesdr_micro.h"
 
 #include "limesuiteng/embedded/lms7002m/lms7002m.h"
 #include "lms7002m/spi.h"
@@ -248,7 +249,7 @@ static lime_Result set_platform_clock_from_cgen(uint32_t platform_clock)
     return result;
 }
 
-lime_Result limesdr_micro_set_dcs_clk(struct la9310_hif *hif, uint32_t dcs_clk_hz)
+int limesdr_micro_set_dcs_clk(uint32_t dcs_clk_hz, uint32_t adc_rate_mask, uint32_t dac_rate_mask)
 {
     if (dcs_clk_hz == 0)
         return lime_Result_InvalidValue;
@@ -277,7 +278,7 @@ lime_Result limesdr_micro_set_dcs_clk(struct la9310_hif *hif, uint32_t dcs_clk_h
     iLa9310_I2C_Init(LA9310_FSL_I2C1, I2C_CLOCK_IN_FROM_PLATFORM(platform_clock), LA9310_I2C_FREQ);
 
     // ADC/DAC sample rate
-    vDcsInit(IN_32(&hif->adc_mask), IN_32(&hif->adc_rate_mask), IN_32(&hif->dac_mask), IN_32(&hif->dac_rate_mask));
+    vDcsInit(LA9310_ADC_MASK, adc_rate_mask, LA9310_DAC_MASK, dac_rate_mask);
     return result;
 }
 

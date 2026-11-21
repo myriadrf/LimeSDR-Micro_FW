@@ -171,6 +171,14 @@ SECTIONS
     __m_data_end = .;        /* define a global symbol at data end */
   } > m_tcml
 
+  /* Legacy host interface, at the TCML address that software predating the host interface table expects
+     (LA9310_LEGACY_HIF_OFFSET, include/la9310_host_if.h). NOLOAD, so the image doesn't grow to reach it. */
+  .legacy_hif 0x1F81B000 (NOLOAD) :
+  {
+    KEEP(*(.legacy_hif))
+  } > m_tcml
+  ASSERT(__m_data_end <= ADDR(.legacy_hif), "TCML data overlaps the legacy host interface")
+
    /* Initializes stack on the end of block */
   __StackTop   = __m_data_end;
   __StackLimit = __StackTop - STACK_SIZE;
@@ -189,8 +197,6 @@ SECTIONS
     *(.hif)
   } > m_dtcm
 
-  /*Does m_data overlaps HIF? */
-  ASSERT(__StackTop < 0x1F81C000, "m_data overlaps to HIF")
   ASSERT(__StackLimit >= __HeapLimit, "region m_data overflowed with stack and heap")
 
   PROVIDE_HIDDEN(__firmware_bin_size = __data_end__ - ADDR(.romboot_header));

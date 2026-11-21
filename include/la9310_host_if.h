@@ -15,12 +15,10 @@
 #define LA9310_EP_DMA_BUF_PHYS_ADDR PCI_OUTBOUND_WINDOW_BASE_ADDR
 #define LA9310_EP_TOHOST_MSI_PHY_ADDR (LA9310_EP_DMA_BUF_PHYS_ADDR + LA9310_MAX_SCRATCH_BUF_SIZE)
 
-#define LA9310_EP_HIF_OFFSET 0x1B000
-
-/*Scratch register for Host <> LA9310 Boot hand shake*/
+/* Scratch registers for Host <> LA9310 boot hand shake and host interface discovery */
 #define LA9310_BOOT_HSHAKE_SCRATCH_REG 1
-#define LA9310_BOOT_HSHAKE_HIF_REG 3
-#define LA9310_BOOT_HSHAKE_HIF_SIZ_REG 4
+#define LA9310_SCRATCH_HIF_TABLE_ADDR 3 /* M4 address of the host interface table, struct la9310_hif_entry[] */
+#define LA9310_SCRATCH_LEGACY_HIF_SIZE 4 /* sizeof(struct la9310_legacy_hif), for software that predates the table */
 
 /* Events that the M4 signals to the host, identified only by their index. What an event means is agreed between the M4
  * firmware and the host application, the transport below doesn't depend on it.
@@ -43,7 +41,6 @@
 #define LA9310_EVENT_MAX_COUNT 32 /* the width of the mask */
 #define LA9310_EVENT_MUX_VECTOR 0
 #define LA9310_SCRATCH_MSI_EVENTS_ADDR 2 /* M4 address of struct la9310_msi_events */
-#define LA9310_SCRATCH_MLOG_ADDR 9 /* M4 address of the firmware's memory log */
 
 /* The counters are last, so they can grow with the event count */
 struct la9310_msi_events {
@@ -65,15 +62,6 @@ enum la9310_boot_fsm {
     LA9310_HOST_START_DRIVER_INIT,
 };
 
-/* XXX:NOTE: Always increment HIF version when you add anything in
- * struct la9310_hif. Following are rules for MAJOR/MINOR increment
- * MAJOR version: If a new register/register group is added.
- * MINOR version: If a new bit/flag of a register is added.
- */
-
-#define LA9310_HIF_MAJOR_VERSION (1)
-#define LA9310_HIF_MINOR_VERSION (0)
-
 enum la9310_sw_cmd_status {
     LA9310_SW_CMD_STATUS_FREE,
     LA9310_SW_CMD_STATUS_POSTED,
@@ -91,30 +79,52 @@ struct la9310_sw_cmd_desc {
     uint32_t data[LA9310_SW_CMD_DATA_SIZE]; /* command specific data */
 };
 
-struct la9310_hif {
-    uint32_t ver;
-    uint32_t hif_ver;
-    uint32_t status;
-    uint32_t host_ready;
-    uint32_t mod_ready;
-    uint32_t adc_mask;
-    uint32_t adc_rate_mask; /* Set indicates half_rate */
-    uint32_t dac_mask;
-    uint32_t dac_rate_mask; /* Set indicates half_rate */
-    uint32_t iq_phys_addr;
-    uint32_t iq_mem_addr;
-    uint32_t iq_mem_size;
-    const uint32_t modem_rf_data_size;
-    const uint32_t irq_evt_regs[7]; // placeholder
-    const uint32_t dbg_log_regs[3];
-    const uint32_t stats[119]; // placeholder
-    const uint32_t ipc_regs[2]; // placeholder
-    struct la9310_sw_cmd_desc sw_cmd_desc;
-    const uint32_t rf_hif[24]; // placeholder
-} __attribute__((packed));
+/* Host interface table
+ *
+ * The M4 firmware describes the pieces of its host interface in a table of {type, address} entries, terminated by an
+ * entry of type LA9310_HIF_NONE. Like the VSPA firmware's features map, the table lets the firmware place the pieces
+ * wherever it wants, and lets the host find out which of them a firmware provides: the host looks up the entries it
+ * needs and treats a missing entry as an unsupported feature.
+ *
+ * Before the boot handshake reaches LA9310_HOST_START_DRIVER_INIT, the firmware publishes the M4 address of the table
+ * in scratch register LA9310_SCRATCH_HIF_TABLE_ADDR. The table's length is given only by its terminating entry, hosts
+ * stop after LA9310_HIF_TABLE_MAX_ENTRIES entries. The bootloader clears the register when the M4 firmware is
+ * reloaded, so the host has to look the table up again after a reload.
+ * Addresses are M4 addresses, in TCML (host BAR1) or TCMU (host BAR2).
+ *
+ * Entry types are wire IDs: append new ones at the end, never reorder or reuse them. */
+enum la9310_hif_type {
+    LA9310_HIF_NONE = 0, /* end of table */
+    LA9310_HIF_COMMAND = 1, /* struct la9310_sw_cmd_desc, host commands (enum M4_Command) */
+    LA9310_HIF_MEMORY_LOG = 2, /* struct MemoryLog, the firmware's memory log */
+};
 
-#define LA9310_VER_MAJOR(ver) ((ver >> 16) & 0xffff)
-#define LA9310_VER_MINOR(ver) (ver & 0xffff)
-#define LA9310_VER_MAKE(major, minor) (((major & 0xffff) << 16) | (minor & 0xffff))
+struct la9310_hif_entry {
+    uint32_t type; /* enum la9310_hif_type */
+    uint32_t address; /* M4 address */
+};
+
+#define LA9310_HIF_TABLE_MAX_ENTRIES 32 /* upper bound for hosts walking the table */
+
+/* Legacy host interface
+ *
+ * Firmware and host software that predate the table use struct la9310_legacy_hif at TCML + LA9310_LEGACY_HIF_OFFSET,
+ * whose size the firmware writes into scratch register LA9310_SCRATCH_LEGACY_HIF_SIZE. Its legacy firmware also writes
+ * LA9310_LEGACY_HIF_OFFSET into scratch register LA9310_SCRATCH_HIF_TABLE_ADDR. Only the parts that are needed to
+ * reload the firmware are kept, so that any version of the host software can replace any version of the firmware:
+ *  - hif_ver, which hosts check after they have loaded a firmware,
+ *  - sw_cmd_desc, for the LIME_M4_HEARTHBEAT and LIME_M4_BOOTLOADER commands. The firmware places its host command
+ *    descriptor (LA9310_HIF_COMMAND) here.
+ * The rest of the structure is unused. */
+#define LA9310_LEGACY_HIF_OFFSET 0x1B000
+#define LA9310_LEGACY_HIF_VERSION 0x00010000 /* hif_ver: version 1.0 */
+
+struct la9310_legacy_hif {
+    uint32_t ver; /* unused */
+    uint32_t hif_ver; /* LA9310_LEGACY_HIF_VERSION */
+    uint32_t reserved0[142];
+    struct la9310_sw_cmd_desc sw_cmd_desc; /* @ 0x240 */
+    uint32_t reserved1[24];
+}; /* 808 bytes */
 
 #endif

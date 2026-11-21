@@ -14,6 +14,7 @@
 #include <phytimer.h>
 
 #include "la9310_host_if.h"
+#include "host_if.h"
 #include "outbound_msi.h"
 
 #include "la9310_dcs_api.h"
@@ -47,7 +48,6 @@
 
 static struct vspa_regs *const s_VspaRegs = (struct vspa_regs *)VSPA_BASE_ADDR;
 static struct ccsr_dcr *const s_Dcr = (void *)DCR_BASE_ADDR;
-struct la9310_hif *const s_Hif = (struct la9310_hif *)((uint32_t)TCML_PHY_ADDR + LA9310_EP_HIF_OFFSET);
 extern ppsdo_context_t ppsdo;
 extern void SetXODAC(uint16_t value);
 extern uint16_t GetXODAC(void);
@@ -78,17 +78,6 @@ void axiq_loopback(bool bLoopbackEnable, uint32_t rx_mask)
     log_dbg("%s: IN_32( DBGGNCR ) = %#x" LOG_EOL, __func__, IN_32(DBGGNCR));
 }
 
-void v_main_Hif_Init(struct la9310_hif *pxHif)
-{
-    pxHif->adc_mask = 0xf;
-    pxHif->adc_rate_mask = 0xf;
-    pxHif->dac_mask = 0x1;
-    pxHif->dac_rate_mask = 0x1;
-
-    pxHif->hif_ver = LA9310_VER_MAKE( LA9310_HIF_MAJOR_VERSION, LA9310_HIF_MINOR_VERSION );
-    log_dbg("Initialized HIF - %d.%d" LOG_EOL, LA9310_HIF_MAJOR_VERSION, LA9310_HIF_MINOR_VERSION);
-}
-
 /* iLa9310HostPreInit: Host and La9310 both do a handshake for clock configuration
  * and init synchronization vLa9310_do_handshake(). Host waits in while loop for
  * La9310 to indicate Host that it can proceed with Initialization
@@ -102,7 +91,6 @@ void v_main_Hif_Init(struct la9310_hif *pxHif)
 static int iLa9310HostPreInit()
 {
     int irc = 0;
-    v_main_Hif_Init(s_Hif);
 #ifdef LMS7002M_CLOCK
     irc = limesdr_micro_initialize();
 #endif
@@ -163,18 +151,12 @@ static void SetupVSPA_IRQ(struct vspa_regs *regs)
     NVIC_EnableIRQ(IRQ_VSPA);
 }
 
-extern struct MemoryLog memlog;
 static int iInitHandler()
 {
     int irc = 0;
 
-    // fill scratch registers with Host Interface offset and size, for host driver to pick up.
-    OUT_32(&s_Dcr->ulScratchrw[LA9310_BOOT_HSHAKE_HIF_REG], LA9310_EP_HIF_OFFSET);
-    dmb();
-    OUT_32(&s_Dcr->ulScratchrw[LA9310_BOOT_HSHAKE_HIF_SIZ_REG], sizeof(struct la9310_hif));
-    dmb();
-
-    OUT_32(&s_Dcr->ulScratchrw[LA9310_SCRATCH_MLOG_ADDR], (uint32_t)&memlog);
+    // publish the host interface table, for the host to pick up
+    host_if_init(s_Dcr->ulScratchrw);
 #ifdef M4_DEBUGGER
     M4MonitorInit();
 #endif
@@ -216,7 +198,7 @@ static int iInitHandler()
 
     SetupVSPA_IRQ(s_VspaRegs);
 
-    vDcsInit(IN_32(&s_Hif->adc_mask), IN_32(&s_Hif->adc_rate_mask), IN_32(&s_Hif->dac_mask), IN_32(&s_Hif->dac_rate_mask));
+    limesdr_micro_dcs_init(LA9310_DCS_CLK_HZ);
     irc = SUCCESS;
 
 out:

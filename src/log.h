@@ -55,8 +55,8 @@
 #define log_dbg(...) LOG_EMIT_IF_(DEVICE_LOG_DBG_ENABLED, LOG_LEVEL_DBG, __VA_ARGS__)
 #define log_isr(...) LOG_EMIT_IF_(DEVICE_LOG_ISR_ENABLED, LOG_LEVEL_ISR, __VA_ARGS__)
 
-// In-memory log ring buffer the host reads. Its address is published in a DCR
-// scratch register (LA9310_SCRATCH_MLOG_ADDR); the layout must match
+// In-memory log ring buffer the host reads. The host finds it through the host
+// interface table (LA9310_HIF_MEMORY_LOG, la9310_host_if.h); the layout must match
 // MemoryLog_hif in limesuiteng src/chips/LA9310/firmware/memory_log.h.
 struct MemoryLog {
     char *buffer_addr;
@@ -65,6 +65,8 @@ struct MemoryLog {
     uint32_t host_consumed;
     uint32_t log_level; // runtime level shared by all logging domains
 };
+
+extern struct MemoryLog memlog;
 
 void memlog_clear();
 

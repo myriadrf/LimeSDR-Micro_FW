@@ -28,8 +28,8 @@ add_link_options(--specs=nano.specs)
 # Build time log level for a logging domain: messages above it are compiled
 # out, together with their strings. Values match LOG_LEVEL_* in la9310/log_core.h.
 set(LOG_LEVEL_NAMES NONE ERR WARN INFO DBG ISR ALL)
-function(add_log_level_option cache_var description target define)
-    set(${cache_var} "ALL" CACHE STRING "${description} (${LOG_LEVEL_NAMES})")
+function(add_log_level_option cache_var description target define default_level)
+    set(${cache_var} "${default_level}" CACHE STRING "${description} (${LOG_LEVEL_NAMES})")
     set_property(CACHE ${cache_var} PROPERTY STRINGS ${LOG_LEVEL_NAMES})
     string(TOUPPER "${${cache_var}}" level_name)
     list(FIND LOG_LEVEL_NAMES "${level_name}" level)

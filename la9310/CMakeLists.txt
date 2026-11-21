@@ -28,7 +28,7 @@ target_sources(la9310_cm4 PRIVATE
 target_compile_options(la9310_cm4 PRIVATE -Wformat)
 
 add_log_level_option(LA9310_LOG_LEVEL "la9310_cm4 library build time log level"
-    la9310_cm4 WARN)
+    la9310_cm4 LA9310_LOG_MAX_LEVEL_DEFAULT WARN)
 
 SET(LA9310_DCS_CLK_HZ "122880000" CACHE STRING "LA9310 post init DCS_CLK frequency")
 target_compile_definitions(la9310_cm4 PUBLIC LA9310_DCS_CLK_HZ=${LA9310_DCS_CLK_HZ})

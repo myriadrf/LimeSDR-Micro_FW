@@ -3,6 +3,7 @@
 #include "la9310_avi.h"
 #include "la9310_dcs_api.h"
 #include "la9310_host_if.h"
+#include "host_if.h"
 #include "la9310_i2cAPI.h"
 #include "io.h"
 #include "core_cm4.h"
@@ -27,7 +28,6 @@
 #include "ppsdo/gps.h"
 
 extern la9310_dspi_t g_dspi;
-extern struct la9310_hif *const s_Hif;
 extern ppsdo_context_t ppsdo;
 
 static uint16_t xo_dac_value = 0;
@@ -40,8 +40,6 @@ extern void UseExternalReferenceClock(bool external);
 extern int IsExternalRefClkUsed();
 extern void bootloader_reset_handler(void);
 extern void axiq_loopback(bool bLoopbackEnable, uint32_t rx_mask);
-
-extern void *GetFeaturesMap(void);
 
 extern struct lms7002m_context *rfsoc;
 
@@ -486,7 +484,7 @@ static void HandleCommand(volatile struct la9310_sw_cmd_desc *desc)
         break;
     }
     case LIME_M4_SET_SYSTEM_CLOCK_FREQUENCY: {
-        desc->data[0] = limesdr_micro_set_dcs_clk(s_Hif, desc->data[0]);
+        desc->data[0] = limesdr_micro_set_dcs_clk(desc->data[0], desc->data[1], desc->data[2]);
         status = LA9310_SW_CMD_STATUS_DONE;
         break;
     }
@@ -541,11 +539,6 @@ static void HandleCommand(volatile struct la9310_sw_cmd_desc *desc)
     }
     case LIME_M4_DIGITAL_LOOPBACK: {
         axiq_loopback(desc->data[0], SET_AXIQ_LOOPBACK_MASK_ALL);
-        status = LA9310_SW_CMD_STATUS_DONE;
-        break;
-    }
-    case LIME_M4_GET_FEATURES: {
-        desc->data[0] = (uint32_t)GetFeaturesMap();
         status = LA9310_SW_CMD_STATUS_DONE;
         break;
     }
@@ -609,7 +602,7 @@ static void HandleCommand(volatile struct la9310_sw_cmd_desc *desc)
 void ServiceCommands()
 {
     timer64_reset();
-    volatile struct la9310_sw_cmd_desc *pxCmdDesc = &(s_Hif->sw_cmd_desc);
+    volatile struct la9310_sw_cmd_desc *pxCmdDesc = &legacy_hif.sw_cmd_desc;
 
     while (runEngine)
     {

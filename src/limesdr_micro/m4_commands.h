@@ -18,7 +18,7 @@ enum M4_Command {
 
     LIME_M4_EMPTY, // 10
     LIME_M4_LMS64C_PACKET,
-    LIME_M4_SET_SYSTEM_CLOCK_FREQUENCY,
+    LIME_M4_SET_SYSTEM_CLOCK_FREQUENCY, // data[0]: DCS_CLK Hz, data[1]/data[2]: ADC/DAC half rate masks
     LIME_M4_GET_REFERENCE_CLOCK_FREQUENCY,
     LIME_M4_SET_REFERENCE_CLOCK_FREQUENCY,
     LIME_M4_BOOTLOADER,
@@ -30,7 +30,7 @@ enum M4_Command {
 
     LIME_M4_TX_SET_OVERSAMPLE, //20, unused
     LIME_M4_RX_SET_OVERSAMPLE, // unused
-    LIME_M4_GET_FEATURES,
+    LIME_M4_GET_FEATURES, // unused, the host finds the host interface through its table (la9310_host_if.h)
     LIME_M4_DMA,
     LIME_M4_IQSTREAM_CTRL, // unused
     LIME_M4_RX_CHANNEL_SELECT, // unused

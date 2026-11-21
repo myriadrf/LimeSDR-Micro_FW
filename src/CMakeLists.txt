@@ -46,7 +46,7 @@ endif()
 target_include_directories(limesdr-micro-m4 PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 
 add_log_level_option(DEVICE_LOG_LEVEL "LimeSDR-Micro board firmware build time log level"
-    limesdr-micro-m4 INFO)
+    limesdr-micro-m4 DEVICE_LOG_MAX_LEVEL_DEFAULT INFO)
 
 # Treat warnings as errors
 set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
@@ -74,7 +74,7 @@ target_include_directories(limesdr-micro-m4 PRIVATE
 
 target_sources(limesdr-micro-m4 PRIVATE
     print_scan.c
-    m4_memorymap.c
+    host_if.c
     outbound_msi.c
     inbound_irq.c
     profiling.c
