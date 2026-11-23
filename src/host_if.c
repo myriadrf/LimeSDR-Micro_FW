@@ -4,6 +4,7 @@
 
 #include "io.h"
 #include "log.h"
+#include "tx_tdd.h"
 
 _Static_assert(offsetof(struct la9310_legacy_hif, hif_ver) == 0x4, "legacy host interface layout");
 _Static_assert(offsetof(struct la9310_legacy_hif, sw_cmd_desc) == 0x240, "legacy host interface layout");
@@ -17,6 +18,7 @@ volatile struct la9310_legacy_hif legacy_hif __attribute__((section(".legacy_hif
 static const struct la9310_hif_entry hif_table[] = {
     { LA9310_HIF_COMMAND, (uint32_t)&legacy_hif.sw_cmd_desc },
     { LA9310_HIF_MEMORY_LOG, (uint32_t)&memlog },
+    { LA9310_HIF_TX_TDD_CONFIG, (uint32_t)&tx_tdd_config },
     { LA9310_HIF_NONE, 0 },
 };
 _Static_assert(sizeof(hif_table) / sizeof(hif_table[0]) <= LA9310_HIF_TABLE_MAX_ENTRIES, "host interface table is too long");

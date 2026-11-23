@@ -43,6 +43,22 @@ enum M4_Command {
     LIME_M4_PPSDO_CONFIG
 };
 
+// Tx TDD timing, same layout as the VSPA's tx_tdd_config_t (VSPA_MMAP_TX_TDD_CONFIG). The M4 publishes its copy in the
+// host interface table (LA9310_HIF_TX_TDD_CONFIG) and the host writes it directly; the M4 reads it on each TDD
+// start/end request from the VSPA and programs the comparators. Offsets are PHY timer ticks relative to the Tx
+// start/end phytime, *_comparator_out are enum ePhyTimerComparatorTrigger.
+typedef struct TxTDD_Config {
+    int16_t dac_allowed;
+    int16_t pa_on : 8;
+    int16_t pa_off : 8;
+    int16_t rf_sw_on : 8;
+    int16_t rf_sw_off : 8;
+    uint16_t rf_sw_on_comparator_out : 2;
+    uint16_t rf_sw_off_comparator_out : 2;
+    uint16_t pa_on_comparator_out : 2;
+    uint16_t pa_off_comparator_out : 2;
+} tx_tdd_config_t;
+
 struct ppsdo_control_payload {
     uint32_t enable;
 };

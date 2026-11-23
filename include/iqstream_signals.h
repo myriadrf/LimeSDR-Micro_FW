@@ -30,6 +30,7 @@ enum VTH_Signal {
     VTH_SIGNAL_RXLANE2_TCD_DONE = (1 << 7),
     VTH_SIGNAL_RXLANE3_TCD_DONE = (1 << 8),
     VTH_SIGNAL_TXLANE0_TCD_DONE = (1 << 14),
+    VTH_SIGNAL_TDD_SCHEDULE = (1 << 16),
     VTH_SIGNAL_ERROR = (1 << 31),
 };
 

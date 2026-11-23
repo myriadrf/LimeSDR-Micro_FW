@@ -37,6 +37,7 @@
 #include "ppsdo/ppsdo.h"
 #include "limesdr_micro/limesdr_micro.h"
 #include "ppsdo/gps.h"
+#include "vspa_mem.h"
 
 #if NXP_ERRATUM_A_009410
     #include "la9310_pci.h"
@@ -268,6 +269,8 @@ int main( void )
     gps_initialize(UART_CLOCK_IN_FROM_PLATFORM(PLATFORM_CLOCK_HZ));
 
     axiq_loopback(false, 0xF);
+
+    vspa_timer_request = (m4_phytimer_t *)vspa_memorymap_find(VSPA_MMAP_PHYTIME_SCHED);
 
     la9310_m4_init_complete(s_Dcr);
 

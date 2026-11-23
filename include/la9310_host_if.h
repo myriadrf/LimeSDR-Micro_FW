@@ -97,6 +97,7 @@ enum la9310_hif_type {
     LA9310_HIF_NONE = 0, /* end of table */
     LA9310_HIF_COMMAND = 1, /* struct la9310_sw_cmd_desc, host commands (enum M4_Command) */
     LA9310_HIF_MEMORY_LOG = 2, /* struct MemoryLog, the firmware's memory log */
+    LA9310_HIF_TX_TDD_CONFIG = 3, /* tx_tdd_config_t (m4_commands.h), Tx TDD timing, written by the host */
 };
 
 struct la9310_hif_entry {
