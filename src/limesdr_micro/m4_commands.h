@@ -40,7 +40,8 @@ enum M4_Command {
     LIME_M4_GPS_GET_STATUS,
     LIME_M4_GPS_SEND,
     LIME_M4_PPSDO_GET_STATUS,
-    LIME_M4_PPSDO_CONFIG
+    LIME_M4_PPSDO_CONFIG,
+    LIME_M4_OTP_GET_LOCK_STATUS // probes the EEPROM identification page lock, takes a few hundred microseconds
 };
 
 // Tx TDD timing, same layout as the VSPA's tx_tdd_config_t (VSPA_MMAP_TX_TDD_CONFIG). The M4 publishes its copy in the
@@ -129,6 +130,12 @@ struct gps_status_payload {
 // The response is a uint32_t lime_Result.
 struct gps_send_payload {
     char body[GPS_SEND_MAX_TEXT];
+};
+
+// LIME_M4_OTP_GET_LOCK_STATUS response
+struct otp_lock_status_payload {
+    uint32_t result; // lime_Result
+    uint32_t locked; // 1 if the OTP (EEPROM identification page) is permanently write protected, valid on success
 };
 
 #endif

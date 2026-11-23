@@ -752,6 +752,41 @@ int iLa9310_I2C_Write(uint32_t ulI2C_Regs_P,
     return ulRet_Bytes;
 }
 
+int iLa9310_I2C_WriteAckProbe(
+    uint32_t ulI2C_Regs_P, uint8_t ucDev_Addr, uint32_t ulDev_Offset, uint8_t ucDev_Offset_Len, uint8_t ucData)
+{
+    i2c_regs_t *i2c_regs = (i2c_regs_t *)ulI2C_Regs_P;
+    uint8_t ucTemp = 0;
+
+    int ret = prvCheck_Offset(ulDev_Offset, ucDev_Offset_Len, 1);
+    if (ret != 1)
+    {
+        return ret;
+    }
+
+    ret = prvInit_Source_Addr(i2c_regs, ucDev_Addr, ulDev_Offset, ucDev_Offset_Len, 0);
+    if (ret != 1)
+    {
+        return ret;
+    }
+
+    ret = prvTransmit_Byte(i2c_regs, ucData);
+
+    /* Repeated START before the STOP resets the slave's internal logic,
+     * so the truncated write is not executed */
+    ucTemp = IN_8(&i2c_regs->ucI2C_Ibcr);
+    ucTemp |= LA9310_I2C_CR_RSTA;
+    OUT_8(&i2c_regs->ucI2C_Ibcr, ucTemp);
+    vUDelay(LA9310_I2C_PROBE_RESTART_DELAY_US);
+    prvStop_I2C_Cntrl(i2c_regs);
+
+    if (ret == -I2C_NOACK)
+    {
+        la9310_log_dbg("in WAP,data byte not acknowledged" LOG_EOL);
+    }
+    return ret;
+}
+
 int iLa9310_I2C_Disable(uint32_t ulI2C_Regs_P)
 {
     i2c_regs_t *i2c_regs = NULL;

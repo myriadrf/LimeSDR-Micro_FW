@@ -2,6 +2,7 @@
 
 #include "la9310_i2cAPI.h"
 #include "immap.h"
+#include "la9310_error_codes.h"
 
 static const uint8_t eeprom_i2c_address = 0x50;
 // M24xxx-D identification page is accessed with device type identifier 0b1011 instead of 0b1010
@@ -71,5 +72,19 @@ bool EEPROM_ReadSerialNumber(uint64_t* serial)
     for (int i = OTP_UUID_OFFSET + OTP_UUID_LENGTH - 8; i < OTP_UUID_OFFSET + OTP_UUID_LENGTH; ++i)
         value = (value << 8) | otp[i];
     *serial = value;
+    return true;
+}
+
+// M24xxx-D "Reading the lock status": an identification page write with one data byte, aborted by a START condition.
+// The data byte is acknowledged only if the identification page is not locked.
+bool EEPROM_ReadIdPageLockStatus(bool* locked)
+{
+    const int ret = iLa9310_I2C_WriteAckProbe(LA9310_FSL_I2C1, eeprom_id_page_i2c_address, 0, LA9310_I2C_DEV_OFFSET_LEN_2_BYTE, 0);
+    if (ret == 1)
+        *locked = false;
+    else if (ret == -I2C_NOACK)
+        *locked = true;
+    else
+        return false;
     return true;
 }

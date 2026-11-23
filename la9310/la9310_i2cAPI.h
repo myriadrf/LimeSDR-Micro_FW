@@ -118,4 +118,31 @@ int iLa9310_I2C_Write(uint32_t ulI2C_Regs_P,
     const uint8_t *psrc,
     uint32_t ulD_Len);
 
+/* Time for the repeated START to complete before the STOP, two bit periods */
+#define LA9310_I2C_PROBE_RESTART_DELAY_US (2000000 / LA9310_I2C_FREQ + 1)
+
+/*****************************************************************************
+ *@iLa9310_I2C_WriteAckProbe
+ *
+ * Sends a truncated write: slave address, offset and a single data byte,
+ * followed by a repeated START and a STOP instead of a plain STOP, so that
+ * a slave like an EEPROM does not execute the write. Used to check whether
+ * the slave acknowledges data, e.g. the M24xxx-D identification page lock
+ * status.
+ *
+ * ulI2C_Regs_P    - [IN][M] address of I2C Module.
+ * ucDev_Addr      - [IN][M] address of the device (slave address)
+ * ulDev_Offset    - [IN][M] offset in the device
+ * ucDev_Offset_Len    - [IN][M] no. of bytes of offset length
+ * ucData          - [IN][M] the data byte to send
+ *
+ * Return Value -
+ *      1 - the data byte was acknowledged
+ *      -I2C_NOACK - the data byte was not acknowledged
+ *      other negative error - on error
+ ****************************************************************************/
+
+int iLa9310_I2C_WriteAckProbe(
+    uint32_t ulI2C_Regs_P, uint8_t ucDev_Addr, uint32_t ulDev_Offset, uint8_t ucDev_Offset_Len, uint8_t ucData);
+
 #endif /* _LA9310_I2C_H_ */

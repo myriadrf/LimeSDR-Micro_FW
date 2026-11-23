@@ -288,6 +288,7 @@ static int ProcessLMS64C_Command(const void* dataIn, void* dataOut)
     case 0x00: // GET_INFO
     {
         outPacket->status = 1;
+        memset(outPacket->payload, 0, sizeof(outPacket->payload));
         outPacket->payload[0] = 1; //firmware version
         outPacket->payload[1] = 29; // device id
         outPacket->payload[2] = 0; // protocol version
@@ -575,6 +576,17 @@ static void HandleCommand(volatile struct la9310_sw_cmd_desc *desc)
     case LIME_M4_GPS_GET_STATUS: {
         struct gps_status_payload response;
         FillGPSStatus(&response);
+        memcpy((void *)desc->data, &response, sizeof(response));
+        status = LA9310_SW_CMD_STATUS_DONE;
+        break;
+    }
+    case LIME_M4_OTP_GET_LOCK_STATUS: {
+        struct otp_lock_status_payload response = { .result = lime_Result_Success, .locked = 0 };
+        bool locked = false;
+        if (EEPROM_ReadIdPageLockStatus(&locked))
+            response.locked = locked ? 1 : 0;
+        else
+            response.result = lime_Result_IOFailure;
         memcpy((void *)desc->data, &response, sizeof(response));
         status = LA9310_SW_CMD_STATUS_DONE;
         break;
