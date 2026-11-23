@@ -28,6 +28,13 @@
 #define DWT_FUNCTION(n) (*(volatile uint32_t *)(0xE0001028u + 16u * (n)))
 #define DWT_FUNCTION_MATCHED (1u << 24)
 
+/* Cross-trigger interface of the M4 (CoreSight CTI on the shared matrix
+ * with the VSPA's CTI at 0xE0042000) */
+#define CTI_M4_APPPULSE (*(volatile uint32_t *)0xE004401Cu)
+#define CTI_M4_LAR (*(volatile uint32_t *)0xE0044FB0u)
+#define CTI_LAR_KEY 0xC5ACCE55u
+#define CTI_CH_M4_STOPPED 1u /* the channel JTAG sync halt uses for "M4 halted" */
+
 #define SHP_DEBUGMON 8u /* SCB->SHP[] index of exception 12 */
 #define EXC_DEBUGMON 12u
 #define PRIO_SHIFT (8u - __NVIC_PRIO_BITS)
@@ -210,6 +217,13 @@ static void WriteBack(uint32_t *frame, uint32_t *callee)
  * EXC_RETURN; returns when the host resumes. */
 __attribute__((used)) void M4MonitorStop(uint32_t *frame, uint32_t *callee, uint32_t exc_return)
 {
+    /* Announce the stop on a cross-trigger channel first, as a halted core
+     * would through the CTI's "halted" input (which a monitor stop does not
+     * drive). Without host-enabled routing the pulse goes nowhere; with it,
+     * the VSPA halts within a few cycles (synchronized halt, no probe). */
+    CTI_M4_LAR = CTI_LAR_KEY;
+    CTI_M4_APPPULSE = 1u << CTI_CH_M4_STOPPED;
+
     uint32_t exception;
     __asm volatile("mrs %0, ipsr" : "=r"(exception));
     exception &= 0x1FFu;
