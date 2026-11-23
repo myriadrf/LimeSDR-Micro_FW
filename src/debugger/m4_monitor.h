@@ -91,6 +91,14 @@ uint32_t M4MonitorAddress(void);
 /* Stop the running firmware (from the proxy's MSG3 interrupt): the stop
  * lands in the code that the interrupt preempted. */
 void M4MonitorRequestHalt(void);
+/* Around a proxy request in its interrupt: a debug event during the
+ * request (e.g. a cross-trigger halt request) would stop the firmware
+ * before the answer is written, and the host would wait for it in vain.
+ * Defer holds DebugMonitor at the caller's priority, so such a stop
+ * tail-chains after the interrupt; Allow undoes it unless a stop is
+ * pending. */
+uint32_t M4MonitorDeferStops(void);
+void M4MonitorAllowStops(uint32_t saved);
 
 /* Exception entry for the vector table: DebugMonitor and the faults */
 void M4MonitorEntry(void);

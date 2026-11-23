@@ -158,7 +158,14 @@ void VspaDebugProxyPoll(void)
     const uint32_t tag = proxy.cmd & 0xFF000000u;
     if (tag == (proxy.status & 0xFF000000u))
         return;
+#ifdef M4_DEBUGGER
+    const uint32_t debugmon = M4MonitorDeferStops();
+#endif
     const uint32_t error = Execute();
     dsb();
     proxy.status = tag | error;
+#ifdef M4_DEBUGGER
+    dsb();
+    M4MonitorAllowStops(debugmon);
+#endif
 }

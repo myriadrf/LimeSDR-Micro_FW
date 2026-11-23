@@ -96,6 +96,18 @@ uint32_t M4MonitorAddress(void)
     return (uint32_t)&mon;
 }
 
+/* priority of the exception the caller runs in (0 for thread mode) */
+static uint8_t CurrentPriority(void)
+{
+    uint32_t ipsr;
+    __asm volatile("mrs %0, ipsr" : "=r"(ipsr));
+    if (ipsr >= 16u)
+        return NVIC->IP[ipsr - 16u];
+    if (ipsr >= 4u)
+        return SCB->SHP[ipsr - 4u];
+    return 0;
+}
+
 void M4MonitorRequestHalt(void)
 {
     if (mon.state == M4_MON_HALTED)
@@ -104,15 +116,28 @@ void M4MonitorRequestHalt(void)
      * preempt it, and tail-chains when it returns: the stop lands in the
      * code the proxy interrupted, not in the proxy. M4MonitorStop() puts
      * the priority back. */
-    uint32_t ipsr;
-    __asm volatile("mrs %0, ipsr" : "=r"(ipsr));
-    uint8_t priority = 0;
-    if (ipsr >= 16u)
-        priority = NVIC->IP[ipsr - 16u];
-    else if (ipsr >= 4u)
-        priority = SCB->SHP[ipsr - 4u];
-    SCB->SHP[SHP_DEBUGMON] = priority;
+    SCB->SHP[SHP_DEBUGMON] = CurrentPriority();
     DEMCR |= DEMCR_MON_PEND;
+    dsb();
+}
+
+uint32_t M4MonitorDeferStops(void)
+{
+    const uint32_t saved = SCB->SHP[SHP_DEBUGMON];
+    SCB->SHP[SHP_DEBUGMON] = CurrentPriority();
+    dsb();
+    isb();
+    return saved;
+}
+
+void M4MonitorAllowStops(uint32_t saved)
+{
+    /* A stop that came up meanwhile (a halt request, a cross-trigger halt
+     * request, a watchpoint) stays deferred: it tail-chains when the
+     * interrupt returns, and M4MonitorStop() restores the priority. */
+    if ((DEMCR & DEMCR_MON_PEND) || ((SCB->ICSR >> 12) & 0x1FFu) == EXC_DEBUGMON)
+        return;
+    SCB->SHP[SHP_DEBUGMON] = saved;
     dsb();
 }
 
