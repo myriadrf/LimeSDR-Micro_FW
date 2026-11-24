@@ -58,12 +58,6 @@ target_compile_options(la9310-eeprom-bootup-pcie PRIVATE
     -Os
 )
 
-# TODO: restructure non changing la9310 headers into linkable target
-target_include_directories(la9310-eeprom-bootup-pcie PUBLIC
-    ${PROJECT_SOURCE_DIR}/src/include
-    ${PROJECT_SOURCE_DIR}/include
-)
-
 set(EEPROM_LINKER_SCRIPT "${CMAKE_CURRENT_LIST_DIR}/eeprom.ld")
 set_target_properties(la9310-eeprom-bootup-pcie PROPERTIES LINK_DEPENDS ${EEPROM_LINKER_SCRIPT})
 set_target_properties(la9310-eeprom-bootup-pcie PROPERTIES ADDITIONAL_CLEAN_FILES $<TARGET_FILE:la9310-eeprom-bootup-pcie>.map)
@@ -81,6 +75,12 @@ target_link_options(la9310-eeprom-bootup-pcie PRIVATE
 )
 
 target_link_libraries(la9310-eeprom-bootup-pcie PUBLIC bootloader la9310_cm4)
+target_firmware_metadata(la9310-eeprom-bootup-pcie
+    PRODUCT_ID ${FIRMWARE_PRODUCT_ID}
+    VERSION 1.0.0.0
+    GIT_REVISION
+    DESCRIPTION "Lime LA9310 PCIe bootloader"
+)
 
 set(BINARY_OUTPUT_FILE "${CMAKE_CURRENT_BINARY_DIR}/la9310-eeprom-bootup-pcie.bin")
 add_custom_target(la9310-eeprom-bootup-pcie-bin ALL

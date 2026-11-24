@@ -21,9 +21,12 @@ MEMORY
 
 SECTIONS
 {
-  .romboot_header :
+  .firmware_header :
   {
     KEEP(*(.romboot_header))
+    /* struct firmware_metadata (include/firmware_metadata.h), right after the boot header */
+    . = ALIGN(4);
+    KEEP(*(.firmware_metadata))
   } > eeprom
 
   /*

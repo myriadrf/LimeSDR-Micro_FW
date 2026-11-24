@@ -16,6 +16,7 @@ HEAP_SIZE = 1K;
 /* Specify the memory areas */
 MEMORY
 {
+  fw_image   (R)  : ORIGIN = 0x0, LENGTH = 128K
   /* TCML is 32bit accessible, 128K. Its top 20K are split off for the legacy host interface, so that the memory
      usage report shows what the firmware uses instead of the end of that interface. */
   m_tcml    (RWX) : ORIGIN = 0x1F800000, LENGTH = 0x1B000
@@ -23,27 +24,24 @@ MEMORY
 
   /* TCMU is 64bit accessible */
   m_dtcm    (RW)  : ORIGIN = 0x20000000, LENGTH = 64K
-  br_data   (R)   : ORIGIN = 0x2000F000, LENGTH = 0x00001000
 }
 
 /* Define output sections */
 SECTIONS
 {
-  .romboot_header :
+  .firmware_header :
   {
-    . = ALIGN(4);
-    __firmware_bin_start = .;
-    KEEP(*(*.romboot_header));
-  } > m_tcml
-  PROVIDE(__firmware_bin_src_offset = __firmware_bin_start - ORIGIN(m_tcml));
+    KEEP(*(.romboot_header));
+    KEEP(*(.firmware_metadata));
+  } AT > fw_image
 
   .text :
   {
-    KEEP(*(*.m4_reset_handler))
+    __executable_start = .;
     . = ALIGN(0x100); /* isr_vector must be aligned to a power of two boundary, with the minimum alignment being 128 bytes (or 0x80 bytes) */
     KEEP(*(.isr_vector))
-    KEEP (*(.init))
-    KEEP (*(.fini))
+    KEEP(*(.init))
+    KEEP(*(.fini))
 
     *(.text)
     *(.text*)
@@ -52,17 +50,17 @@ SECTIONS
     *(.glue_7)
     *(.glue_7t)
     *(.eh_frame)
-  } > m_tcml
+  } > m_tcml AT > fw_image
 
   .ARM.extab :
   {
     *(.ARM.extab* .gnu.linkonce.armextab.*)
-  } > m_tcml
+  } > m_tcml AT > fw_image
 
   .ARM :
   {
     *(.ARM.exidx*)
-  } > m_tcml
+  } > m_tcml AT > fw_image
 
  .ctors :
   {
@@ -86,7 +84,7 @@ SECTIONS
     KEEP (*(SORT(.ctors.*)))
     KEEP (*(.ctors))
     __CTOR_END__ = .;
-  } > m_tcml
+  } > m_tcml AT > fw_image
 
   .dtors :
   {
@@ -97,14 +95,14 @@ SECTIONS
     KEEP (*(SORT(.dtors.*)))
     KEEP (*(.dtors))
     __DTOR_END__ = .;
-  } > m_tcml
+  } > m_tcml AT > fw_image
 
   .preinit_array :
   {
     PROVIDE_HIDDEN (__preinit_array_start = .);
     KEEP (*(.preinit_array*))
     PROVIDE_HIDDEN (__preinit_array_end = .);
-  } > m_tcml
+  } > m_tcml AT > fw_image
 
   .init_array :
   {
@@ -112,7 +110,7 @@ SECTIONS
     KEEP (*(SORT(.init_array.*)))
     KEEP (*(.init_array*))
     PROVIDE_HIDDEN (__init_array_end = .);
-  } > m_tcml
+  } > m_tcml AT > fw_image
 
   .fini_array :
   {
@@ -121,7 +119,7 @@ SECTIONS
     KEEP (*(.fini_array*))
     PROVIDE_HIDDEN (__fini_array_end = .);
     __m_text_end = .;      /* create a global symbol at text end */
-  } > m_tcml
+  } > m_tcml AT > fw_image
 
   __etext = .;    /* define a global symbol at end of code */
 
@@ -135,11 +133,10 @@ SECTIONS
     KEEP(*(.jcr*))
     . = ALIGN(4);
     __data_end__ = .;        /* define a global symbol at data end */
-  } > m_tcml
+    __executable_end = .;
+  } > m_tcml AT > fw_image
 
-  .ARM.attributes 0 : { *(.ARM.attributes) } > m_tcml
-
-  PROVIDE(__firmware_bin_size = __data_end__ - __firmware_bin_start);
+  .ARM.attributes 0 : { *(.ARM.attributes) } > m_tcml AT > fw_image
 
   /* Uninitialized data section */
   .bss (NOLOAD) :
@@ -202,9 +199,9 @@ SECTIONS
 
   ASSERT(__StackLimit >= __HeapLimit, "region m_data overflowed with stack and heap")
 
-  PROVIDE_HIDDEN(__firmware_bin_size = __data_end__ - ADDR(.romboot_header));
-  PROVIDE_HIDDEN(__firmware_bin_src_offset = ADDR(.romboot_header) - ORIGIN(m_tcml));
-  PROVIDE_HIDDEN(__firmware_dest = ADDR(.romboot_header));
+  PROVIDE_HIDDEN(__firmware_bin_size = __executable_end - __executable_start);
+  PROVIDE_HIDDEN(__firmware_bin_src_offset = LOADADDR(.text) - ADDR(.firmware_header));
+  PROVIDE_HIDDEN(__firmware_dest = ADDR(.text));
   PROVIDE_HIDDEN(__firmware_entry = m4_reset_handler);
 
   ASSERT((__firmware_dest >= 0x1F800000 && __firmware_dest <= 0x1F830000) , "Fw out of range")

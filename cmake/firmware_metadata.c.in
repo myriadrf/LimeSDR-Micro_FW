@@ -1,0 +1,102 @@
+// Generated from cmake/firmware_metadata.c.in for target @FWMETA_TARGET@, do not edit
+#include "firmware_metadata.h"
+
+#cmakedefine01 FWMETA_HAS_PRODUCT_ID
+#cmakedefine01 FWMETA_HAS_VERSION
+#cmakedefine01 FWMETA_HAS_GIT_REVISION
+#cmakedefine01 FWMETA_HAS_DESCRIPTION
+
+// Each field is a header + data, its size padded to 4 bytes. The image packs the enabled fields back to back, so each
+// field's next_field_offset is just its own size.
+#define FIELD_HEADER(type_id, field_struct) { .type = (type_id), .next_field_offset = sizeof(field_struct) }
+
+#if FWMETA_HAS_PRODUCT_ID
+struct field_product_id {
+    struct firmware_metadata_field header;
+    uint16_t product_id;
+    uint8_t padding[2];
+} __attribute__((packed));
+#endif
+
+#if FWMETA_HAS_VERSION
+struct field_version {
+    struct firmware_metadata_field header;
+    struct firmware_metadata_version version;
+} __attribute__((packed));
+#endif
+
+#if FWMETA_HAS_GIT_REVISION
+struct field_git_revision {
+    struct firmware_metadata_field header;
+    uint32_t git_revision;
+} __attribute__((packed));
+#endif
+
+#if FWMETA_HAS_DESCRIPTION
+#define FIRMWARE_DESCRIPTION "@FWMETA_DESCRIPTION@"
+struct field_description {
+    struct firmware_metadata_field header;
+    char description[(sizeof(FIRMWARE_DESCRIPTION) + 3) & ~3];
+} __attribute__((packed));
+#endif
+
+struct firmware_metadata_image {
+    uint32_t magic;
+#if FWMETA_HAS_PRODUCT_ID
+    struct field_product_id product_id;
+#endif
+#if FWMETA_HAS_VERSION
+    struct field_version version;
+#endif
+#if FWMETA_HAS_GIT_REVISION
+    struct field_git_revision git_revision;
+#endif
+#if FWMETA_HAS_DESCRIPTION
+    struct field_description description;
+#endif
+    struct firmware_metadata_field end;
+} __attribute__((packed, aligned(4)));
+
+// Linker script places this right after the ROM boot header
+__attribute__((used, section(".firmware_metadata"))) static const struct firmware_metadata_image firmware_metadata = {
+    .magic = FIRMWARE_METADATA_MAGIC,
+#if FWMETA_HAS_PRODUCT_ID
+    .product_id = {
+        .header = FIELD_HEADER(FIRMWARE_METADATA_PRODUCT_ID, struct field_product_id),
+        .product_id = @FWMETA_PRODUCT_ID@,
+    },
+#endif
+#if FWMETA_HAS_VERSION
+    .version = {
+        .header = FIELD_HEADER(FIRMWARE_METADATA_VERSION, struct field_version),
+        .version = { @FWMETA_VERSION_MAJOR@, @FWMETA_VERSION_MINOR@, @FWMETA_VERSION_PATCH@, @FWMETA_VERSION_REVISION@ },
+    },
+#endif
+#if FWMETA_HAS_GIT_REVISION
+    .git_revision = {
+        .header = FIELD_HEADER(FIRMWARE_METADATA_GIT_REVISION, struct field_git_revision),
+        .git_revision = @FWMETA_GIT_REVISION@UL,
+    },
+#endif
+#if FWMETA_HAS_DESCRIPTION
+    .description = {
+        .header = FIELD_HEADER(FIRMWARE_METADATA_DESCRIPTION, struct field_description),
+        .description = FIRMWARE_DESCRIPTION,
+    },
+#endif
+    .end = { .type = FIRMWARE_METADATA_END, .next_field_offset = 0 },
+};
+
+// fields start 4 byte aligned
+#if FWMETA_HAS_PRODUCT_ID
+_Static_assert(sizeof(struct field_product_id) % 4 == 0, "field size must be a multiple of 4");
+#endif
+#if FWMETA_HAS_VERSION
+_Static_assert(sizeof(struct field_version) % 4 == 0, "field size must be a multiple of 4");
+#endif
+#if FWMETA_HAS_GIT_REVISION
+_Static_assert(sizeof(struct field_git_revision) % 4 == 0, "field size must be a multiple of 4");
+#endif
+#if FWMETA_HAS_DESCRIPTION
+_Static_assert(sizeof(struct field_description) % 4 == 0, "field size must be a multiple of 4");
+#endif

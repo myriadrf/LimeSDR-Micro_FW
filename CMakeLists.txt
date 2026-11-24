@@ -40,6 +40,10 @@ function(add_log_level_option cache_var description target define default_level)
     message(STATUS "${cache_var}: ${level_name}")
 endfunction()
 
+# eLMS_DEV board ID (LimeSuiteNG src/protocols/LMSBoards.h), LMS_DEV_LIMESDR_MICRO
+set(FIRMWARE_PRODUCT_ID 29)
+include(cmake/FirmwareMetadata.cmake)
+
 add_subdirectory(la9310)
 add_subdirectory(bootloader)
 # currently not utilizing FreeRTOS

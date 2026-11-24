@@ -56,11 +56,15 @@ option(LMS7002M_CLOCK "Configure LMS7002M clock generator to 153.6MHz" ON)
 add_subdirectory(debugger)
 target_link_libraries(limesdr-micro-m4 PRIVATE la9310-dbg-client-proxy)
 
-option(BOOT_HEADER "Prefix firmware with a boot header" ON)
+# The image always starts with the ROM boot header, the host and the ROM bootloader take the entry point from it
+target_sources(limesdr-micro-m4 PRIVATE romboot_header.c)
 
-if (BOOT_HEADER)
-    target_sources(limesdr-micro-m4 PRIVATE romboot_header.c)
-endif()
+target_firmware_metadata(limesdr-micro-m4
+    PRODUCT_ID ${FIRMWARE_PRODUCT_ID}
+    VERSION ${PROJECT_VERSION}
+    GIT_REVISION
+    DESCRIPTION "M4 default firmware"
+)
 
 if(LMS7002M_CLOCK)
     add_subdirectory(limesdr_micro)
@@ -113,7 +117,7 @@ add_custom_target(limesdr-micro-m4-bin ALL
 # feature name, status, description
 add_feature_info("EXT_REF_CLK" EXT_REF_CLK "Use external reference clock (${EXT_REF_CLK} Hz)")
 add_feature_info("LMS7002M_CLOCK" LMS7002M_CLOCK "Provide DCS_CLK from LMS7002M MCLK1 output")
-add_feature_info("BOOT_HEADER" BOOT_HEADER "Prefix firmware with a boot header")
+add_feature_info("FIRMWARE_METADATA" FIRMWARE_METADATA "Insert metadata fields (product ID, version, git revision, description) after the boot header")
 
 #########################################################################
 # summary
